@@ -119,7 +119,8 @@ jobs:
         if: ${{ !env.ACT && github.ref_type == 'tag' }}
         run: |
           cat > release-notes.md <<EOF
-          FLauncher fork — default home launcher for Zomp.Box.
+          Zomp fork of FLauncher — an Android TV home launcher with pointer/mouse
+          support and Firebase removed.
 
           | | |
           |---|---|
@@ -127,8 +128,8 @@ jobs:
           | versionCode | \`${{ steps.version.outputs.code }}\` |
           | SHA-256 | \`${{ steps.build.outputs.sha256 }}\` |
 
-          > Baked into the Zomp.Box image, this APK is repacked (stored libs) and
-          > re-signed with the Zomp apps key by \`fetch-apps.sh\` (ADR 0006).
+          > When preinstalled as a system app, this APK is repacked with
+          > uncompressed native libraries and re-signed.
           EOF
 
       - name: Publish GitHub Release
