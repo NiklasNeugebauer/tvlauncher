@@ -1,0 +1,135 @@
+name: Release APK
+
+# Build a signed release APK and publish it to a GitHub Release.
+#
+# Triggers:
+#   - push of a v* tag  -> builds AND publishes the release (the real thing)
+#   - workflow_dispatch -> builds + uploads the APK as a CI artifact only
+#                          (safe way to exercise the pipeline without cutting
+#                           a release)
+#
+# Versioning (Zomp convention: derive from git, never hardcode):
+#   versionName = the tag without its leading "v"  (0.0.0-dev off a tag-less run)
+#   versionCode = git commit height (rev-list --count)
+#
+# Runs unmodified under nektos/act: the setup + build + artifact-upload steps
+# execute; only the release-publish step is gated off act (you don't want a
+# local run creating real releases). When the signing secret is absent (a
+# typical local act run) a throwaway keystore is generated so the release build
+# still completes.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# Keep env.ACT parseable by the GitHub Actions schema linter on real CI.
+env:
+  ACT:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history: versionCode = commit count
+
+      - name: Derive version from git
+        id: version
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME="0.0.0-dev"
+          fi
+          CODE="$(git rev-list --count HEAD)"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "version: $NAME ($CODE)"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11" # AGP 7.1.1 / Gradle 7.4 need JDK 11
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.7.5" # pinned: FLauncher targets Dart 2.19
+          channel: stable
+          cache: true
+
+      - name: Set up Android SDK (platform 33, build-tools 33.0.2)
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+      - name: Prepare signing keystore
+        run: |
+          if [ -n "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" ]; then
+            echo "Using provided signing keystore."
+            echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          else
+            echo "No SIGNING_KEYSTORE_BASE64 secret (local act run?) — generating a throwaway keystore."
+            keytool -genkeypair -keystore android/app/upload-keystore.jks -alias ci-dev \
+              -keyalg RSA -keysize 2048 -validity 3650 \
+              -storepass ci-dev-pass -keypass ci-dev-pass \
+              -dname "CN=FLauncher CI Dev, O=Zomp, C=US"
+          fi
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: Build release APK
+        id: build
+        env:
+          # Real secrets on CI; matching throwaway defaults for keyless act runs.
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD || 'ci-dev-pass' }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD || 'ci-dev-pass' }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS || 'ci-dev' }}
+        run: |
+          flutter build apk --release \
+            --build-name="${{ steps.version.outputs.name }}" \
+            --build-number="${{ steps.version.outputs.code }}"
+          OUT="flauncher-${GITHUB_REF_NAME}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$OUT"
+          SHA="$(sha256sum "$OUT" | cut -d' ' -f1)"
+          echo "apk=$OUT" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "built $OUT  sha256=$SHA"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flauncher-apk
+          path: ${{ steps.build.outputs.apk }}
+          retention-days: 5
+
+      - name: Compose release notes
+        if: ${{ !env.ACT && github.ref_type == 'tag' }}
+        run: |
+          cat > release-notes.md <<EOF
+          FLauncher fork — default home launcher for Zomp.Box.
+
+          | | |
+          |---|---|
+          | versionName | \`${{ steps.version.outputs.name }}\` |
+          | versionCode | \`${{ steps.version.outputs.code }}\` |
+          | SHA-256 | \`${{ steps.build.outputs.sha256 }}\` |
+
+          > Baked into the Zomp.Box image, this APK is repacked (stored libs) and
+          > re-signed with the Zomp apps key by \`fetch-apps.sh\` (ADR 0006).
+          EOF
+
+      - name: Publish GitHub Release
+        if: ${{ !env.ACT && github.ref_type == 'tag' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.build.outputs.apk }}
+          body_path: release-notes.md
+          fail_on_unmatched_files: true
