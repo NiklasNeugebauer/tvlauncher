@@ -63,8 +63,13 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Set up Android SDK (platform 33, build-tools 33.0.2)
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Pin the 2022-era cmdline-tools: its sdkmanager still runs on JDK 11.
+          # The default (latest) requires JDK 17, which AGP 7.1.1 / Gradle 7.4
+          # cannot use for the build.
+          cmdline-tools-version: "9477386"
 
       - name: Install SDK packages
         run: sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
