@@ -1,3 +1,20 @@
+> **Zomp fork of FLauncher.** This is a modified version of
+> [FLauncher](https://gitlab.com/etienn01/flauncher) (GPL-3.0), maintained by
+> [Zomp](https://zomp.com) as the default home launcher for Zomp.Box.
+>
+> Changes from upstream 0.18.0 (2026-07):
+> - **Pointer / mouse support** — app cards respond to mouse hover (focus) and
+>   click (launch), so air-mouse remotes work. Offered back upstream.
+> - **Firebase removed** — Crashlytics, Analytics and Remote Config stripped, so
+>   the launcher runs fully offline with no telemetry (Zomp.Box is an
+>   offline-first, privacy-positioned appliance). As a consequence, Unsplash
+>   online wallpaper browsing is disabled; local wallpapers and gradients are
+>   unaffected.
+>
+> Licensed under GPL-3.0, the same as upstream — see [LICENSE](LICENSE).
+
+---
+
 # FLauncher
 FLauncher is an open-source alternative launcher for Android TV, built with [Flutter](https://flutter.dev).
 
