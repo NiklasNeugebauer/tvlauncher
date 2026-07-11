@@ -62,6 +62,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     ),
   );
   Color _lastBorderColor = Colors.white;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -85,6 +86,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _animation.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -116,8 +118,10 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                 children: [
                   InkWell(
                     autofocus: widget.autofocus,
+                    focusNode: _focusNode,
                     focusColor: Colors.transparent,
-                    onTap: () => _onPressed(context, null),
+                    onTap: () => _onTap(context),
+                    onHover: _onHover,
                     onLongPress: () => _onLongPress(context, null),
                     child: widget.application.banner != null
                         ? Ink.image(image: _cachedMemoryImage(widget.application.banner!), fit: BoxFit.cover)
@@ -247,6 +251,28 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  // Pointer / air-mouse support. Hovering a card selects it, mirroring the
+  // D-pad focus model that every visual state in build() reads from
+  // Focus.of(context).hasFocus. The !_moving guard keeps a stray hover from
+  // stealing focus while a card is being repositioned with the D-pad.
+  void _onHover(bool hovering) {
+    if (hovering && !_moving && !_focusNode.hasFocus) {
+      _focusNode.requestFocus();
+    }
+  }
+
+  // A pointer tap is the equivalent of pressing the D-pad select key: launch
+  // the app, or drop it in place when reordering. (The keyboard path passes a
+  // LogicalKeyboardKey to _onPressed; a tap has no key, so it is handled here.)
+  void _onTap(BuildContext context) {
+    if (_moving) {
+      setState(() => _moving = false);
+      widget.onMoveEnd();
+    } else {
+      context.read<AppsService>().launchApp(widget.application);
+    }
   }
 
   KeyEventResult _onLongPress(BuildContext context, LogicalKeyboardKey? key) {

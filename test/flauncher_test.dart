@@ -27,6 +27,7 @@ import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/category_row.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -643,6 +644,85 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     expect(Focus.of(settingsIcon).hasFocus, isTrue);
+  });
+
+  // --- Pointer / air-mouse support -----------------------------------------
+
+  testWidgets("Tapping on app launches it", (tester) async {
+    final wallpaperService = MockWallpaperService();
+    final appsService = MockAppsService();
+    final settingsService = MockSettingsService();
+    when(appsService.initialized).thenReturn(true);
+    when(wallpaperService.wallpaperBytes).thenReturn(null);
+    when(wallpaperService.gradient).thenReturn(FLauncherGradients.greatWhale);
+    when(settingsService.use24HourTimeFormat).thenReturn(false);
+    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+    final app = fakeApp(
+      packageName: "me.efesser.flauncher",
+      name: "FLauncher",
+      version: "1.0.0",
+      banner: kTransparentImage,
+      icon: kTransparentImage,
+    );
+    final applicationsCategory = fakeCategory(name: "Applications", order: 1);
+    when(appsService.categoriesWithApps).thenReturn([
+      CategoryWithApps(fakeCategory(name: "Favorites", order: 0), []),
+      CategoryWithApps(applicationsCategory, [app]),
+    ]);
+    await _pumpWidgetWithProviders(tester, wallpaperService, appsService, settingsService);
+
+    await tester.tap(find.byKey(Key("${applicationsCategory.id}-me.efesser.flauncher")));
+    await tester.pump();
+
+    verify(appsService.launchApp(app));
+  });
+
+  testWidgets("Hovering over app focuses it", (tester) async {
+    final wallpaperService = MockWallpaperService();
+    final appsService = MockAppsService();
+    final settingsService = MockSettingsService();
+    when(appsService.initialized).thenReturn(true);
+    when(wallpaperService.wallpaperBytes).thenReturn(null);
+    when(wallpaperService.gradient).thenReturn(FLauncherGradients.greatWhale);
+    when(settingsService.use24HourTimeFormat).thenReturn(false);
+    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+    final applicationsCategory = fakeCategory(name: "Applications", order: 1);
+    when(appsService.categoriesWithApps).thenReturn([
+      CategoryWithApps(fakeCategory(name: "Favorites", order: 0), []),
+      CategoryWithApps(applicationsCategory, [
+        fakeApp(
+          packageName: "me.efesser.flauncher",
+          name: "FLauncher",
+          version: "1.0.0",
+          banner: kTransparentImage,
+          icon: kTransparentImage,
+        ),
+        fakeApp(
+          packageName: "me.efesser.flauncher.2",
+          name: "FLauncher 2",
+          version: "1.0.0",
+          banner: kTransparentImage,
+          icon: kTransparentImage,
+        ),
+      ]),
+    ]);
+    await _pumpWidgetWithProviders(tester, wallpaperService, appsService, settingsService);
+
+    // The first app is auto-focused; the second is not.
+    final firstCard = findAppCardByPackageName(tester, "me.efesser.flauncher")!;
+    final secondCard = findAppCardByPackageName(tester, "me.efesser.flauncher.2")!;
+    expect(Focus.of(firstCard).hasFocus, isTrue);
+    expect(Focus.of(secondCard).hasFocus, isFalse);
+
+    // Move a mouse pointer over the second card: it must take focus.
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset.zero);
+    addTearDown(() => gesture.removePointer());
+    await gesture.moveTo(tester.getCenter(find.byKey(Key("${applicationsCategory.id}-me.efesser.flauncher.2"))));
+    await tester.pump();
+
+    expect(Focus.of(firstCard).hasFocus, isFalse);
+    expect(Focus.of(secondCard).hasFocus, isTrue);
   });
 }
 
