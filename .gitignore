@@ -47,3 +47,8 @@ app.*.map.json
 
 android/app/google-services.json
 coverage/
+
+# Zomp fork: signing keys and built artifacts must never be committed
+/dist/
+android/app/upload-keystore.jks
+android/app/secret.properties
