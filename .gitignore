@@ -52,3 +52,6 @@ coverage/
 /dist/
 android/app/upload-keystore.jks
 android/app/secret.properties
+
+# Private device/network notes
+*.local.md
