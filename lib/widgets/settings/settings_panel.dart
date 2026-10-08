@@ -27,7 +27,7 @@ import 'package:flutter/material.dart';
 class SettingsPanel extends StatefulWidget {
   final String? initialRoute;
 
-  const SettingsPanel({Key? key, this.initialRoute}) : super(key: key);
+  const SettingsPanel({super.key, this.initialRoute});
 
   @override
   State<SettingsPanel> createState() => _SettingsPanelState();
@@ -37,33 +37,42 @@ class _SettingsPanelState extends State<SettingsPanel> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
-  Widget build(BuildContext context) => WillPopScope(
-        onWillPop: () async => !await _navigatorKey.currentState!.maybePop(),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: RightPanelDialog(
-            width: 350,
-            child: Navigator(
-              key: _navigatorKey,
-              initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,
-              onGenerateRoute: (settings) {
-                switch (settings.name) {
-                  case QuickSettingsPage.routeName:
-                    return MaterialPageRoute(builder: (_) => QuickSettingsPage());
-                  case SettingsPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => SettingsPanelPage());
-                  case WallpaperPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
-                  case GradientPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => GradientPanelPage());
-                  case HiddenAppsPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => HiddenAppsPanelPage());
-                  default:
-                    throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
-                }
-              },
-            ),
-          ),
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    // Back walks the panel's own navigator first; the panel itself closes once that is exhausted.
+    onPopInvokedWithResult: (didPop, _) async {
+      if (didPop || await _navigatorKey.currentState!.maybePop()) {
+        return;
+      }
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+    },
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RightPanelDialog(
+        width: 350,
+        child: Navigator(
+          key: _navigatorKey,
+          initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case QuickSettingsPage.routeName:
+                return MaterialPageRoute(builder: (_) => QuickSettingsPage());
+              case SettingsPanelPage.routeName:
+                return MaterialPageRoute(builder: (_) => SettingsPanelPage());
+              case WallpaperPanelPage.routeName:
+                return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
+              case GradientPanelPage.routeName:
+                return MaterialPageRoute(builder: (_) => GradientPanelPage());
+              case HiddenAppsPanelPage.routeName:
+                return MaterialPageRoute(builder: (_) => HiddenAppsPanelPage());
+              default:
+                throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
+            }
+          },
         ),
-      );
+      ),
+    ),
+  );
 }

@@ -29,47 +29,47 @@ class HiddenAppsPanelPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        children: [
-          Text("Hidden apps", style: Theme.of(context).textTheme.titleLarge),
-          Divider(),
-          Expanded(
-            child: Selector<AppsService, List<App>>(
-              selector: (_, appsService) => appsService.applications.where((app) => app.hidden).toList(),
-              builder: (context, applications, _) => applications.isEmpty
-                  ? Center(child: Text("No hidden apps.", style: Theme.of(context).textTheme.bodyMedium))
-                  : ListView(
-                      children: [
-                        for (int index = 0; index < applications.length; ++index)
-                          EnsureVisible(
-                            alignment: 0.5,
-                            child: _appCard(context, applications[index], autofocus: index == 0),
-                          ),
-                      ],
-                    ),
-            ),
-          ),
-        ],
-      );
+    children: [
+      Text("Hidden apps", style: Theme.of(context).textTheme.titleLarge),
+      Divider(),
+      Expanded(
+        child: Selector<AppsService, List<App>>(
+          selector: (_, appsService) => appsService.applications.where((app) => app.hidden).toList(),
+          builder: (context, applications, _) => applications.isEmpty
+              ? Center(child: Text("No hidden apps.", style: Theme.of(context).textTheme.bodyMedium))
+              : ListView(
+                  children: [
+                    for (int index = 0; index < applications.length; ++index)
+                      EnsureVisible(
+                        alignment: 0.5,
+                        child: _appCard(context, applications[index], autofocus: index == 0),
+                      ),
+                  ],
+                ),
+        ),
+      ),
+    ],
+  );
 
   Widget _appCard(BuildContext context, App application, {required bool autofocus}) => Card(
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          contentPadding: EdgeInsets.symmetric(horizontal: 8),
-          title: Text(
-            application.name,
-            style: Theme.of(context).textTheme.bodyMedium,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          leading: application.icon != null ? Image.memory(application.icon!, height: 48) : Icon(Icons.android),
-          trailing: IconButton(
-            autofocus: autofocus,
-            constraints: BoxConstraints(),
-            splashRadius: 20,
-            tooltip: "Unhide",
-            icon: Icon(Icons.visibility),
-            onPressed: () => context.read<AppsService>().unHideApplication(application),
-          ),
-        ),
-      );
+    clipBehavior: Clip.antiAlias,
+    child: ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 8),
+      title: Text(
+        application.name,
+        style: Theme.of(context).textTheme.bodyMedium,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      leading: application.icon != null ? Image.memory(application.icon!, height: 48) : Icon(Icons.android),
+      trailing: IconButton(
+        autofocus: autofocus,
+        constraints: BoxConstraints(),
+        splashRadius: 20,
+        tooltip: "Unhide",
+        icon: Icon(Icons.visibility),
+        onPressed: () => context.read<AppsService>().unHideApplication(application),
+      ),
+    ),
+  );
 }

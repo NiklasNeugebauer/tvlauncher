@@ -85,14 +85,14 @@ class AppsService extends ChangeNotifier {
   }
 
   AppsCompanion _buildAppCompanion(dynamic data) => AppsCompanion(
-        packageName: Value(data["packageName"]),
-        name: Value(data["name"]),
-        version: Value(data["version"] ?? "(unknown)"),
-        banner: Value(data["banner"]),
-        icon: Value(data["icon"]),
-        hidden: Value.absent(),
-        sideloaded: Value(data["sideloaded"]),
-      );
+    packageName: Value(data["packageName"]),
+    name: Value(data["name"]),
+    version: Value(data["version"] ?? "(unknown)"),
+    banner: Value(data["banner"]),
+    icon: Value(data["icon"]),
+    hidden: Value.absent(),
+    sideloaded: Value(data["sideloaded"]),
+  );
 
   /// Runs on every start so a database without categories (fresh install, or all deleted) always ends up with a
   /// hero category, and a hero created by older code is ordered manually.
@@ -156,7 +156,10 @@ class AppsService extends ChangeNotifier {
   Future<void> startAmbientMode() => _fLauncherChannel.startAmbientMode();
 
   void setPlatformHandlers({required void Function() onHomePressed, required void Function() onQuickSettingsPressed}) =>
-      _fLauncherChannel.setPlatformHandlers(onHomePressed: onHomePressed, onQuickSettingsPressed: onQuickSettingsPressed);
+      _fLauncherChannel.setPlatformHandlers(
+        onHomePressed: onHomePressed,
+        onQuickSettingsPressed: onQuickSettingsPressed,
+      );
 
   Future<void> addToHero(App app) => addToCategory(app, heroCategory!);
 
@@ -169,11 +172,7 @@ class AppsService extends ChangeNotifier {
   Future<void> addToCategory(App app, Category category, {bool shouldNotifyListeners = true}) async {
     int index = await _database.nextAppCategoryOrder(category.id) ?? 0;
     await _database.insertAppsCategories([
-      AppsCategoriesCompanion.insert(
-        categoryId: category.id,
-        appPackageName: app.packageName,
-        order: index,
-      )
+      AppsCategoriesCompanion.insert(categoryId: category.id, appPackageName: app.packageName, order: index),
     ]);
     _categoriesWithApps = await _database.listCategoriesWithVisibleApps();
     _recomputeGridApps();
@@ -193,11 +192,13 @@ class AppsService extends ChangeNotifier {
     final applications = _categoriesWithApps.firstWhere((element) => element.category.id == category.id).applications;
     final orderedAppCategories = <AppsCategoriesCompanion>[];
     for (int i = 0; i < applications.length; ++i) {
-      orderedAppCategories.add(AppsCategoriesCompanion(
-        categoryId: Value(category.id),
-        appPackageName: Value(applications[i].packageName),
-        order: Value(i),
-      ));
+      orderedAppCategories.add(
+        AppsCategoriesCompanion(
+          categoryId: Value(category.id),
+          appPackageName: Value(applications[i].packageName),
+          order: Value(i),
+        ),
+      );
     }
     await _database.replaceAppsCategories(orderedAppCategories);
     _categoriesWithApps = await _database.listCategoriesWithVisibleApps();
@@ -226,5 +227,4 @@ class AppsService extends ChangeNotifier {
     _recomputeGridApps();
     notifyListeners();
   }
-
 }

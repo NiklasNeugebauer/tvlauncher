@@ -131,7 +131,9 @@ extension Geometry on FocusNode {
   }
 
   double distance(FocusNode other) {
-    return sqrt(pow(rect.center.dx.round() - other.rect.center.dx.round(), 2) +
-        pow(rect.center.dy.round() - other.rect.center.dy.round(), 2));
+    return sqrt(
+      pow(rect.center.dx.round() - other.rect.center.dx.round(), 2) +
+          pow(rect.center.dy.round() - other.rect.center.dy.round(), 2),
+    );
   }
 }

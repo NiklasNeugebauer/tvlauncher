@@ -81,21 +81,15 @@ class CategoryWithApps {
   CategoryWithApps(this.category, this.applications);
 }
 
-enum CategorySort {
-  manual,
-  alphabetical,
-}
+enum CategorySort { manual, alphabetical }
 
-enum CategoryType {
-  row,
-  grid,
-}
+enum CategoryType { row, grid }
 
 @DriftDatabase(tables: [Apps, Categories, AppsCategories])
 class FLauncherDatabase extends _$FLauncherDatabase {
   late final bool wasCreated;
 
-  FLauncherDatabase(DatabaseConnection databaseConnection) : super(databaseConnection);
+  FLauncherDatabase(DatabaseConnection super.databaseConnection);
 
   FLauncherDatabase.inMemory() : super(LazyDatabase(() => NativeDatabase.memory()));
 
@@ -104,34 +98,36 @@ class FLauncherDatabase extends _$FLauncherDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (migrator) async {
-          await migrator.createAll();
-        },
-        onUpgrade: (migrator, from, to) async {
-          if (from <= 1) {
-            await migrator.alterTable(TableMigration(apps, newColumns: [apps.hidden, apps.sideloaded]));
-          }
-          if (from <= 2 && from != 1) {
-            await migrator.addColumn(apps, apps.hidden);
-          }
-          if (from <= 3) {
-            await migrator.addColumn(categories, categories.sort);
-            await migrator.addColumn(categories, categories.type);
-            await migrator.addColumn(categories, categories.rowHeight);
-            await migrator.addColumn(categories, categories.columnsCount);
-            await (update(categories)..where((tbl) => tbl.name.equals("Applications")))
-                .write(CategoriesCompanion(type: Value(CategoryType.grid)));
-          }
-          if (from <= 4 && from != 1) {
-            await migrator.addColumn(apps, apps.sideloaded);
-          }
-        },
-        beforeOpen: (openingDetails) async {
-          await customStatement('PRAGMA foreign_keys = ON;');
-          await customStatement('PRAGMA journal_mode = WAL;');
-          wasCreated = openingDetails.wasCreated;
-        },
-      );
+    onCreate: (migrator) async {
+      await migrator.createAll();
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from <= 1) {
+        // ignore: experimental_member_use
+        await migrator.alterTable(TableMigration(apps, newColumns: [apps.hidden, apps.sideloaded]));
+      }
+      if (from <= 2 && from != 1) {
+        await migrator.addColumn(apps, apps.hidden);
+      }
+      if (from <= 3) {
+        await migrator.addColumn(categories, categories.sort);
+        await migrator.addColumn(categories, categories.type);
+        await migrator.addColumn(categories, categories.rowHeight);
+        await migrator.addColumn(categories, categories.columnsCount);
+        await (update(
+          categories,
+        )..where((tbl) => tbl.name.equals("Applications"))).write(CategoriesCompanion(type: Value(CategoryType.grid)));
+      }
+      if (from <= 4 && from != 1) {
+        await migrator.addColumn(apps, apps.sideloaded);
+      }
+    },
+    beforeOpen: (openingDetails) async {
+      await customStatement('PRAGMA foreign_keys = ON;');
+      await customStatement('PRAGMA journal_mode = WAL;');
+      wasCreated = openingDetails.wasCreated;
+    },
+  );
 
   Future<List<App>> listApplications() =>
       (select(apps)..orderBy([(expr) => OrderingTerm.asc(expr.name.lower())])).get();
@@ -150,9 +146,9 @@ class FLauncherDatabase extends _$FLauncherDatabase {
   Future<void> updateCategory(int id, CategoriesCompanion value) =>
       (update(categories)..where((tbl) => tbl.id.equals(id))).write(value);
 
-  Future<void> deleteAppCategory(int categoryId, String packageName) => (delete(appsCategories)
-        ..where((tbl) => tbl.categoryId.equals(categoryId) & tbl.appPackageName.equals(packageName)))
-      .go();
+  Future<void> deleteAppCategory(int categoryId, String packageName) => (delete(
+    appsCategories,
+  )..where((tbl) => tbl.categoryId.equals(categoryId) & tbl.appPackageName.equals(packageName))).go();
 
   Future<void> insertAppsCategories(List<AppsCategoriesCompanion> value) =>
       batch((batch) => batch.insertAll(appsCategories, value, mode: InsertMode.insertOrIgnore));
@@ -168,9 +164,7 @@ class FLauncherDatabase extends _$FLauncherDatabase {
     query.orderBy([
       OrderingTerm.asc(categories.order),
       OrderingTerm.asc(
-        categories.sort.caseMatch(
-          when: {Constant(0): appsCategories.order, Constant(1): apps.name.lower()},
-        ),
+        categories.sort.caseMatch(when: {Constant(0): appsCategories.order, Constant(1): apps.name.lower()}),
       ),
     ]);
 
@@ -198,7 +192,7 @@ class FLauncherDatabase extends _$FLauncherDatabase {
 }
 
 DatabaseConnection connect() => DatabaseConnection.delayed(() async {
-      final dbFolder = await getApplicationDocumentsDirectory();
-      final file = File(path.join(dbFolder.path, 'db.sqlite'));
-      return DatabaseConnection(NativeDatabase(file, logStatements: kDebugMode));
-    }());
+  final dbFolder = await getApplicationDocumentsDirectory();
+  final file = File(path.join(dbFolder.path, 'db.sqlite'));
+  return DatabaseConnection(NativeDatabase(file, logStatements: kDebugMode));
+}());

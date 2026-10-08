@@ -17,7 +17,7 @@
  */
 
 import 'package:drift/drift.dart';
-import 'package:drift_dev/api/migrations.dart';
+import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flauncher/database.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,7 +39,9 @@ void main() {
     final schema = await verifier.schemaAt(1);
 
     final oldDb = v1.DatabaseAtV1(schema.newConnection().executor);
-    await oldDb.into(oldDb.apps).insert(
+    await oldDb
+        .into(oldDb.apps)
+        .insert(
           v1.AppsCompanion.insert(
             packageName: "me.efesser.flauncher",
             name: "FLauncher",
@@ -49,10 +51,12 @@ void main() {
             banner: Value(Uint8List.fromList([0x02])),
           ),
         );
-    final categoryId = await oldDb.into(oldDb.categories).insert(
-          v1.CategoriesCompanion.insert(name: "Applications", order: 0),
-        );
-    await oldDb.into(oldDb.appsCategories).insert(
+    final categoryId = await oldDb
+        .into(oldDb.categories)
+        .insert(v1.CategoriesCompanion.insert(name: "Applications", order: 0));
+    await oldDb
+        .into(oldDb.appsCategories)
+        .insert(
           v1.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
         );
     await oldDb.close();
@@ -89,7 +93,9 @@ void main() {
     final schema = await verifier.schemaAt(2);
 
     final oldDb = v2.DatabaseAtV2(schema.newConnection().executor);
-    await oldDb.into(oldDb.apps).insert(
+    await oldDb
+        .into(oldDb.apps)
+        .insert(
           v2.AppsCompanion.insert(
             packageName: "me.efesser.flauncher",
             name: "FLauncher",
@@ -98,10 +104,12 @@ void main() {
             banner: Value(Uint8List.fromList([0x02])),
           ),
         );
-    final categoryId = await oldDb.into(oldDb.categories).insert(
-          v2.CategoriesCompanion.insert(name: "Applications", order: 0),
-        );
-    await oldDb.into(oldDb.appsCategories).insert(
+    final categoryId = await oldDb
+        .into(oldDb.categories)
+        .insert(v2.CategoriesCompanion.insert(name: "Applications", order: 0));
+    await oldDb
+        .into(oldDb.appsCategories)
+        .insert(
           v2.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
         );
     await oldDb.close();
@@ -138,7 +146,9 @@ void main() {
     final schema = await verifier.schemaAt(3);
 
     final oldDb = v3.DatabaseAtV3(schema.newConnection().executor);
-    await oldDb.into(oldDb.apps).insert(
+    await oldDb
+        .into(oldDb.apps)
+        .insert(
           v3.AppsCompanion.insert(
             packageName: "me.efesser.flauncher",
             name: "FLauncher",
@@ -147,10 +157,12 @@ void main() {
             banner: Value(Uint8List.fromList([0x02])),
           ),
         );
-    final categoryId = await oldDb.into(oldDb.categories).insert(
-          v3.CategoriesCompanion.insert(name: "Applications", order: 0),
-        );
-    await oldDb.into(oldDb.appsCategories).insert(
+    final categoryId = await oldDb
+        .into(oldDb.categories)
+        .insert(v3.CategoriesCompanion.insert(name: "Applications", order: 0));
+    await oldDb
+        .into(oldDb.appsCategories)
+        .insert(
           v3.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
         );
     await oldDb.close();
@@ -187,7 +199,9 @@ void main() {
     final schema = await verifier.schemaAt(4);
 
     final oldDb = v4.DatabaseAtV4(schema.newConnection().executor);
-    await oldDb.into(oldDb.apps).insert(
+    await oldDb
+        .into(oldDb.apps)
+        .insert(
           v4.AppsCompanion.insert(
             packageName: "me.efesser.flauncher",
             name: "FLauncher",
@@ -196,10 +210,12 @@ void main() {
             banner: Value(Uint8List.fromList([0x02])),
           ),
         );
-    final categoryId = await oldDb.into(oldDb.categories).insert(
-          v4.CategoriesCompanion.insert(name: "Applications", type: Value(1), order: 0),
-        );
-    await oldDb.into(oldDb.appsCategories).insert(
+    final categoryId = await oldDb
+        .into(oldDb.categories)
+        .insert(v4.CategoriesCompanion.insert(name: "Applications", type: Value(1), order: 0));
+    await oldDb
+        .into(oldDb.appsCategories)
+        .insert(
           v4.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
         );
     await oldDb.close();

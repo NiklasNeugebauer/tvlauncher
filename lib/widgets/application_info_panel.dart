@@ -27,121 +27,88 @@ class ApplicationInfoPanel extends StatelessWidget {
   final App application;
   final bool inHero;
 
-  ApplicationInfoPanel({
-    required this.application,
-    required this.inHero,
-  });
+  ApplicationInfoPanel({required this.application, required this.inHero});
 
   @override
   Widget build(BuildContext context) => RightPanelDialog(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                application.icon != null
-                    ? Image.memory(application.icon!, width: 50)
-                    : Icon(Icons.android, size: 50),
-                SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    application.name,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              application.packageName,
-              style: Theme.of(context).textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              "v${application.version}",
-              style: Theme.of(context).textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Divider(),
-            if (inHero)
-              _entry(
-                context,
-                Icons.star_outline,
-                "Remove from main apps",
-                () async {
-                  await context.read<AppsService>().removeFromHero(application);
-                  Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-                },
-              )
-            else
-              _entry(
-                context,
-                Icons.star,
-                "Add to main apps",
-                () async {
-                  await context.read<AppsService>().addToHero(application);
-                  Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-                },
-              ),
-            if (inHero)
-              _entry(
-                context,
-                Icons.swap_horiz,
-                "Move",
-                () => Navigator.of(context).pop(ApplicationInfoPanelResult.reorderApp),
-              ),
-            _entry(
-              context,
-              application.hidden ? Icons.visibility : Icons.visibility_off_outlined,
-              application.hidden ? "Unhide" : "Hide",
-              () async {
-                if (application.hidden) {
-                  await context.read<AppsService>().unHideApplication(application);
-                } else {
-                  await context.read<AppsService>().hideApplication(application);
-                }
-                Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-              },
-            ),
-            Divider(),
-            _entry(
-              context,
-              Icons.info_outlined,
-              "App info",
-              () => context.read<AppsService>().openAppInfo(application),
-            ),
-            _entry(
-              context,
-              Icons.delete_outlined,
-              "Uninstall",
-              () async {
-                await context.read<AppsService>().uninstallApp(application);
-                Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-              },
-            ),
-          ],
-        ),
-      );
-
-  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed) => TextButton(
-        child: Row(
-          children: [
-            Icon(icon),
-            Container(width: 8),
+            application.icon != null ? Image.memory(application.icon!, width: 50) : Icon(Icons.android, size: 50),
+            SizedBox(width: 8),
             Flexible(
               child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium,
+                application.name,
+                style: Theme.of(context).textTheme.titleLarge,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        onPressed: onPressed,
-      );
+        SizedBox(height: 8),
+        Text(application.packageName, style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+        Text("v${application.version}", style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+        Divider(),
+        if (inHero)
+          _entry(context, Icons.star_outline, "Remove from main apps", () async {
+            await context.read<AppsService>().removeFromHero(application);
+            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+          })
+        else
+          _entry(context, Icons.star, "Add to main apps", () async {
+            await context.read<AppsService>().addToHero(application);
+            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+          }),
+        if (inHero)
+          _entry(
+            context,
+            Icons.swap_horiz,
+            "Move",
+            () => Navigator.of(context).pop(ApplicationInfoPanelResult.reorderApp),
+          ),
+        _entry(
+          context,
+          application.hidden ? Icons.visibility : Icons.visibility_off_outlined,
+          application.hidden ? "Unhide" : "Hide",
+          () async {
+            if (application.hidden) {
+              await context.read<AppsService>().unHideApplication(application);
+            } else {
+              await context.read<AppsService>().hideApplication(application);
+            }
+            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+          },
+        ),
+        Divider(),
+        _entry(context, Icons.info_outlined, "App info", () => context.read<AppsService>().openAppInfo(application)),
+        _entry(context, Icons.delete_outlined, "Uninstall", () async {
+          await context.read<AppsService>().uninstallApp(application);
+          Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+        }),
+      ],
+    ),
+  );
+
+  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed) => TextButton(
+    child: Row(
+      children: [
+        Icon(icon),
+        Container(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    ),
+    onPressed: onPressed,
+  );
 }
 
 enum ApplicationInfoPanelResult { none, reorderApp }

@@ -31,18 +31,16 @@ import '../../mocks.mocks.dart';
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
+    binding.platformDispatcher.implicitView!.physicalSize = Size(1280, 720);
+    binding.platformDispatcher.implicitView!.devicePixelRatio = 1.0;
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
   testWidgets("lists only hidden apps and unhides on press", (tester) async {
     final appsService = MockAppsService();
     final hidden = fakeApp(packageName: "hidden.app", name: "Hidden app", hidden: true, icon: kTransparentImage);
-    when(appsService.applications).thenReturn([
-      fakeApp(packageName: "visible.app", name: "Visible app", icon: kTransparentImage),
-      hidden,
-    ]);
+    when(appsService.applications)
+        .thenReturn([fakeApp(packageName: "visible.app", name: "Visible app", icon: kTransparentImage), hidden]);
     await _pump(tester, appsService);
 
     expect(find.text("Hidden app"), findsOneWidget);
@@ -66,7 +64,7 @@ Future<void> _pump(WidgetTester tester, AppsService appsService) async {
   await tester.pumpWidget(
     ChangeNotifierProvider<AppsService>.value(
       value: appsService,
-      builder: (_, __) => MaterialApp(home: Material(child: HiddenAppsPanelPage())),
+      builder: (_, _) => MaterialApp(home: Material(child: HiddenAppsPanelPage())),
     ),
   );
   await tester.pumpAndSettle();

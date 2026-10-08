@@ -30,47 +30,46 @@ class SettingsPanelPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        child: Column(
-          children: [
-            Text("Launcher settings", style: Theme.of(context).textTheme.titleLarge),
-            Divider(),
-            EnsureVisible(
-              alignment: 0.5,
-              child: _entry(
-                context,
-                Icons.wallpaper_outlined,
-                "Wallpaper",
-                () => Navigator.of(context).pushNamed(WallpaperPanelPage.routeName),
-                autofocus: true,
-              ),
-            ),
-            _entry(
-              context,
-              Icons.visibility_off_outlined,
-              "Hidden apps",
-              () => Navigator.of(context).pushNamed(HiddenAppsPanelPage.routeName),
-            ),
-            Divider(),
-            _entry(
-              context,
-              Icons.info_outline,
-              "About",
-              () => showDialog(
-                context: context,
-                builder: (_) => FutureBuilder<PackageInfo>(
-                  future: PackageInfo.fromPlatform(),
-                  builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done
-                      ? FLauncherAboutDialog(packageInfo: snapshot.data!)
-                      : Container(),
-                ),
-              ),
-            ),
-          ],
+    child: Column(
+      children: [
+        Text("Launcher settings", style: Theme.of(context).textTheme.titleLarge),
+        Divider(),
+        EnsureVisible(
+          alignment: 0.5,
+          child: _entry(
+            context,
+            Icons.wallpaper_outlined,
+            "Wallpaper",
+            () => Navigator.of(context).pushNamed(WallpaperPanelPage.routeName),
+            autofocus: true,
+          ),
         ),
-      );
+        _entry(
+          context,
+          Icons.visibility_off_outlined,
+          "Hidden apps",
+          () => Navigator.of(context).pushNamed(HiddenAppsPanelPage.routeName),
+        ),
+        Divider(),
+        _entry(
+          context,
+          Icons.info_outline,
+          "About",
+          () => showDialog(
+            context: context,
+            builder: (_) => FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done
+                  ? FLauncherAboutDialog(packageInfo: snapshot.data!)
+                  : Container(),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
-  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed,
-          {bool autofocus = false}) =>
+  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed, {bool autofocus = false}) =>
       TextButton(
         autofocus: autofocus,
         child: Row(

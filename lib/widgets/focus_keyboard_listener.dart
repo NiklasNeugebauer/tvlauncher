@@ -16,15 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 const longPressableKeys = [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.gameButtonA];
 
-/// KeyEvent.FLAG_LONG_PRESS: Android marks the first repeat after its own long-press timeout.
-const _flagLongPress = 0x80;
 const _longPress = Duration(milliseconds: 500);
 const _veryLongPress = Duration(milliseconds: 1500);
 
@@ -37,68 +34,65 @@ class FocusKeyboardListener extends StatefulWidget {
   final KeyEventResult Function(LogicalKeyboardKey)? onLongPress;
   final KeyEventResult Function(LogicalKeyboardKey)? onVeryLongPress;
 
-  FocusKeyboardListener({
-    Key? key,
+  const FocusKeyboardListener({
+    super.key,
     required this.builder,
     this.onPressed,
     this.onLongPress,
     this.onVeryLongPress,
-  }) : super(key: key);
+  });
 
   @override
-  _FocusKeyboardListenerState createState() => _FocusKeyboardListenerState();
+  State<FocusKeyboardListener> createState() => _FocusKeyboardListenerState();
 }
 
 class _FocusKeyboardListenerState extends State<FocusKeyboardListener> {
   DateTime? _keyDownAt;
+  bool _repeated = false;
   bool _longPressFired = false;
   bool _veryLongPressFired = false;
 
   @override
   Widget build(BuildContext context) => Focus(
-        canRequestFocus: false,
-        onKey: (_, rawKeyEvent) => _handleKey(context, rawKeyEvent),
-        child: Builder(builder: widget.builder),
-      );
+    canRequestFocus: false,
+    onKeyEvent: (_, event) => _handleKey(event),
+    child: Builder(builder: widget.builder),
+  );
 
-  KeyEventResult _handleKey(BuildContext context, RawKeyEvent rawKeyEvent) {
-    switch (rawKeyEvent.runtimeType) {
-      case RawKeyDownEvent:
-        return _keyDownEvent(context, rawKeyEvent.logicalKey, rawKeyEvent.data);
-      case RawKeyUpEvent:
-        return _keyUpEvent(context, rawKeyEvent.logicalKey);
+  KeyEventResult _handleKey(KeyEvent event) {
+    final key = event.logicalKey;
+    if (event is KeyUpEvent) {
+      return _keyUpEvent(key);
     }
-    return KeyEventResult.handled;
-  }
-
-  KeyEventResult _keyDownEvent(BuildContext context, LogicalKeyboardKey key, RawKeyEventData data) {
     if (!longPressableKeys.contains(key)) {
       return widget.onPressed?.call(key) ?? KeyEventResult.ignored;
     }
     final downAt = _keyDownAt;
     if (downAt == null) {
-      // First down of a hold. Test simulators report every repeat with repeatCount 0, so "still held" is tracked
-      // here rather than read from the event.
       _keyDownAt = clock.now();
+      _repeated = false;
       _longPressFired = false;
       _veryLongPressFired = false;
       return KeyEventResult.handled;
     }
     final held = clock.now().difference(downAt);
-    final flaggedLongPress = data is RawKeyEventDataAndroid && data.flags & _flagLongPress != 0;
+    // Android synthesizes the first repeat only after its own long-press timeout, so it counts as a long press
+    // even when the clock has not reached ours yet (this is what `input keyevent --longpress` sends).
+    final firstRepeat = event is KeyRepeatEvent && !_repeated;
+    _repeated = _repeated || event is KeyRepeatEvent;
     if (!_veryLongPressFired && held >= _veryLongPress) {
       _veryLongPressFired = true;
       _longPressFired = true;
       return widget.onVeryLongPress?.call(key) ?? KeyEventResult.handled;
     }
-    if (!_longPressFired && (held >= _longPress || flaggedLongPress)) {
+    if (!_longPressFired && (held >= _longPress || firstRepeat)) {
       _longPressFired = true;
       return widget.onLongPress?.call(key) ?? KeyEventResult.handled;
     }
     return KeyEventResult.handled;
   }
 
-  KeyEventResult _keyUpEvent(BuildContext context, LogicalKeyboardKey key) {
+  KeyEventResult _keyUpEvent(LogicalKeyboardKey key) {
     if (_keyDownAt == null) {
       return KeyEventResult.ignored;
     }

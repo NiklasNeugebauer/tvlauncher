@@ -32,8 +32,8 @@ import '../../mocks.mocks.dart';
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
+    binding.platformDispatcher.implicitView!.physicalSize = Size(1280, 720);
+    binding.platformDispatcher.implicitView!.devicePixelRatio = 1.0;
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
@@ -73,7 +73,9 @@ void main() {
     final appsService = MockAppsService();
     await _pumpPanel(tester, appsService);
 
-    final button = tester.widget<TextButton>(find.ancestor(of: find.text("Bluetooth"), matching: find.byType(TextButton)));
+    final button = tester.widget<TextButton>(
+      find.ancestor(of: find.text("Bluetooth"), matching: find.byType(TextButton)),
+    );
     expect(button.autofocus, isTrue);
   });
 }
@@ -85,7 +87,7 @@ Future<void> _pumpPanel(WidgetTester tester, AppsService appsService) async {
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
       ],
-      builder: (_, __) => MaterialApp(
+      builder: (_, _) => MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
             child: Text("open"),

@@ -23,7 +23,7 @@ import 'package:intl/intl.dart';
 
 class TimeWidget extends StatefulWidget {
   @override
-  _TimeWidgetState createState() => _TimeWidgetState();
+  State<TimeWidget> createState() => _TimeWidgetState();
 }
 
 class _TimeWidgetState extends State<TimeWidget> {
@@ -45,11 +45,11 @@ class _TimeWidgetState extends State<TimeWidget> {
 
   @override
   Widget build(BuildContext context) => Text(
-        DateFormat.Hm().format(_now),
-        style: Theme.of(context).textTheme.titleLarge!.copyWith(
-          shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
-        ),
-      );
+    DateFormat.Hm().format(_now),
+    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+      shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
+    ),
+  );
 
   void _refreshTime() {
     setState(() {

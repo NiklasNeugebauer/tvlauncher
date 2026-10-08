@@ -26,18 +26,10 @@ import 'flauncher_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Paint.enableDithering = true;
 
   final sharedPreferences = await SharedPreferences.getInstance();
   final imagePicker = ImagePicker();
   final fLauncherChannel = FLauncherChannel();
   final fLauncherDatabase = FLauncherDatabase(connect());
-  runApp(
-    FLauncherApp(
-      sharedPreferences,
-      imagePicker,
-      fLauncherChannel,
-      fLauncherDatabase,
-    ),
-  );
+  runApp(FLauncherApp(sharedPreferences, imagePicker, fLauncherChannel, fLauncherDatabase));
 }

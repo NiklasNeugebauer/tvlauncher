@@ -36,8 +36,8 @@ import '../../mocks.mocks.dart';
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
+    binding.platformDispatcher.implicitView!.physicalSize = Size(1280, 720);
+    binding.platformDispatcher.implicitView!.devicePixelRatio = 1.0;
     // Scale-down the font size because the font 'Ahem' used when running tests is much wider than Roboto
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
@@ -80,7 +80,7 @@ Future<void> _pumpWidgetWithProviders(WidgetTester tester) async {
         ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
       ],
-      builder: (_, __) => MaterialApp(
+      builder: (_, _) => MaterialApp(
         routes: {
           WallpaperPanelPage.routeName: (_) => Container(key: Key("WallpaperPanelPage")),
           HiddenAppsPanelPage.routeName: (_) => Container(key: Key("HiddenAppsPanelPage")),
@@ -94,11 +94,11 @@ Future<void> _pumpWidgetWithProviders(WidgetTester tester) async {
 
 class _MockPackageInfoPlatform with MockPlatformInterfaceMixin implements PackageInfoPlatform {
   @override
-  Future<PackageInfoData> getAll() async => PackageInfoData(
-        appName: "FLauncher",
-        packageName: "me.efesser.flauncher",
-        version: "1.0.0",
-        buildNumber: "1",
-        buildSignature: "",
-      );
+  Future<PackageInfoData> getAll({String? baseUrl}) async => PackageInfoData(
+    appName: "FLauncher",
+    packageName: "me.efesser.flauncher",
+    version: "1.0.0",
+    buildNumber: "1",
+    buildSignature: "",
+  );
 }

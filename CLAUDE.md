@@ -16,20 +16,23 @@ which this repo is cloned from. Remotes: `upstream` (GitLab), `zomp` (GitHub). N
 
 ## Toolchain
 
-The 2023 code base is pinned to old versions; newer ones do not build it as is.
+Versions are pinned in three places that must stay in sync: `mise.toml`, `pubspec.yaml` (`environment.flutter`) and
+`.github/workflows/release.yml`.
 
 | Tool | Version | Source |
 |---|---|---|
-| Flutter | 3.7.5 (Dart 2.19) | `mise use flutter@3.7.5` (project-local) |
-| JDK | 11 | `mise use java@temurin-11` (AGP 7.1.1 / Gradle 7.4 do not run on 17+) |
-| Android SDK | platforms;android-33, build-tools;33.0.2, cmdline-tools 9477386 | `~/.local/share/android-sdk` (user-level, no mise backend); `platform-tools` is a symlink to the mise adb |
+| Flutter | 3.47.6 (Dart 3.13) | `mise use flutter@3.47.6` (project-local) |
+| JDK | 21 | `mise use java@temurin-21` (Gradle 9.3 / AGP 9.1) |
+| Android SDK | platforms;android-36, build-tools;36.0.0, cmdline-tools latest | `~/.local/share/android-sdk` (user-level, no mise backend); `platform-tools` is a symlink to the mise adb. AGP downloads the NDK pinned by Flutter (`flutter.ndkVersion`) on the first build. |
 | adb | platform-tools r37.0.1 | already global via mise (`http:platform-tools`) |
 
 `mise.toml` pins Flutter and Java and exports `ANDROID_HOME`/`JAVA_HOME`; run everything as `mise exec -- flutter …`
 or with mise activated. Device renders at 1920×1080, density 320 → 960×540 logical px.
 
-Upgrading Flutter/AGP and raising `targetSdkVersion` (currently 33) are candidate improvements: Play Protect
-on Android 14 warns "built for an older Android version" on sideload because of the old target SDK.
+`compileSdk`, `targetSdk` (36) and `minSdk` (24) follow the Flutter Gradle plugin defaults (`flutter.*SdkVersion` in
+`android/app/build.gradle.kts`); bump them by upgrading Flutter. SQLite comes from `package:sqlite3` 3.x via Dart build
+hooks, so there is no `sqlite3_flutter_libs` any more. Code generation: `dart run build_runner build` (drift, mockito);
+after a schema change also `dart run drift_dev schema generate --data-classes --companions drift_schemas/ test/generated_migrations/`.
 
 ## Build
 

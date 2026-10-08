@@ -50,81 +50,85 @@ class FLauncherApp extends StatelessWidget {
     900: Color(0xFF000000),
   });
 
-  FLauncherApp(
-    this._sharedPreferences,
-    this._imagePicker,
-    this._fLauncherChannel,
-    this._fLauncherDatabase,
-  );
+  FLauncherApp(this._sharedPreferences, this._imagePicker, this._fLauncherChannel, this._fLauncherDatabase);
 
   @override
   Widget build(BuildContext context) => MultiProvider(
-        providers: [
-          ChangeNotifierProvider(
-              create: (_) => SettingsService(_sharedPreferences), lazy: false),
-          ChangeNotifierProvider(create: (_) => AppsService(_fLauncherChannel, _fLauncherDatabase)),
-          ChangeNotifierProxyProvider<SettingsService, WallpaperService>(
-              create: (_) => WallpaperService(_imagePicker, _fLauncherChannel),
-              update: (_, settingsService, wallpaperService) => wallpaperService!..settingsService = settingsService),
-          Provider<HomeFocusController>(
-              create: (_) => HomeFocusController(), dispose: (_, controller) => controller.dispose()),
-        ],
-        child: MaterialApp(
-          shortcuts: {
-            ...WidgetsApp.defaultShortcuts,
-            SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-            SingleActivator(LogicalKeyboardKey.gameButtonB): PrioritizedIntents(orderedIntents: [
-              DismissIntent(),
-              BackIntent(),
-            ]),
-          },
-          actions: {
-            ...WidgetsApp.defaultActions,
-            DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context),
-          },
-          title: 'FLauncher',
-          theme: ThemeData(
-            brightness: Brightness.dark,
-            primarySwatch: _swatch,
-            // ignore: deprecated_member_use
-            accentColor: _swatch[200],
-            cardColor: _swatch[300],
-            canvasColor: _swatch[300],
-            dialogBackgroundColor: _swatch[400],
-            // ignore: deprecated_member_use
-            backgroundColor: _swatch[400],
-            scaffoldBackgroundColor: _swatch[400],
-            textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: Colors.white)),
-            appBarTheme: AppBarTheme(elevation: 0, backgroundColor: Colors.transparent),
-            typography: Typography.material2018(),
-            inputDecorationTheme: InputDecorationTheme(
-              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-              labelStyle: Typography.material2018().white.bodyMedium,
-            ),
-            textSelectionTheme: TextSelectionThemeData(
-              cursorColor: Colors.white,
-              selectionColor: _swatch[200],
-              selectionHandleColor: _swatch[200],
-            ),
-          ),
-          home: Builder(
-            builder: (context) => WillPopScope(
-              // Back: inside the grid it returns to the first main app; on the hero it starts the screensaver.
-              onWillPop: () async {
-                if (await shouldPopScope(context)) {
-                  return true;
-                }
-                final homeFocus = context.read<HomeFocusController>();
-                if (homeFocus.gridHasFocus) {
-                  homeFocus.focusFirstTile(animate: true);
-                } else {
-                  context.read<AppsService>().startAmbientMode();
-                }
-                return false;
-              },
-              child: Actions(actions: {BackIntent: BackAction(context, systemNavigator: true)}, child: FLauncher()),
-            ),
-          ),
+    providers: [
+      ChangeNotifierProvider(create: (_) => SettingsService(_sharedPreferences), lazy: false),
+      ChangeNotifierProvider(create: (_) => AppsService(_fLauncherChannel, _fLauncherDatabase)),
+      ChangeNotifierProxyProvider<SettingsService, WallpaperService>(
+        create: (_) => WallpaperService(_imagePicker, _fLauncherChannel),
+        update: (_, settingsService, wallpaperService) => wallpaperService!..settingsService = settingsService,
+      ),
+      Provider<HomeFocusController>(
+        create: (_) => HomeFocusController(),
+        dispose: (_, controller) => controller.dispose(),
+      ),
+    ],
+    child: MaterialApp(
+      shortcuts: {
+        ...WidgetsApp.defaultShortcuts,
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonB): PrioritizedIntents(
+          orderedIntents: [DismissIntent(), BackIntent()],
         ),
-      );
+      },
+      actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
+      title: 'FLauncher',
+      theme: ThemeData(
+        // Material 2: the launcher's look was designed for it and Material 3 restyles every widget.
+        useMaterial3: false,
+        brightness: Brightness.dark,
+        primarySwatch: _swatch,
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: _swatch,
+          brightness: Brightness.dark,
+          accentColor: _swatch[200],
+        ),
+        cardColor: _swatch[300],
+        canvasColor: _swatch[300],
+        dialogTheme: DialogThemeData(backgroundColor: _swatch[400]),
+        scaffoldBackgroundColor: _swatch[400],
+        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: Colors.white)),
+        appBarTheme: AppBarTheme(elevation: 0, backgroundColor: Colors.transparent),
+        typography: Typography.material2018(),
+        inputDecorationTheme: InputDecorationTheme(
+          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+          labelStyle: Typography.material2018().white.bodyMedium,
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Colors.white,
+          selectionColor: _swatch[200],
+          selectionHandleColor: _swatch[200],
+        ),
+      ),
+      home: Builder(
+        builder: (context) => PopScope(
+          canPop: false,
+          // Back: inside the grid it returns to the first main app; on the hero it starts the screensaver.
+          // As a non-default launcher the app exits like any other.
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) {
+              return;
+            }
+            if (await shouldPopScope(context)) {
+              SystemNavigator.pop();
+              return;
+            }
+            if (!context.mounted) {
+              return;
+            }
+            final homeFocus = context.read<HomeFocusController>();
+            if (homeFocus.gridHasFocus) {
+              homeFocus.focusFirstTile(animate: true);
+            } else {
+              context.read<AppsService>().startAmbientMode();
+            }
+          },
+          child: Actions(actions: {BackIntent: BackAction(context, systemNavigator: true)}, child: FLauncher()),
+        ),
+      ),
+    ),
+  );
 }

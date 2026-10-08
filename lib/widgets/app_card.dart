@@ -37,16 +37,16 @@ class AppCard extends StatefulWidget {
   final VoidCallback? onMoveEnd;
 
   AppCard({
-    Key? key,
+    super.key,
     required this.application,
     required this.inHero,
     required this.autofocus,
     this.onMove,
     this.onMoveEnd,
-  }) : super(key: key);
+  });
 
   @override
-  _AppCardState createState() => _AppCardState();
+  State<AppCard> createState() => _AppCardState();
 }
 
 class _AppCardState extends State<AppCard> {
@@ -84,86 +84,86 @@ class _AppCardState extends State<AppCard> {
 
   @override
   Widget build(BuildContext context) => FocusKeyboardListener(
-        onPressed: (key) => _onPressed(context, key),
-        onLongPress: (key) => _onLongPress(context, key),
-        onVeryLongPress: (key) => _onVeryLongPress(context),
-        builder: (context) => AspectRatio(
-          aspectRatio: 16 / 9,
-          child: AnimatedContainer(
-            duration: Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            transformAlignment: Alignment.center,
-            transform: _scaleTransform(context),
-            child: Material(
-              borderRadius: BorderRadius.circular(8),
-              clipBehavior: Clip.antiAlias,
-              elevation: Focus.of(context).hasFocus ? 16 : 0,
-              shadowColor: Colors.black,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  InkWell(
-                    autofocus: widget.autofocus,
-                    focusNode: _focusNode,
-                    focusColor: Colors.transparent,
-                    onTap: () => _onTap(context),
-                    onHover: _onHover,
-                    onLongPress: () => _onLongPress(context, null),
-                    child: widget.application.banner != null
-                        ? Ink.image(image: _cachedMemoryImage(widget.application.banner!), fit: BoxFit.cover)
-                        : _iconWithName(context),
-                  ),
-                  if (_moving) ..._arrows(),
-                  IgnorePointer(
-                    child: AnimatedOpacity(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      opacity: Focus.of(context).hasFocus ? 0 : 0.10,
-                      child: Container(color: Colors.black),
-                    ),
-                  ),
-                  IgnorePointer(
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        border: Focus.of(context).hasFocus ? Border.all(color: Colors.white, width: 3) : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
+    onPressed: (key) => _onPressed(context, key),
+    onLongPress: (key) => _onLongPress(context, key),
+    onVeryLongPress: (key) => _onVeryLongPress(context),
+    builder: (context) => AspectRatio(
+      aspectRatio: 16 / 9,
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        transformAlignment: Alignment.center,
+        transform: _scaleTransform(context),
+        child: Material(
+          borderRadius: BorderRadius.circular(8),
+          clipBehavior: Clip.antiAlias,
+          elevation: Focus.of(context).hasFocus ? 16 : 0,
+          shadowColor: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InkWell(
+                autofocus: widget.autofocus,
+                focusNode: _focusNode,
+                focusColor: Colors.transparent,
+                onTap: () => _onTap(context),
+                onHover: _onHover,
+                onLongPress: () => _onLongPress(context, null),
+                child: widget.application.banner != null
+                    ? Ink.image(image: _cachedMemoryImage(widget.application.banner!), fit: BoxFit.cover)
+                    : _iconWithName(context),
               ),
+              if (_moving) ..._arrows(),
+              IgnorePointer(
+                child: AnimatedOpacity(
+                  duration: Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  opacity: Focus.of(context).hasFocus ? 0 : 0.10,
+                  child: Container(color: Colors.black),
+                ),
+              ),
+              IgnorePointer(
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  decoration: BoxDecoration(
+                    border: Focus.of(context).hasFocus ? Border.all(color: Colors.white, width: 3) : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _iconWithName(BuildContext context) => Padding(
+    padding: EdgeInsets.all(8),
+    child: Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: widget.application.icon != null
+              ? Ink.image(image: _cachedMemoryImage(widget.application.icon!), height: double.infinity)
+              : Icon(Icons.android, size: 32),
+        ),
+        Flexible(
+          flex: 3,
+          child: Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Text(
+              widget.application.name,
+              style: Theme.of(context).textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
             ),
           ),
         ),
-      );
-
-  Widget _iconWithName(BuildContext context) => Padding(
-        padding: EdgeInsets.all(8),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: widget.application.icon != null
-                  ? Ink.image(image: _cachedMemoryImage(widget.application.icon!), height: double.infinity)
-                  : Icon(Icons.android, size: 32),
-            ),
-            Flexible(
-              flex: 3,
-              child: Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Text(
-                  widget.application.name,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 3,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   Matrix4 _scaleTransform(BuildContext context) {
     final scale = !_moving && Focus.of(context).hasFocus ? 1.1 : 1.0;
@@ -171,23 +171,20 @@ class _AppCardState extends State<AppCard> {
   }
 
   List<Widget> _arrows() => [
-        _arrow(Alignment.centerLeft, Icons.keyboard_arrow_left),
-        _arrow(Alignment.centerRight, Icons.keyboard_arrow_right),
-      ];
+    _arrow(Alignment.centerLeft, Icons.keyboard_arrow_left),
+    _arrow(Alignment.centerRight, Icons.keyboard_arrow_right),
+  ];
 
   Widget _arrow(Alignment alignment, IconData icon) => Align(
-        alignment: alignment,
-        child: Padding(
-          padding: EdgeInsets.all(4),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Theme.of(context).primaryColor.withOpacity(0.8),
-            ),
-            child: Icon(icon, size: 16),
-          ),
-        ),
-      );
+    alignment: alignment,
+    child: Padding(
+      padding: EdgeInsets.all(4),
+      child: Container(
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).primaryColor.withValues(alpha: 0.8)),
+        child: Icon(icon, size: 16),
+      ),
+    ),
+  );
 
   KeyEventResult _onPressed(BuildContext context, LogicalKeyboardKey? key) {
     if (_moving) {

@@ -27,10 +27,10 @@ void main() {
 
   test("getApplications", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "getApplications") {
         return [
-          {'packageName': 'me.efesser.flauncher'}
+          {'packageName': 'me.efesser.flauncher'},
         ];
       }
       fail("Unhandled method name");
@@ -40,14 +40,14 @@ void main() {
     final apps = await fLauncherChannel.getApplications();
 
     expect(apps, [
-      {'packageName': 'me.efesser.flauncher'}
+      {'packageName': 'me.efesser.flauncher'},
     ]);
   });
 
   test("launchApp", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
     String? packageName;
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "launchApp") {
         packageName = call.arguments as String;
         return;
@@ -64,7 +64,7 @@ void main() {
   test("openSystemSettings passes the screen name", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
     String? screen;
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "openSystemSettings") {
         screen = call.arguments as String;
         return true;
@@ -82,7 +82,7 @@ void main() {
   test("openAppInfo", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
     String? packageName;
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "openAppInfo") {
         packageName = call.arguments as String;
         return;
@@ -99,7 +99,7 @@ void main() {
   test("uninstallApp", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
     String? packageName;
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "uninstallApp") {
         packageName = call.arguments as String;
         return;
@@ -115,7 +115,7 @@ void main() {
 
   test("isDefaultLauncher", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "isDefaultLauncher") {
         return true;
       }
@@ -130,7 +130,7 @@ void main() {
 
   test("checkForGetContentAvailability", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "checkForGetContentAvailability") {
         return true;
       }
@@ -146,7 +146,7 @@ void main() {
   test("startAmbientMode", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
     bool called = false;
-    channel.setMockMethodCallHandler((call) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "startAmbientMode") {
         called = true;
         return;
@@ -168,7 +168,7 @@ void main() {
 
     final codec = StandardMethodCodec();
     for (final method in ["homePressed", "quickSettingsPressed", "quickSettingsPressed"]) {
-      await ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+      await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
         'me.efesser.flauncher/method',
         codec.encodeMethodCall(MethodCall(method)),
         (_) {},

@@ -31,12 +31,7 @@ class HeroRow extends StatelessWidget {
   final double tileWidth;
   final double tileHeight;
 
-  HeroRow({
-    Key? key,
-    required this.applications,
-    required this.tileWidth,
-    required this.tileHeight,
-  }) : super(key: key);
+  HeroRow({super.key, required this.applications, required this.tileWidth, required this.tileHeight});
 
   @override
   Widget build(BuildContext context) {
@@ -80,12 +75,12 @@ class HeroRow extends StatelessWidget {
   }
 
   Widget _emptyHint(BuildContext context) => Text(
-        "Long-press an app below and choose “Add to main apps”.",
-        key: Key("hero-empty"),
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-          color: Colors.white70,
-          shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
-        ),
-      );
+    "Long-press an app below and choose “Add to main apps”.",
+    key: Key("hero-empty"),
+    textAlign: TextAlign.center,
+    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+      color: Colors.white70,
+      shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
+    ),
+  );
 }

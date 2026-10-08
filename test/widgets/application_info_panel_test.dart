@@ -32,8 +32,8 @@ import '../mocks.mocks.dart';
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
+    binding.platformDispatcher.implicitView!.physicalSize = Size(1280, 720);
+    binding.platformDispatcher.implicitView!.devicePixelRatio = 1.0;
     // Scale-down the font size because the font 'Ahem' used when running tests is much wider than Roboto
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
@@ -118,13 +118,13 @@ void main() {
 }
 
 App _app({bool hidden = false}) => fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-      hidden: hidden,
-    );
+  packageName: "me.efesser.flauncher",
+  name: "FLauncher",
+  version: "1.0.0",
+  banner: kTransparentImage,
+  icon: kTransparentImage,
+  hidden: hidden,
+);
 
 class _OpenedPanel {
   final Future<ApplicationInfoPanelResult?> result;
@@ -142,7 +142,7 @@ Future<_OpenedPanel> _pump(
   await tester.pumpWidget(
     ChangeNotifierProvider<AppsService>.value(
       value: appsService,
-      builder: (_, __) => MaterialApp(
+      builder: (_, _) => MaterialApp(
         home: Builder(
           builder: (context) => TextButton(
             child: Text("open"),

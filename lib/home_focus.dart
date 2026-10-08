@@ -53,8 +53,8 @@ class HomeFocusController {
 
   /// Up from the grid's first row goes to the hero, not to whatever happens to be above it on screen (the
   /// hero is scrolled out of view then, so plain geometry would pick the gear).
-  KeyEventResult handleGridKey(FocusNode node, RawKeyEvent event) {
-    if (event is! RawKeyDownEvent || event.logicalKey != LogicalKeyboardKey.arrowUp) {
+  KeyEventResult handleGridKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowUp) {
       return KeyEventResult.ignored;
     }
     final current = FocusManager.instance.primaryFocus;
@@ -118,10 +118,10 @@ class RevealOnFocus extends StatefulWidget {
   final bool inHero;
   final Widget child;
 
-  RevealOnFocus({Key? key, required this.inHero, required this.child}) : super(key: key);
+  RevealOnFocus({super.key, required this.inHero, required this.child});
 
   @override
-  _RevealOnFocusState createState() => _RevealOnFocusState();
+  State<RevealOnFocus> createState() => _RevealOnFocusState();
 }
 
 class _RevealOnFocusState extends State<RevealOnFocus> {
@@ -156,13 +156,13 @@ class _RevealOnFocusState extends State<RevealOnFocus> {
 
   @override
   Widget build(BuildContext context) => Focus(
-        canRequestFocus: false,
-        skipTraversal: true,
-        onFocusChange: (focused) {
-          if (focused && _active) {
-            _controller?.revealTile(context, inHero: widget.inHero);
-          }
-        },
-        child: widget.child,
-      );
+    canRequestFocus: false,
+    skipTraversal: true,
+    onFocusChange: (focused) {
+      if (focused && _active) {
+        _controller?.revealTile(context, inHero: widget.inHero);
+      }
+    },
+    child: widget.child,
+  );
 }

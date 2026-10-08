@@ -42,8 +42,8 @@ import 'mocks.mocks.dart';
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(960, 540);
-    binding.window.devicePixelRatioTestValue = 1.0;
+    binding.platformDispatcher.implicitView!.physicalSize = Size(960, 540);
+    binding.platformDispatcher.implicitView!.devicePixelRatio = 1.0;
     // Scale-down the font size because the font 'Ahem' used when running tests is much wider than Roboto
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
@@ -96,11 +96,14 @@ void main() {
     expect(tester.getRect(find.byKey(Key("grid-grid.6"))).top, greaterThan(540));
   });
 
-  testWidgets("Down from the hero focuses the nearest tile of the first grid row and scrolls the hero out of view",
-      (tester) async {
+  testWidgets("Down from the hero focuses the nearest tile of the first grid row and scrolls the hero out of view", (
+    tester,
+  ) async {
     // Two hero tiles: the left one sits above the second and third grid columns.
-    final appsService =
-        _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: List.generate(12, (i) => _app("grid.$i")));
+    final appsService = _appsService(
+      hero: [_app("hero.1"), _app("hero.2")],
+      grid: List.generate(12, (i) => _app("grid.$i")),
+    );
     final controller = await _pumpHome(tester, appsService);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -198,8 +201,11 @@ void main() {
     when(channel.getApplications()).thenAnswer((_) => Future.value([]));
     when(channel.applicationExists(any)).thenAnswer((_) => Future.value(true));
     when(database.listApplications()).thenAnswer((_) => Future.value([first, second]));
-    when(database.listCategoriesWithVisibleApps())
-        .thenAnswer((_) => Future.value([CategoryWithApps(hero, [first, second])]));
+    when(database.listCategoriesWithVisibleApps()).thenAnswer(
+      (_) => Future.value([
+        CategoryWithApps(hero, [first, second]),
+      ]),
+    );
     when(database.transaction(any)).thenAnswer((invocation) => invocation.positionalArguments[0]());
     final appsService = AppsService(channel, database);
     await untilCalled(channel.addAppsChangedListener(any));
@@ -215,8 +221,10 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byKey(Key("hero-hero.1"))).left,
-        greaterThan(tester.getRect(find.byKey(Key("hero-hero.2"))).left));
+    expect(
+      tester.getRect(find.byKey(Key("hero-hero.1"))).left,
+      greaterThan(tester.getRect(find.byKey(Key("hero-hero.2"))).left),
+    );
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
     expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
 
@@ -227,20 +235,26 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
-    verify(database.replaceAppsCategories([
-      AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: "hero.2", order: 0),
-      AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: "hero.1", order: 1),
-    ]));
+    verify(
+      database.replaceAppsCategories([
+        AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: "hero.2", order: 0),
+        AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: "hero.1", order: 1),
+      ]),
+    );
     verifyNever(channel.launchApp(any));
   });
 
   testWidgets("Home closes an open panel, ends move mode and focuses the first hero tile", (tester) async {
     final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: []);
     final controller = await _pumpHome(tester, appsService);
-    final homePressed = verify(appsService.setPlatformHandlers(
-            onHomePressed: captureAnyNamed("onHomePressed"), onQuickSettingsPressed: anyNamed("onQuickSettingsPressed")))
-        .captured
-        .single as void Function();
+    final homePressed =
+        verify(
+              appsService.setPlatformHandlers(
+                onHomePressed: captureAnyNamed("onHomePressed"),
+                onQuickSettingsPressed: anyNamed("onQuickSettingsPressed"),
+              ),
+            ).captured.single
+            as void Function();
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.longPress(find.byKey(Key("hero-hero.2")));
@@ -270,10 +284,14 @@ void main() {
   testWidgets("Long-pressed mute opens the quick settings panel once", (tester) async {
     final appsService = _appsService(hero: [_app("hero.1")], grid: []);
     await _pumpHome(tester, appsService);
-    final quickSettingsPressed = verify(appsService.setPlatformHandlers(
-            onHomePressed: anyNamed("onHomePressed"), onQuickSettingsPressed: captureAnyNamed("onQuickSettingsPressed")))
-        .captured
-        .single as void Function();
+    final quickSettingsPressed =
+        verify(
+              appsService.setPlatformHandlers(
+                onHomePressed: anyNamed("onHomePressed"),
+                onQuickSettingsPressed: captureAnyNamed("onQuickSettingsPressed"),
+              ),
+            ).captured.single
+            as void Function();
 
     quickSettingsPressed();
     await tester.pumpAndSettle();
@@ -369,12 +387,12 @@ void main() {
 }
 
 App _app(String packageName) => fakeApp(
-      packageName: packageName,
-      name: packageName,
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-    );
+  packageName: packageName,
+  name: packageName,
+  version: "1.0.0",
+  banner: kTransparentImage,
+  icon: kTransparentImage,
+);
 
 MockAppsService _appsService({required List<App> hero, required List<App> grid}) {
   final appsService = MockAppsService();
@@ -410,7 +428,7 @@ Future<HomeFocusController> _pumpHome(
         ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
         Provider<HomeFocusController>.value(value: controller),
       ],
-      builder: (_, __) => MaterialApp(home: FLauncher()),
+      builder: (_, _) => MaterialApp(home: FLauncher()),
     ),
   );
   await tester.pumpAndSettle();

@@ -28,41 +28,38 @@ class QuickSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        child: Column(
-          children: [
-            Text("Quick settings", style: Theme.of(context).textTheme.titleLarge),
-            Divider(),
-            _systemEntry(context, Icons.bluetooth, "Bluetooth", SystemSettingsScreen.bluetooth, autofocus: true),
-            _systemEntry(context, Icons.wifi, "Wi-Fi", SystemSettingsScreen.wifi),
-            _systemEntry(context, Icons.tv, "Display & Sound", SystemSettingsScreen.displaySound),
-            _systemEntry(context, Icons.settings_outlined, "All settings", SystemSettingsScreen.all),
-            Divider(),
-            _entry(
-              context,
-              Icons.tune,
-              "Launcher settings",
-              () => Navigator.of(context).pushNamed(SettingsPanelPage.routeName),
-            ),
-          ],
+    child: Column(
+      children: [
+        Text("Quick settings", style: Theme.of(context).textTheme.titleLarge),
+        Divider(),
+        _systemEntry(context, Icons.bluetooth, "Bluetooth", SystemSettingsScreen.bluetooth, autofocus: true),
+        _systemEntry(context, Icons.wifi, "Wi-Fi", SystemSettingsScreen.wifi),
+        _systemEntry(context, Icons.tv, "Display & Sound", SystemSettingsScreen.displaySound),
+        _systemEntry(context, Icons.settings_outlined, "All settings", SystemSettingsScreen.all),
+        Divider(),
+        _entry(
+          context,
+          Icons.tune,
+          "Launcher settings",
+          () => Navigator.of(context).pushNamed(SettingsPanelPage.routeName),
         ),
-      );
+      ],
+    ),
+  );
 
   // The panel closes itself: Back from the system screen should land on the home screen, not on a stale menu.
-  Widget _systemEntry(BuildContext context, IconData icon, String label, SystemSettingsScreen screen,
-          {bool autofocus = false}) =>
-      _entry(
-        context,
-        icon,
-        label,
-        () async {
-          await context.read<AppsService>().openSystemSettings(screen);
-          Navigator.of(context, rootNavigator: true).pop();
-        },
-        autofocus: autofocus,
-      );
+  Widget _systemEntry(
+    BuildContext context,
+    IconData icon,
+    String label,
+    SystemSettingsScreen screen, {
+    bool autofocus = false,
+  }) => _entry(context, icon, label, () async {
+    await context.read<AppsService>().openSystemSettings(screen);
+    Navigator.of(context, rootNavigator: true).pop();
+  }, autofocus: autofocus);
 
-  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed,
-          {bool autofocus = false}) =>
+  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed, {bool autofocus = false}) =>
       TextButton(
         autofocus: autofocus,
         child: Row(

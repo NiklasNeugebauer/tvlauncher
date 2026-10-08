@@ -32,5 +32,4 @@ class SettingsService extends ChangeNotifier {
     await _sharedPreferences.setString(_gradientUuidKey, value);
     notifyListeners();
   }
-
 }

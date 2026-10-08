@@ -85,15 +85,15 @@ mixin FLauncherGradients {
   );
 
   static List<FLauncherGradient> get all => [
-        greatWhale,
-        viciousStance,
-        teenNotebook,
-        oldHat,
-        burningSprings,
-        desertHump,
-        farawayRiver,
-        saintPetersburg,
-        africanField,
-        grassShampoo,
-      ];
+    greatWhale,
+    viciousStance,
+    teenNotebook,
+    oldHat,
+    burningSprings,
+    desertHump,
+    farawayRiver,
+    saintPetersburg,
+    africanField,
+    grassShampoo,
+  ];
 }

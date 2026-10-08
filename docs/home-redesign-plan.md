@@ -553,3 +553,46 @@ existing `textScaleFactor 0.8` workaround (flauncher_test.dart:43-48). With the 
   grid-sized. Tiles stay uniform (risk 7).
 - D8. "Move left/right" reuses the existing move mode restricted to ←/→.
 - D9. Hero row is **centred**.
+
+---
+
+## 6. v2: toolchain upgrade
+
+Branch `feat/v2-toolchain-upgrade`, 2026-10-08. Everything to the newest stable versions, no feature changes.
+
+| | v1 | v2 |
+|---|---|---|
+| Flutter / Dart | 3.7.5 / 2.19 | 3.47.6 / 3.13 |
+| JDK | 11 | 21 |
+| Gradle / AGP / Kotlin | 7.4 / 7.1.1 / 1.6.10 | 9.3.1 / 9.1.0 / 2.4.0, Kotlin DSL (`*.gradle.kts`) from the Flutter template |
+| compileSdk / targetSdk / minSdk | 33 / 33 / 21 | 36 / 36 / 24 (Flutter plugin defaults) |
+| drift / drift_dev | 2.5 | 2.35 |
+| SQLite | `sqlite3_flutter_libs` 0.5 | `package:sqlite3` 3.x build hooks (the libs package is end-of-life and removed) |
+| image_picker / intl / package_info_plus / lints | 0.8 / 0.18 / 3 / 1 | 1.2 / 0.20 / 10 / 6 |
+
+Code changes forced by the upgrade:
+
+- `WillPopScope` → `PopScope(canPop: false)` in `flauncher_app.dart` (exit via `SystemNavigator.pop()` when not the
+  default launcher) and `settings_panel.dart`.
+- `RawKeyEvent` → `KeyEvent` in `FocusKeyboardListener` and `HomeFocusController.handleGridKey`. Android's
+  `FLAG_LONG_PRESS` is not exposed any more; the first `KeyRepeatEvent` is equivalent (Android synthesizes it after
+  its long-press timeout), so `input keyevent --longpress` still opens the panel. The 500 ms / 1500 ms tiers from
+  the long-press fix are unchanged.
+- `ThemeData`: `useMaterial3: false` keeps the Material 2 look the launcher was designed for; `accentColor` and
+  `backgroundColor` are gone (`ColorScheme.fromSwatch`, `scaffoldBackgroundColor`, `DialogThemeData`).
+  `Paint.enableDithering` no longer exists.
+- Manifest: `package` attribute replaced by `namespace` in Gradle; `android:name="${applicationName}"` added.
+  `proguard-android-optimize.txt` (AGP 9 refuses the non-optimizing default).
+- Tests: `TestFlutterView` instead of `binding.window`, `TestDefaultBinaryMessengerBinding` for channel mocks,
+  schema test classes regenerated with `--data-classes --companions`.
+- Whole tree reformatted with the Dart 3.13 formatter (tall style) and `dart fix` (super parameters, wildcards).
+
+Invariant check: merged release manifest has no `INTERNET` permission.
+
+Done 2026-10-08: built and installed as versionCode 2 (`adb install -r` over the v1 build keeps HOME and the
+`WRITE_SECURE_SETTINGS` grant). Verified on the Chromecast: home renders (Impeller Vulkan, 32-bit `armeabi-v7a`, the
+device has no 64-bit ABI), cold start under 3 s, hero long press enters move mode, grid long press opens the panel,
+Back closes it, Back long press opens the quick settings, Back on the hero requests the screensaver (logcat shows the
+`Somnambulator` start from our uid; the system aborted it with result code -92, same Kotlin path as v1, not a v2 issue). Release APK grew
+from 24 MB to 57 MB because it bundles `libsqlite3`, `libdartjni` and `libdatastore_shared_counter` for three ABIs;
+`--target-platform android-arm` would shrink a device-only build.

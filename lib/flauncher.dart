@@ -34,14 +34,17 @@ import 'package:provider/provider.dart';
 
 class FLauncher extends StatefulWidget {
   @override
-  _FLauncherState createState() => _FLauncherState();
+  State<FLauncher> createState() => _FLauncherState();
 }
 
 class _FLauncherState extends State<FLauncher> {
   @override
   void initState() {
     super.initState();
-    context.read<AppsService>().setPlatformHandlers(onHomePressed: _onHomePressed, onQuickSettingsPressed: _onQuickSettingsPressed);
+    context.read<AppsService>().setPlatformHandlers(
+      onHomePressed: _onHomePressed,
+      onQuickSettingsPressed: _onQuickSettingsPressed,
+    );
   }
 
   void _onQuickSettingsPressed() {
@@ -65,76 +68,83 @@ class _FLauncherState extends State<FLauncher> {
 
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
-        policy: RowByRowTraversalPolicy(),
-        child: Stack(
+    policy: RowByRowTraversalPolicy(),
+    child: Stack(
+      children: [
+        Consumer<WallpaperService>(
+          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes, wallpaper.gradient.gradient),
+        ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: _appBar(context),
+          body: Consumer<AppsService>(
+            builder: (context, appsService, _) =>
+                appsService.initialized ? _home(context, appsService) : _emptyState(context),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _home(BuildContext context, AppsService appsService) => LayoutBuilder(
+    builder: (context, constraints) {
+      final headingStyle = _headingStyle(context);
+      final layout = HomeLayout(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        headingHeight: _textHeight(context, "Apps", headingStyle),
+      );
+      final controller = context.read<HomeFocusController>();
+      controller.heroZoneHeight = layout.heroZoneHeight;
+      final heroApps = appsService.heroApps;
+      final gridApps = appsService.gridApps;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
+      return SingleChildScrollView(
+        controller: controller.scroll,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Consumer<WallpaperService>(
-              builder: (_, wallpaper, __) => _wallpaper(wallpaper.wallpaperBytes, wallpaper.gradient.gradient),
-            ),
-            Scaffold(
-              backgroundColor: Colors.transparent,
-              appBar: _appBar(context),
-              body: Consumer<AppsService>(
-                builder: (context, appsService, _) =>
-                    appsService.initialized ? _home(context, appsService) : _emptyState(context),
+            SizedBox(
+              height: layout.heroZoneHeight,
+              child: Focus(
+                focusNode: controller.heroNode,
+                canRequestFocus: false,
+                skipTraversal: true,
+                child: Center(
+                  child: HeroRow(
+                    applications: heroApps,
+                    tileWidth: layout.heroTileWidth(heroApps.length),
+                    tileHeight: layout.heroTileHeight(heroApps.length),
+                  ),
+                ),
               ),
             ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                HomeLayout.sidePadding,
+                HomeLayout.headingTop,
+                HomeLayout.sidePadding,
+                HomeLayout.headingBottom,
+              ),
+              child: Text("Apps", style: headingStyle),
+            ),
+            Focus(
+              focusNode: controller.gridNode,
+              canRequestFocus: false,
+              skipTraversal: true,
+              onKeyEvent: controller.handleGridKey,
+              child: AppsGrid(
+                applications: gridApps,
+                tileWidth: layout.gridTileWidth,
+                autofocusFirst: heroApps.isEmpty,
+              ),
+            ),
+            SizedBox(height: layout.bottomSpacer(gridApps.length)),
           ],
         ),
       );
-
-  Widget _home(BuildContext context, AppsService appsService) => LayoutBuilder(
-        builder: (context, constraints) {
-          final headingStyle = _headingStyle(context);
-          final layout = HomeLayout(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            headingHeight: _textHeight(context, "Apps", headingStyle),
-          );
-          final controller = context.read<HomeFocusController>();
-          controller.heroZoneHeight = layout.heroZoneHeight;
-          final heroApps = appsService.heroApps;
-          final gridApps = appsService.gridApps;
-          WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
-          return SingleChildScrollView(
-            controller: controller.scroll,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: layout.heroZoneHeight,
-                  child: Focus(
-                    focusNode: controller.heroNode,
-                    canRequestFocus: false,
-                    skipTraversal: true,
-                    child: Center(
-                      child: HeroRow(
-                        applications: heroApps,
-                        tileWidth: layout.heroTileWidth(heroApps.length),
-                        tileHeight: layout.heroTileHeight(heroApps.length),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                      HomeLayout.sidePadding, HomeLayout.headingTop, HomeLayout.sidePadding, HomeLayout.headingBottom),
-                  child: Text("Apps", style: headingStyle),
-                ),
-                Focus(
-                  focusNode: controller.gridNode,
-                  canRequestFocus: false,
-                  skipTraversal: true,
-                  onKey: controller.handleGridKey,
-                  child: AppsGrid(
-                      applications: gridApps, tileWidth: layout.gridTileWidth, autofocusFirst: heroApps.isEmpty),
-                ),
-                SizedBox(height: layout.bottomSpacer(gridApps.length)),
-              ],
-            ),
-          );
-        },
-      );
+    },
+  );
 
   // After a tile disappears (hidden, uninstalled, moved between hero and grid) focus falls back to the scope and
   // the remote stops working. Only the home route itself recovers; an open panel keeps its own focus.
@@ -148,65 +158,67 @@ class _FLauncherState extends State<FLauncher> {
     }
   }
 
-  TextStyle _headingStyle(BuildContext context) => Theme.of(context)
-      .textTheme
-      .titleLarge!
-      .copyWith(shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)]);
+  TextStyle _headingStyle(BuildContext context) => Theme.of(context).textTheme.titleLarge!.copyWith(
+    shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
+  );
 
   double _textHeight(BuildContext context, String text, TextStyle style) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
-      textScaleFactor: MediaQuery.textScaleFactorOf(context),
+      textScaler: MediaQuery.textScalerOf(context),
     )..layout();
     return painter.height;
   }
 
   AppBar _appBar(BuildContext context) => AppBar(
-        titleSpacing: HomeLayout.sidePadding,
-        centerTitle: false,
-        title: TimeWidget(),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: HomeLayout.sidePadding),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  left: 2.0,
-                  top: 18.0,
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2, tileMode: TileMode.decal),
-                    child: Icon(Icons.settings_outlined, color: Colors.black54),
-                  ),
-                ),
-                IconButton(
-                  padding: EdgeInsets.all(2),
-                  constraints: BoxConstraints(),
-                  splashRadius: 20,
-                  icon: Icon(Icons.settings_outlined),
-                  onPressed: () => showDialog(context: context, builder: (_) => SettingsPanel()),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-
-  Widget _wallpaper(Uint8List? wallpaperImage, Gradient gradient) => Positioned.fill(
-        child: wallpaperImage != null
-            ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
-            : Container(key: Key("background"), decoration: BoxDecoration(gradient: gradient)),
-      );
-
-  Widget _emptyState(BuildContext context) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    titleSpacing: HomeLayout.sidePadding,
+    centerTitle: false,
+    title: TimeWidget(),
+    actions: [
+      Padding(
+        padding: EdgeInsets.only(right: HomeLayout.sidePadding),
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text("Loading...", style: Theme.of(context).textTheme.titleLarge),
+            Positioned(
+              left: 2.0,
+              top: 18.0,
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2, tileMode: TileMode.decal),
+                child: Icon(Icons.settings_outlined, color: Colors.black54),
+              ),
+            ),
+            IconButton(
+              padding: EdgeInsets.all(2),
+              constraints: BoxConstraints(),
+              splashRadius: 20,
+              icon: Icon(Icons.settings_outlined),
+              onPressed: () => showDialog(context: context, builder: (_) => SettingsPanel()),
+            ),
           ],
         ),
-      );
+      ),
+    ],
+  );
+
+  Widget _wallpaper(Uint8List? wallpaperImage, Gradient gradient) => Positioned.fill(
+    child: wallpaperImage != null
+        ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
+        : Container(
+            key: Key("background"),
+            decoration: BoxDecoration(gradient: gradient),
+          ),
+  );
+
+  Widget _emptyState(BuildContext context) => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircularProgressIndicator(),
+        SizedBox(height: 16),
+        Text("Loading...", style: Theme.of(context).textTheme.titleLarge),
+      ],
+    ),
+  );
 }

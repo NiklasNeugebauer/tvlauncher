@@ -44,14 +44,13 @@ void main() {
       final settingsService = MockSettingsService();
       when(imagePicker.pickImage(source: ImageSource.gallery)).thenAnswer((_) => Future.value(pickedFile));
       when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)
-        ..settingsService = settingsService;
+      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
       await wallpaperService.pickWallpaper();
 
       verify(imagePicker.pickImage(source: ImageSource.gallery));
-        expect(wallpaperService.wallpaperBytes, [0x01]);
+      expect(wallpaperService.wallpaperBytes, [0x01]);
     });
 
     test("throws error when no file explorer installed", () async {
@@ -68,8 +67,7 @@ void main() {
     final imagePicker = _MockImagePicker();
     final fLauncherChannel = MockFLauncherChannel();
     final settingsService = MockSettingsService();
-    final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)
-      ..settingsService = settingsService;
+    final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
     await wallpaperService.setGradient(FLauncherGradients.greatWhale);
@@ -82,10 +80,9 @@ void main() {
     test("without uuid from settings", () async {
       final imagePicker = _MockImagePicker();
       final fLauncherChannel = MockFLauncherChannel();
-        final settingsService = MockSettingsService();
+      final settingsService = MockSettingsService();
       when(settingsService.gradientUuid).thenReturn(null);
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)
-        ..settingsService = settingsService;
+      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
       final gradient = wallpaperService.gradient;
@@ -96,10 +93,9 @@ void main() {
     test("with uuid from settings", () async {
       final imagePicker = _MockImagePicker();
       final fLauncherChannel = MockFLauncherChannel();
-        final settingsService = MockSettingsService();
+      final settingsService = MockSettingsService();
       when(settingsService.gradientUuid).thenReturn(FLauncherGradients.grassShampoo.uuid);
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)
-        ..settingsService = settingsService;
+      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
       final gradient = wallpaperService.gradient;
@@ -118,24 +114,26 @@ class _MockImagePicker extends Mock implements ImagePicker {
     int? imageQuality,
     CameraDevice preferredCameraDevice = CameraDevice.rear,
     bool requestFullMetadata = true,
-  }) =>
-      super.noSuchMethod(
-          Invocation.method(#pickImage, [], {
-            #source: source,
-            #maxWidth: maxWidth,
-            #maxHeight: maxHeight,
-            #imageQuality: imageQuality,
-            #preferredCameraDevice: preferredCameraDevice,
-            #requestFullMetadata: requestFullMetadata,
-          }),
-          returnValue: Future<XFile?>.value());
+  }) => super.noSuchMethod(
+    Invocation.method(#pickImage, [], {
+      #source: source,
+      #maxWidth: maxWidth,
+      #maxHeight: maxHeight,
+      #imageQuality: imageQuality,
+      #preferredCameraDevice: preferredCameraDevice,
+      #requestFullMetadata: requestFullMetadata,
+    }),
+    returnValue: Future<XFile?>.value(),
+  );
 }
 
 // ignore: must_be_immutable
 class _MockXFile extends Mock implements XFile {
   @override
-  Future<Uint8List> readAsBytes() => super
-      .noSuchMethod(Invocation.method(#readAsBytes, []), returnValue: Future<Uint8List>.value(Uint8List.fromList([])));
+  Future<Uint8List> readAsBytes() => super.noSuchMethod(
+    Invocation.method(#readAsBytes, []),
+    returnValue: Future<Uint8List>.value(Uint8List.fromList([])),
+  );
 }
 
 class _MockPathProviderPlatform extends Mock with MockPlatformInterfaceMixin implements PathProviderPlatform {

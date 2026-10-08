@@ -31,8 +31,8 @@ import '../../mocks.mocks.dart';
 void main() {
   setUpAll(() async {
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-    binding.window.physicalSizeTestValue = Size(1280, 720);
-    binding.window.devicePixelRatioTestValue = 1.0;
+    binding.platformDispatcher.implicitView!.physicalSize = Size(1280, 720);
+    binding.platformDispatcher.implicitView!.devicePixelRatio = 1.0;
     // Scale-down the font size because the font 'Ahem' used when running tests is much wider than Roboto
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
@@ -91,10 +91,8 @@ Future<void> _pumpWidgetWithProviders(
         ChangeNotifierProvider<SettingsService>.value(value: settingsService),
         ChangeNotifierProvider<WallpaperService>.value(value: wallpaperService),
       ],
-      builder: (_, __) => MaterialApp(
-        routes: {
-          GradientPanelPage.routeName: (_) => Container(key: Key("GradientPanelPage")),
-        },
+      builder: (_, _) => MaterialApp(
+        routes: {GradientPanelPage.routeName: (_) => Container(key: Key("GradientPanelPage"))},
         home: Scaffold(body: WallpaperPanelPage()),
       ),
     ),

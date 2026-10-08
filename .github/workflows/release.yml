@@ -55,24 +55,19 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "11" # AGP 7.1.1 / Gradle 7.4 need JDK 11
+          java-version: "21"
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.7.5" # pinned: FLauncher targets Dart 2.19
+          flutter-version: "3.47.6" # keep in sync with mise.toml and pubspec.yaml
           channel: stable
           cache: true
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          # Pin the 2022-era cmdline-tools: its sdkmanager still runs on JDK 11.
-          # The default (latest) requires JDK 17, which AGP 7.1.1 / Gradle 7.4
-          # cannot use for the build.
-          cmdline-tools-version: "9477386"
 
       - name: Install SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Prepare signing keystore
         run: |

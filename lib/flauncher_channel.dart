@@ -32,7 +32,8 @@ class FLauncherChannel {
   Future<void> launchApp(String packageName) async => await _methodChannel.invokeMethod('launchApp', packageName);
 
   /// [screen] is the name of a [SystemSettingsScreen]; the platform side picks the matching intents.
-  Future<bool> openSystemSettings(String screen) async => await _methodChannel.invokeMethod('openSystemSettings', screen);
+  Future<bool> openSystemSettings(String screen) async =>
+      await _methodChannel.invokeMethod('openSystemSettings', screen);
 
   Future<void> openAppInfo(String packageName) async => await _methodChannel.invokeMethod('openAppInfo', packageName);
 

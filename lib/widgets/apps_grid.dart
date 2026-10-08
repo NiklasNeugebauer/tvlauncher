@@ -32,41 +32,38 @@ class AppsGrid extends StatelessWidget {
   final double tileWidth;
   final bool autofocusFirst;
 
-  AppsGrid({
-    Key? key,
-    required this.applications,
-    required this.tileWidth,
-    this.autofocusFirst = false,
-  }) : super(key: key);
+  AppsGrid({super.key, required this.applications, required this.tileWidth, this.autofocusFirst = false});
 
   @override
   Widget build(BuildContext context) {
     final rows = <Widget>[];
     for (int start = 0; start < applications.length; start += HomeLayout.gridColumns) {
       final end = (start + HomeLayout.gridColumns).clamp(0, applications.length);
-      rows.add(Padding(
-        padding: EdgeInsets.only(top: start == 0 ? 0 : HomeLayout.gap),
-        child: Row(
-          children: [
-            for (int index = start; index < end; ++index) ...[
-              if (index > start) SizedBox(width: HomeLayout.gap),
-              SizedBox(
-                key: Key("grid-${applications[index].packageName}"),
-                width: tileWidth,
-                height: tileWidth / HomeLayout.aspectRatio,
-                child: RevealOnFocus(
-                  inHero: false,
-                  child: AppCard(
-                    application: applications[index],
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(top: start == 0 ? 0 : HomeLayout.gap),
+          child: Row(
+            children: [
+              for (int index = start; index < end; ++index) ...[
+                if (index > start) SizedBox(width: HomeLayout.gap),
+                SizedBox(
+                  key: Key("grid-${applications[index].packageName}"),
+                  width: tileWidth,
+                  height: tileWidth / HomeLayout.aspectRatio,
+                  child: RevealOnFocus(
                     inHero: false,
-                    autofocus: autofocusFirst && index == 0,
+                    child: AppCard(
+                      application: applications[index],
+                      inHero: false,
+                      autofocus: autofocusFirst && index == 0,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
-      ));
+      );
     }
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: HomeLayout.sidePadding),
