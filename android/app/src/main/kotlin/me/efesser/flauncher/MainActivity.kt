@@ -27,6 +27,8 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.UserHandle
+import android.util.Log
+import android.view.KeyEvent
 import android.provider.Settings
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
@@ -43,15 +45,55 @@ private const val EVENT_CHANNEL = "me.efesser.flauncher/event"
 
 class MainActivity : FlutterActivity() {
     val launcherAppsCallbacks = ArrayList<LauncherApps.Callback>()
+    private var methodChannel: MethodChannel? = null
+
+    // singleTask: a Home press while the launcher exists arrives here instead of starting a new activity.
+    override fun onNewIntent(@NonNull intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.action == ACTION_MAIN && intent.hasCategory(CATEGORY_HOME)) {
+            methodChannel?.invokeMethod("homePressed", null)
+        }
+    }
+
+    // A long press on Back opens the quick settings; a short press stays Back. Volume and mute keys never reach
+    // apps on Google TV, and the Assistant button is owned by the voice service, so Back is the only spare
+    // button. The key is consumed here, before Flutter, and a short press is replayed through onBackPressed()
+    // on release so Flutter's route handling still sees it.
+    private var backPressPending = false
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_BACK) {
+            return super.dispatchKeyEvent(event)
+        }
+        when (event.action) {
+            KeyEvent.ACTION_DOWN -> {
+                if (event.repeatCount == 0) {
+                    backPressPending = true
+                } else if (backPressPending) {
+                    backPressPending = false
+                    methodChannel?.invokeMethod("quickSettingsPressed", null)
+                }
+            }
+            KeyEvent.ACTION_UP -> {
+                if (backPressPending) {
+                    backPressPending = false
+                    onBackPressed()
+                }
+            }
+        }
+        return true
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
+        methodChannel = channel
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getApplications" -> result.success(getApplications())
                 "applicationExists" -> result.success(applicationExists(call.arguments as String))
                 "launchApp" -> result.success(launchApp(call.arguments as String))
-                "openSettings" -> result.success(openSettings())
+                "openSystemSettings" -> result.success(openSystemSettings(call.arguments as String))
                 "openAppInfo" -> result.success(openAppInfo(call.arguments as String))
                 "uninstallApp" -> result.success(uninstallApp(call.arguments as String))
                 "isDefaultLauncher" -> result.success(isDefaultLauncher())
@@ -115,6 +157,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun getApplication(packageName: String): Map<String, Serializable?>? {
+        if (packageName == this.packageName) return null
         return packageManager.getLeanbackLaunchIntentForPackage(packageName)
             ?.resolveActivityInfo(packageManager, 0)
             ?.let { buildAppMap(it, false) }
@@ -140,6 +183,7 @@ class MainActivity : FlutterActivity() {
             .queryIntentActivities(Intent(ACTION_MAIN, null)
                     .addCategory(if (sideloaded) CATEGORY_LAUNCHER else CATEGORY_LEANBACK_LAUNCHER), 0)
             .map(ResolveInfo::activityInfo)
+            .filter { it.packageName != packageName }
 
     private fun buildAppMap(activityInfo: ActivityInfo, sideloaded: Boolean) = mapOf(
             "name" to activityInfo.loadLabel(packageManager).toString(),
@@ -159,11 +203,28 @@ class MainActivity : FlutterActivity() {
         false
     }
 
-    private fun openSettings() = try {
-        startActivity(Intent(Settings.ACTION_SETTINGS))
-        true
-    } catch (e: Exception) {
-        false
+    // Deep links into the TV settings app. Each screen tries its intents in order; the generic settings root is
+    // the last resort. Checked with `cmd package query-activities` on Google TV 14: WIFI_SETTINGS and
+    // SOUND_SETTINGS resolve, BLUETOOTH_SETTINGS does not, and the settings slice for
+    // "Remotes & accessories" opens the paired-devices list.
+    private fun openSystemSettings(screen: String): Boolean {
+        val accessoriesSlice = Intent("android.settings.SLICE_SETTINGS")
+                .putExtra("slice_uri", "content://com.android.tv.settings.accessories.sliceprovider/general")
+        val intents = when (screen) {
+            "bluetooth" -> listOf(Intent(Settings.ACTION_BLUETOOTH_SETTINGS), accessoriesSlice)
+            "wifi" -> listOf(Intent(Settings.ACTION_WIFI_SETTINGS))
+            "displaySound" -> listOf(Intent(Settings.ACTION_SOUND_SETTINGS))
+            else -> emptyList()
+        } + Intent(Settings.ACTION_SETTINGS)
+        for (intent in intents) {
+            try {
+                startActivity(intent)
+                return true
+            } catch (e: Exception) {
+                Log.w("FLauncher", "settings intent ${intent.action} failed: $e")
+            }
+        }
+        return false
     }
 
     private fun openAppInfo(packageName: String) = try {

@@ -1,6 +1,7 @@
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +19,11 @@
 
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
-import 'package:flauncher/widgets/settings/applications_panel_page.dart';
-import 'package:flauncher/widgets/settings/categories_panel_page.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
+import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:package_info_plus_platform_interface/package_info_data.dart';
@@ -43,136 +42,48 @@ void main() {
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
-  testWidgets("'Applications' opens ApplicationsPanelPage", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.use24HourTimeFormat).thenReturn(false);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
-
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    expect(find.byKey(Key("ApplicationsPanelPage")), findsOneWidget);
-  });
-
-  testWidgets("'Categories' opens CategoriesPanelPage", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.use24HourTimeFormat).thenReturn(false);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
-
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    expect(find.byKey(Key("CategoriesPanelPage")), findsOneWidget);
-  });
-
   testWidgets("'Wallpaper' navigates to WallpaperPanelPage", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.use24HourTimeFormat).thenReturn(false);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+    await _pumpWidgetWithProviders(tester);
 
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Wallpaper"));
     await tester.pumpAndSettle();
+
     expect(find.byKey(Key("WallpaperPanelPage")), findsOneWidget);
   });
 
-  testWidgets("'Android settings' calls AppsService", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.use24HourTimeFormat).thenReturn(false);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+  testWidgets("'Hidden apps' navigates to HiddenAppsPanelPage", (tester) async {
+    await _pumpWidgetWithProviders(tester);
 
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("Hidden apps"));
     await tester.pumpAndSettle();
-    verify(appsService.openSettings());
+
+    expect(find.byKey(Key("HiddenAppsPanelPage")), findsOneWidget);
   });
 
-  testWidgets("'Use 24-hour time format' toggle calls SettingsService", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.use24HourTimeFormat).thenReturn(false);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
-
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pumpAndSettle();
-    verify(settingsService.setUse24HourTimeFormat(true));
-  });
-
-  testWidgets("'About FLauncher' opens about dialog", (tester) async {
-    final settingsService = MockSettingsService();
-    final appsService = MockAppsService();
-    when(appsService.categoriesWithApps).thenReturn([]);
-    when(appsService.applications).thenReturn([]);
-    when(settingsService.use24HourTimeFormat).thenReturn(false);
-    when(settingsService.appHighlightAnimationEnabled).thenReturn(true);
+  testWidgets("'About' opens about dialog", (tester) async {
     PackageInfoPlatform.instance = _MockPackageInfoPlatform();
+    await _pumpWidgetWithProviders(tester);
 
-    await _pumpWidgetWithProviders(tester, settingsService, appsService);
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(find.text("About"));
     await tester.pumpAndSettle();
+
     expect(find.byType(FLauncherAboutDialog), findsOneWidget);
   });
 }
 
-Future<void> _pumpWidgetWithProviders(
-  WidgetTester tester,
-  SettingsService settingsService,
-  AppsService appsService,
-) async {
+Future<void> _pumpWidgetWithProviders(WidgetTester tester) async {
+  final appsService = MockAppsService();
+  when(appsService.applications).thenReturn([]);
   await tester.pumpWidget(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<SettingsService>.value(value: settingsService),
+        ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
       ],
       builder: (_, __) => MaterialApp(
         routes: {
-          CategoriesPanelPage.routeName: (_) => Container(key: Key("CategoriesPanelPage")),
           WallpaperPanelPage.routeName: (_) => Container(key: Key("WallpaperPanelPage")),
-          ApplicationsPanelPage.routeName: (_) => Container(key: Key("ApplicationsPanelPage")),
+          HiddenAppsPanelPage.routeName: (_) => Container(key: Key("HiddenAppsPanelPage")),
         },
         home: Material(child: SettingsPanelPage()),
       ),

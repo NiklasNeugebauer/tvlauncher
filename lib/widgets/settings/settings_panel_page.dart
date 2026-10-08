@@ -1,6 +1,7 @@
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,107 +17,69 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
-import 'package:flauncher/widgets/settings/applications_panel_page.dart';
-import 'package:flauncher/widgets/settings/categories_panel_page.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
+import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:provider/provider.dart';
 
+/// The launcher's own settings, one level below quick settings.
 class SettingsPanelPage extends StatelessWidget {
   static const String routeName = "settings_panel";
 
   @override
-  Widget build(BuildContext context) => Consumer<SettingsService>(
-        builder: (context, settingsService, __) => SingleChildScrollView(
-          child: Column(
-            children: [
-              Text("Settings", style: Theme.of(context).textTheme.titleLarge),
-              Divider(),
-              EnsureVisible(
-                alignment: 0.5,
-                child: TextButton(
-                  child: Row(
-                    children: [
-                      Icon(Icons.apps),
-                      Container(width: 8),
-                      Text("Applications", style: Theme.of(context).textTheme.bodyMedium),
-                    ],
-                  ),
-                  onPressed: () => Navigator.of(context).pushNamed(ApplicationsPanelPage.routeName),
+  Widget build(BuildContext context) => SingleChildScrollView(
+        child: Column(
+          children: [
+            Text("Launcher settings", style: Theme.of(context).textTheme.titleLarge),
+            Divider(),
+            EnsureVisible(
+              alignment: 0.5,
+              child: _entry(
+                context,
+                Icons.wallpaper_outlined,
+                "Wallpaper",
+                () => Navigator.of(context).pushNamed(WallpaperPanelPage.routeName),
+                autofocus: true,
+              ),
+            ),
+            _entry(
+              context,
+              Icons.visibility_off_outlined,
+              "Hidden apps",
+              () => Navigator.of(context).pushNamed(HiddenAppsPanelPage.routeName),
+            ),
+            Divider(),
+            _entry(
+              context,
+              Icons.info_outline,
+              "About",
+              () => showDialog(
+                context: context,
+                builder: (_) => FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done
+                      ? FLauncherAboutDialog(packageInfo: snapshot.data!)
+                      : Container(),
                 ),
               ),
-              TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.category),
-                    Container(width: 8),
-                    Text("Categories", style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-                onPressed: () => Navigator.of(context).pushNamed(CategoriesPanelPage.routeName),
-              ),
-              TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.wallpaper_outlined),
-                    Container(width: 8),
-                    Text("Wallpaper", style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-                onPressed: () => Navigator.of(context).pushNamed(WallpaperPanelPage.routeName),
-              ),
-              Divider(),
-              TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined),
-                    Container(width: 8),
-                    Text("Android settings", style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-                onPressed: () => context.read<AppsService>().openSettings(),
-              ),
-              Divider(),
-              SwitchListTile(
-                contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                value: settingsService.use24HourTimeFormat,
-                onChanged: (value) => settingsService.setUse24HourTimeFormat(value),
-                title: Text("Use 24-hour time format"),
-                dense: true,
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                value: settingsService.appHighlightAnimationEnabled,
-                onChanged: (value) => settingsService.setAppHighlightAnimationEnabled(value),
-                title: Text("App card highlight animation"),
-                dense: true,
-              ),
-              Divider(),
-              TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline),
-                    Container(width: 8),
-                    Text("About FLauncher", style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => FutureBuilder<PackageInfo>(
-                    future: PackageInfo.fromPlatform(),
-                    builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done
-                        ? FLauncherAboutDialog(packageInfo: snapshot.data!)
-                        : Container(),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      );
+
+  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed,
+          {bool autofocus = false}) =>
+      TextButton(
+        autofocus: autofocus,
+        child: Row(
+          children: [
+            Icon(icon),
+            Container(width: 8),
+            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ],
+        ),
+        onPressed: onPressed,
       );
 }

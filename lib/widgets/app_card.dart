@@ -1,6 +1,7 @@
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,14 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:async';
-
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/settings_service.dart';
-import 'package:flauncher/providers/ticker_model.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
-import 'package:flauncher/widgets/color_helpers.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
@@ -32,62 +28,51 @@ import 'package:provider/provider.dart';
 
 const _validationKeys = [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.gameButtonA];
 
+/// One app tile. Hero tiles can be moved left/right; grid tiles are alphabetical and never move.
 class AppCard extends StatefulWidget {
-  final Category category;
   final App application;
+  final bool inHero;
   final bool autofocus;
-  final void Function(AxisDirection) onMove;
-  final VoidCallback onMoveEnd;
+  final void Function(AxisDirection)? onMove;
+  final VoidCallback? onMoveEnd;
 
   AppCard({
     Key? key,
-    required this.category,
     required this.application,
+    required this.inHero,
     required this.autofocus,
-    required this.onMove,
-    required this.onMoveEnd,
+    this.onMove,
+    this.onMoveEnd,
   }) : super(key: key);
 
   @override
   _AppCardState createState() => _AppCardState();
 }
 
-class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
+class _AppCardState extends State<AppCard> {
   bool _moving = false;
   MemoryImage? _imageProvider;
-  late final AnimationController _animation = AnimationController(
-    vsync: Provider.of<TickerModel>(context, listen: false).tickerProvider ?? this,
-    duration: Duration(
-      milliseconds: 800,
-    ),
-  );
-  Color _lastBorderColor = Colors.white;
   final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _animation.addStatusListener((animationStatus) {
-      switch (animationStatus) {
-        case AnimationStatus.completed:
-          _animation.reverse();
-          break;
-        case AnimationStatus.dismissed:
-          _animation.forward();
-          break;
-        case AnimationStatus.forward:
-        case AnimationStatus.reverse:
-          // nothing to do
-          break;
-      }
-    });
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
-    _animation.dispose();
+    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
+  }
+
+  // Losing focus while moving (Home, Back, a hovering pointer) drops the tile where it is, so the order in memory
+  // never silently diverges from the one persisted.
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus && _moving) {
+      _endMove();
+    }
   }
 
   ImageProvider _cachedMemoryImage(Uint8List bytes) {
@@ -125,32 +110,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                     onLongPress: () => _onLongPress(context, null),
                     child: widget.application.banner != null
                         ? Ink.image(image: _cachedMemoryImage(widget.application.banner!), fit: BoxFit.cover)
-                        : Padding(
-                            padding: EdgeInsets.all(8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Ink.image(
-                                    image: _cachedMemoryImage(widget.application.icon!),
-                                    height: double.infinity,
-                                  ),
-                                ),
-                                Flexible(
-                                  flex: 3,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(left: 8),
-                                    child: Text(
-                                      widget.application.name,
-                                      style: Theme.of(context).textTheme.bodySmall,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 3,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        : _iconWithName(context),
                   ),
                   if (_moving) ..._arrows(),
                   IgnorePointer(
@@ -161,33 +121,15 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                       child: Container(color: Colors.black),
                     ),
                   ),
-                  Selector<SettingsService, bool>(
-                    selector: (_, settingsService) => settingsService.appHighlightAnimationEnabled,
-                    builder: (context, appHighlightAnimationEnabled, __) {
-                      if (appHighlightAnimationEnabled) {
-                        _animation.forward();
-                        return AnimatedBuilder(
-                          animation: _animation,
-                          builder: (context, child) => IgnorePointer(
-                            child: AnimatedContainer(
-                              duration: Duration(milliseconds: 200),
-                              curve: Curves.easeInOut,
-                              decoration: BoxDecoration(
-                                border: Focus.of(context).hasFocus
-                                    ? Border.all(
-                                        color: _lastBorderColor =
-                                            computeBorderColor(_animation.value, _lastBorderColor),
-                                        width: 3)
-                                    : null,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      _animation.stop();
-                      return SizedBox();
-                    },
+                  IgnorePointer(
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      decoration: BoxDecoration(
+                        border: Focus.of(context).hasFocus ? Border.all(color: Colors.white, width: 3) : null,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -196,19 +138,39 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         ),
       );
 
+  Widget _iconWithName(BuildContext context) => Padding(
+        padding: EdgeInsets.all(8),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: widget.application.icon != null
+                  ? Ink.image(image: _cachedMemoryImage(widget.application.icon!), height: double.infinity)
+                  : Icon(Icons.android, size: 32),
+            ),
+            Flexible(
+              flex: 3,
+              child: Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Text(
+                  widget.application.name,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 3,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
   Matrix4 _scaleTransform(BuildContext context) {
-    final scale = _moving
-        ? 1.0
-        : Focus.of(context).hasFocus
-            ? 1.1
-            : 1.0;
+    final scale = !_moving && Focus.of(context).hasFocus ? 1.1 : 1.0;
     return Matrix4.diagonal3Values(scale, scale, 1.0);
   }
 
   List<Widget> _arrows() => [
         _arrow(Alignment.centerLeft, Icons.keyboard_arrow_left),
-        _arrow(Alignment.topCenter, Icons.keyboard_arrow_up),
-        _arrow(Alignment.bottomCenter, Icons.keyboard_arrow_down),
         _arrow(Alignment.centerRight, Icons.keyboard_arrow_right),
       ];
 
@@ -221,29 +183,19 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
               shape: BoxShape.circle,
               color: Theme.of(context).primaryColor.withOpacity(0.8),
             ),
-            child: Icon(
-              icon,
-              size: 16,
-            ),
+            child: Icon(icon, size: 16),
           ),
         ),
       );
 
   KeyEventResult _onPressed(BuildContext context, LogicalKeyboardKey? key) {
     if (_moving) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => Scrollable.ensureVisible(context,
-          alignment: 0.1, duration: Duration(milliseconds: 100), curve: Curves.easeInOut));
       if (key == LogicalKeyboardKey.arrowLeft) {
-        widget.onMove(AxisDirection.left);
-      } else if (key == LogicalKeyboardKey.arrowUp) {
-        widget.onMove(AxisDirection.up);
+        widget.onMove?.call(AxisDirection.left);
       } else if (key == LogicalKeyboardKey.arrowRight) {
-        widget.onMove(AxisDirection.right);
-      } else if (key == LogicalKeyboardKey.arrowDown) {
-        widget.onMove(AxisDirection.down);
+        widget.onMove?.call(AxisDirection.right);
       } else if (_validationKeys.contains(key)) {
-        setState(() => _moving = false);
-        widget.onMoveEnd();
+        _endMove();
       }
       return KeyEventResult.handled;
     } else if (_validationKeys.contains(key)) {
@@ -253,26 +205,28 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     return KeyEventResult.ignored;
   }
 
-  // Pointer / air-mouse support. Hovering a card selects it, mirroring the
-  // D-pad focus model that every visual state in build() reads from
-  // Focus.of(context).hasFocus. The !_moving guard keeps a stray hover from
-  // stealing focus while a card is being repositioned with the D-pad.
+  // Pointer / air-mouse support. Hovering a card selects it, mirroring the D-pad focus model that every visual
+  // state in build() reads from Focus.of(context).hasFocus. The !_moving guard keeps a stray hover from stealing
+  // focus while a card is being repositioned with the D-pad.
   void _onHover(bool hovering) {
     if (hovering && !_moving && !_focusNode.hasFocus) {
       _focusNode.requestFocus();
     }
   }
 
-  // A pointer tap is the equivalent of pressing the D-pad select key: launch
-  // the app, or drop it in place when reordering. (The keyboard path passes a
-  // LogicalKeyboardKey to _onPressed; a tap has no key, so it is handled here.)
+  // A pointer tap is the equivalent of pressing the D-pad select key: launch the app, or drop it in place when
+  // reordering. (The keyboard path passes a LogicalKeyboardKey to _onPressed; a tap has no key.)
   void _onTap(BuildContext context) {
     if (_moving) {
-      setState(() => _moving = false);
-      widget.onMoveEnd();
+      _endMove();
     } else {
       context.read<AppsService>().launchApp(widget.application);
     }
+  }
+
+  void _endMove() {
+    setState(() => _moving = false);
+    widget.onMoveEnd?.call();
   }
 
   KeyEventResult _onLongPress(BuildContext context, LogicalKeyboardKey? key) {
@@ -286,12 +240,9 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   Future<void> _showPanel(BuildContext context) async {
     final result = await showDialog<ApplicationInfoPanelResult>(
       context: context,
-      builder: (context) => ApplicationInfoPanel(
-        category: widget.category,
-        application: widget.application,
-      ),
+      builder: (context) => ApplicationInfoPanel(application: widget.application, inHero: widget.inHero),
     );
-    if (result == ApplicationInfoPanelResult.reorderApp) {
+    if (result == ApplicationInfoPanelResult.reorderApp && widget.onMove != null && mounted) {
       setState(() => _moving = true);
     }
   }

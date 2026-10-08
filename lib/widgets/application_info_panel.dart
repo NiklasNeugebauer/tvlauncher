@@ -1,6 +1,7 @@
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +24,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ApplicationInfoPanel extends StatelessWidget {
-  final Category? category;
   final App application;
+  final bool inHero;
 
   ApplicationInfoPanel({
-    required this.category,
     required this.application,
+    required this.inHero,
   });
 
   @override
@@ -38,7 +39,9 @@ class ApplicationInfoPanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                Image.memory(application.icon!, width: 50),
+                application.icon != null
+                    ? Image.memory(application.icon!, width: 50)
+                    : Icon(Icons.android, size: 50),
                 SizedBox(width: 8),
                 Flexible(
                   child: Text(
@@ -62,39 +65,38 @@ class ApplicationInfoPanel extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             Divider(),
-            TextButton(
-              child: Row(
-                children: [
-                  Icon(Icons.open_in_new),
-                  Container(width: 8),
-                  Text("Open", style: Theme.of(context).textTheme.bodyMedium),
-                ],
+            if (inHero)
+              _entry(
+                context,
+                Icons.star_outline,
+                "Remove from main apps",
+                () async {
+                  await context.read<AppsService>().removeFromHero(application);
+                  Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+                },
+              )
+            else
+              _entry(
+                context,
+                Icons.star,
+                "Add to main apps",
+                () async {
+                  await context.read<AppsService>().addToHero(application);
+                  Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+                },
               ),
-              onPressed: () async {
-                await context.read<AppsService>().launchApp(application);
-                Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-              },
-            ),
-            if (category?.sort == CategorySort.manual)
-              TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.open_with),
-                    Container(width: 8),
-                    Text("Reorder", style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-                onPressed: () => Navigator.of(context).pop(ApplicationInfoPanelResult.reorderApp),
+            if (inHero)
+              _entry(
+                context,
+                Icons.swap_horiz,
+                "Move",
+                () => Navigator.of(context).pop(ApplicationInfoPanelResult.reorderApp),
               ),
-            TextButton(
-              child: Row(
-                children: [
-                  Icon(application.hidden ? Icons.visibility : Icons.visibility_off_outlined),
-                  Container(width: 8),
-                  Text(application.hidden ? "Unhide" : "Hide", style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-              onPressed: () async {
+            _entry(
+              context,
+              application.hidden ? Icons.visibility : Icons.visibility_off_outlined,
+              application.hidden ? "Unhide" : "Hide",
+              () async {
                 if (application.hidden) {
                   await context.read<AppsService>().unHideApplication(application);
                 } else {
@@ -103,53 +105,42 @@ class ApplicationInfoPanel extends StatelessWidget {
                 Navigator.of(context).pop(ApplicationInfoPanelResult.none);
               },
             ),
-            if (category != null)
-              TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_sweep_outlined),
-                    Container(width: 8),
-                    Flexible(
-                      child: Text(
-                        "Remove from ${category!.name}",
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                onPressed: () async {
-                  await context.read<AppsService>().removeFromCategory(application, category!);
-                  Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-                },
-              ),
             Divider(),
-            TextButton(
-              child: Row(
-                children: [
-                  Icon(Icons.info_outlined),
-                  Container(width: 8),
-                  Text("App info", style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-              onPressed: () => context.read<AppsService>().openAppInfo(application),
+            _entry(
+              context,
+              Icons.info_outlined,
+              "App info",
+              () => context.read<AppsService>().openAppInfo(application),
             ),
-            TextButton(
-              child: Row(
-                children: [
-                  Icon(Icons.delete_outlined),
-                  Container(width: 8),
-                  Text("Uninstall", style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-              onPressed: () async {
+            _entry(
+              context,
+              Icons.delete_outlined,
+              "Uninstall",
+              () async {
                 await context.read<AppsService>().uninstallApp(application);
                 Navigator.of(context).pop(ApplicationInfoPanelResult.none);
               },
             ),
           ],
         ),
+      );
+
+  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed) => TextButton(
+        child: Row(
+          children: [
+            Icon(icon),
+            Container(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        onPressed: onPressed,
       );
 }
 

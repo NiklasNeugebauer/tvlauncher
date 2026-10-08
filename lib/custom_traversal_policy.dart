@@ -21,7 +21,9 @@ class RowByRowTraversalPolicy extends FocusTraversalPolicy with DirectionalFocus
     NodeSearcher searcher = NodeSearcher(direction);
     List<CandidateNode> candidates = searcher.findCandidates(nodes, currentNode);
     if (candidates.isEmpty) {
-      return super.inDirection(currentNode, direction);
+      // Left/right never leave the row: at a row's end the key does nothing rather than jumping elsewhere.
+      final horizontal = direction == TraversalDirection.left || direction == TraversalDirection.right;
+      return horizontal ? false : super.inDirection(currentNode, direction);
     }
     FocusNode nextNode = searcher.findBestFocusNode(candidates, currentNode);
     nextNode.requestFocus();

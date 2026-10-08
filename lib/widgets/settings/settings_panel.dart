@@ -17,12 +17,10 @@
  */
 
 import 'package:flauncher/widgets/right_panel_dialog.dart';
-import 'package:flauncher/widgets/settings/applications_panel_page.dart';
-import 'package:flauncher/widgets/settings/categories_panel_page.dart';
-import 'package:flauncher/widgets/settings/category_panel_page.dart';
 import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
+import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
+import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
-import 'package:flauncher/widgets/settings/unsplash_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 
@@ -47,25 +45,19 @@ class _SettingsPanelState extends State<SettingsPanel> {
             width: 350,
             child: Navigator(
               key: _navigatorKey,
-              initialRoute: widget.initialRoute ?? SettingsPanelPage.routeName,
+              initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,
               onGenerateRoute: (settings) {
                 switch (settings.name) {
+                  case QuickSettingsPage.routeName:
+                    return MaterialPageRoute(builder: (_) => QuickSettingsPage());
                   case SettingsPanelPage.routeName:
                     return MaterialPageRoute(builder: (_) => SettingsPanelPage());
                   case WallpaperPanelPage.routeName:
                     return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
-                  case UnsplashPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => UnsplashPanelPage());
                   case GradientPanelPage.routeName:
                     return MaterialPageRoute(builder: (_) => GradientPanelPage());
-                  case ApplicationsPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => ApplicationsPanelPage());
-                  case CategoriesPanelPage.routeName:
-                    return MaterialPageRoute(builder: (_) => CategoriesPanelPage());
-                  case CategoryPanelPage.routeName:
-                    return MaterialPageRoute(
-                      builder: (_) => CategoryPanelPage(categoryId: settings.arguments! as int),
-                    );
+                  case HiddenAppsPanelPage.routeName:
+                    return MaterialPageRoute(builder: (_) => HiddenAppsPanelPage());
                   default:
                     throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
                 }

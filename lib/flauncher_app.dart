@@ -19,9 +19,8 @@
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/settings_service.dart';
-import 'package:flauncher/providers/ticker_model.dart';
+import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/unsplash_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -37,7 +36,6 @@ class FLauncherApp extends StatelessWidget {
   final ImagePicker _imagePicker;
   final FLauncherChannel _fLauncherChannel;
   final FLauncherDatabase _fLauncherDatabase;
-  final UnsplashService _unsplashService;
 
   static const MaterialColor _swatch = MaterialColor(0xFF011526, <int, Color>{
     50: Color(0xFF36A0FA),
@@ -57,7 +55,6 @@ class FLauncherApp extends StatelessWidget {
     this._imagePicker,
     this._fLauncherChannel,
     this._fLauncherDatabase,
-    this._unsplashService,
   );
 
   @override
@@ -67,9 +64,10 @@ class FLauncherApp extends StatelessWidget {
               create: (_) => SettingsService(_sharedPreferences), lazy: false),
           ChangeNotifierProvider(create: (_) => AppsService(_fLauncherChannel, _fLauncherDatabase)),
           ChangeNotifierProxyProvider<SettingsService, WallpaperService>(
-              create: (_) => WallpaperService(_imagePicker, _fLauncherChannel, _unsplashService),
+              create: (_) => WallpaperService(_imagePicker, _fLauncherChannel),
               update: (_, settingsService, wallpaperService) => wallpaperService!..settingsService = settingsService),
-          Provider<TickerModel>(create: (context) => TickerModel(null))
+          Provider<HomeFocusController>(
+              create: (_) => HomeFocusController(), dispose: (_, controller) => controller.dispose()),
         ],
         child: MaterialApp(
           shortcuts: {
@@ -111,12 +109,18 @@ class FLauncherApp extends StatelessWidget {
           ),
           home: Builder(
             builder: (context) => WillPopScope(
+              // Back: inside the grid it returns to the first main app; on the hero it starts the screensaver.
               onWillPop: () async {
-                final shouldPop = await shouldPopScope(context);
-                if (!shouldPop) {
+                if (await shouldPopScope(context)) {
+                  return true;
+                }
+                final homeFocus = context.read<HomeFocusController>();
+                if (homeFocus.gridHasFocus) {
+                  homeFocus.focusFirstTile(animate: true);
+                } else {
                   context.read<AppsService>().startAmbientMode();
                 }
-                return shouldPop;
+                return false;
               },
               child: Actions(actions: {BackIntent: BackAction(context, systemNavigator: true)}, child: FLauncher()),
             ),

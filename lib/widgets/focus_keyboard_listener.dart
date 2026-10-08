@@ -21,6 +21,9 @@ import 'package:flutter/services.dart';
 
 const longPressableKeys = [LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.gameButtonA];
 
+/// KeyEvent.FLAG_LONG_PRESS: Android marks the first repeat after its own long-press timeout.
+const _flagLongPress = 0x80;
+
 class FocusKeyboardListener extends StatefulWidget {
   final WidgetBuilder builder;
   final KeyEventResult Function(LogicalKeyboardKey)? onPressed;
@@ -64,7 +67,7 @@ class _FocusKeyboardListenerState extends State<FocusKeyboardListener> {
     if (data.repeatCount == 0) {
       _keyDownAt = DateTime.now().millisecondsSinceEpoch;
       return KeyEventResult.ignored;
-    } else if (_longPress()) {
+    } else if (_longPress() || data.flags & _flagLongPress != 0) {
       _keyDownAt = null;
       return widget.onLongPress?.call(key) ?? KeyEventResult.ignored;
     }

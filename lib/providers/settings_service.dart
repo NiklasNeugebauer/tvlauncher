@@ -19,50 +19,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _use24HourTimeFormatKey = "use_24_hour_time_format";
-const _appHighlightAnimationEnabledKey = "app_highlight_animation_enabled";
 const _gradientUuidKey = "gradient_uuid";
-const _unsplashAuthorKey = "unsplash_author";
 
 class SettingsService extends ChangeNotifier {
   final SharedPreferences _sharedPreferences;
 
-  bool get use24HourTimeFormat => _sharedPreferences.getBool(_use24HourTimeFormatKey) ?? true;
-
-  bool get appHighlightAnimationEnabled => _sharedPreferences.getBool(_appHighlightAnimationEnabledKey) ?? true;
-
   String? get gradientUuid => _sharedPreferences.getString(_gradientUuidKey);
 
-  // Unsplash wallpaper browsing was gated by a Firebase Remote Config flag,
-  // which has been removed. The feature is disabled; local wallpapers and
-  // gradients remain available.
-  bool get unsplashEnabled => false;
-
-  String? get unsplashAuthor => _sharedPreferences.getString(_unsplashAuthorKey);
-
   SettingsService(this._sharedPreferences);
-
-  Future<void> setUse24HourTimeFormat(bool value) async {
-    await _sharedPreferences.setBool(_use24HourTimeFormatKey, value);
-    notifyListeners();
-  }
-
-  Future<void> setAppHighlightAnimationEnabled(bool value) async {
-    await _sharedPreferences.setBool(_appHighlightAnimationEnabledKey, value);
-    notifyListeners();
-  }
 
   Future<void> setGradientUuid(String value) async {
     await _sharedPreferences.setString(_gradientUuidKey, value);
     notifyListeners();
   }
 
-  Future<void> setUnsplashAuthor(String? value) async {
-    if (value == null) {
-      await _sharedPreferences.remove(_unsplashAuthorKey);
-    } else {
-      await _sharedPreferences.setString(_unsplashAuthorKey, value);
-    }
-    notifyListeners();
-  }
 }

@@ -1,6 +1,7 @@
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +21,6 @@ import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -38,141 +38,124 @@ void main() {
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
-  testWidgets("'Open' calls launchApp on AppsService", (tester) async {
+  testWidgets("Grid app offers 'Add to main apps' and no 'Move'", (tester) async {
     final appsService = MockAppsService();
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-    );
-    when(appsService.applications).thenReturn([app]);
-    await _pumpWidgetWithProviders(tester, appsService, null, app);
+    final app = _app();
+    await _pump(tester, appsService, app, inHero: false);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    expect(find.text("Add to main apps"), findsOneWidget);
+    expect(find.text("Remove from main apps"), findsNothing);
+    expect(find.text("Move"), findsNothing);
+    expect(find.text("Hide"), findsOneWidget);
+    expect(find.text("App info"), findsOneWidget);
+    expect(find.text("Uninstall"), findsOneWidget);
+
+    await tester.tap(find.text("Add to main apps"));
     await tester.pumpAndSettle();
-    verify(appsService.launchApp(app));
+    verify(appsService.addToHero(app));
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
   });
 
-  testWidgets("'Hide' calls AppsService", (tester) async {
+  testWidgets("Hero app offers 'Remove from main apps' and 'Move'", (tester) async {
     final appsService = MockAppsService();
-    final category = fakeCategory(name: "Category 1", order: 0);
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-    );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
-    await _pumpWidgetWithProviders(tester, appsService, category, app);
+    final app = _app();
+    await _pump(tester, appsService, app, inHero: true);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    verify(appsService.hideApplication(app));
+    expect(find.text("Remove from main apps"), findsOneWidget);
+    expect(find.text("Add to main apps"), findsNothing);
+    expect(find.text("Move"), findsOneWidget);
+
+    await tester.tap(find.text("Remove from main apps"));
+    await tester.pumpAndSettle();
+    verify(appsService.removeFromHero(app));
   });
 
-  testWidgets("'Remove from...' calls AppsService", (tester) async {
+  testWidgets("'Move' pops with the reorder result", (tester) async {
     final appsService = MockAppsService();
-    final category = fakeCategory(name: "Category 1", order: 0);
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-    );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
-    await _pumpWidgetWithProviders(tester, appsService, category, app);
+    final opened = await _pump(tester, appsService, _app(), inHero: true);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    verify(appsService.removeFromCategory(app, category));
+    await tester.tap(find.text("Move"));
+    await tester.pumpAndSettle();
+
+    expect(await opened.result, ApplicationInfoPanelResult.reorderApp);
   });
 
-  testWidgets("'App info' calls AppsService", (tester) async {
+  testWidgets("'Hide' and 'Unhide' call AppsService", (tester) async {
     final appsService = MockAppsService();
-    final category = fakeCategory(name: "Category 1", order: 0);
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-    );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
-    await _pumpWidgetWithProviders(tester, appsService, category, app);
+    final visible = _app();
+    await _pump(tester, appsService, visible, inHero: false);
+    await tester.tap(find.text("Hide"));
+    await tester.pumpAndSettle();
+    verify(appsService.hideApplication(visible));
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    final hidden = _app(hidden: true);
+    await _pump(tester, appsService, hidden, inHero: false);
+    await tester.tap(find.text("Unhide"));
+    await tester.pumpAndSettle();
+    verify(appsService.unHideApplication(hidden));
+  });
+
+  testWidgets("'App info' and 'Uninstall' call AppsService", (tester) async {
+    final appsService = MockAppsService();
+    final app = _app();
+    await _pump(tester, appsService, app, inHero: false);
+
+    await tester.tap(find.text("App info"));
+    await tester.pumpAndSettle();
     verify(appsService.openAppInfo(app));
+
+    await tester.tap(find.text("Uninstall"));
+    await tester.pumpAndSettle();
+    verify(appsService.uninstallApp(app));
   });
 
-  testWidgets("'Uninstall' calls AppsService", (tester) async {
+  testWidgets("An app without icon renders a placeholder", (tester) async {
     final appsService = MockAppsService();
-    final category = fakeCategory(name: "Category 1", order: 0);
-    final app = fakeApp(
-      packageName: "me.efesser.flauncher",
-      name: "FLauncher",
-      version: "1.0.0",
-      banner: kTransparentImage,
-      icon: kTransparentImage,
-    );
-    when(appsService.categoriesWithApps).thenReturn([
-      CategoryWithApps(category, [app]),
-    ]);
-    when(appsService.applications).thenReturn([]);
-    await _pumpWidgetWithProviders(tester, appsService, category, app);
+    await _pump(tester, appsService, fakeApp(packageName: "no.icon", name: "No icon", icon: null), inHero: false);
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    verify(appsService.uninstallApp(app));
+    expect(find.byIcon(Icons.android), findsOneWidget);
   });
 }
 
-Future<void> _pumpWidgetWithProviders(
+App _app({bool hidden = false}) => fakeApp(
+      packageName: "me.efesser.flauncher",
+      name: "FLauncher",
+      version: "1.0.0",
+      banner: kTransparentImage,
+      icon: kTransparentImage,
+      hidden: hidden,
+    );
+
+class _OpenedPanel {
+  final Future<ApplicationInfoPanelResult?> result;
+
+  _OpenedPanel(this.result);
+}
+
+Future<_OpenedPanel> _pump(
   WidgetTester tester,
   AppsService appsService,
-  Category? category,
-  App application,
-) async {
+  App application, {
+  required bool inHero,
+}) async {
+  late Future<ApplicationInfoPanelResult?> result;
   await tester.pumpWidget(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppsService>.value(value: appsService),
-      ],
+    ChangeNotifierProvider<AppsService>.value(
+      value: appsService,
       builder: (_, __) => MaterialApp(
-        home: ApplicationInfoPanel(
-          category: category,
-          application: application,
+        home: Builder(
+          builder: (context) => TextButton(
+            child: Text("open"),
+            onPressed: () => result = showDialog<ApplicationInfoPanelResult>(
+              context: context,
+              builder: (_) => ApplicationInfoPanel(application: application, inHero: inHero),
+            ),
+          ),
         ),
       ),
     ),
   );
+  await tester.tap(find.text("open"));
   await tester.pumpAndSettle();
+  return _OpenedPanel(result);
 }

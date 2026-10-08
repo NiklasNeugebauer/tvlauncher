@@ -31,7 +31,8 @@ class FLauncherChannel {
 
   Future<void> launchApp(String packageName) async => await _methodChannel.invokeMethod('launchApp', packageName);
 
-  Future<void> openSettings() async => await _methodChannel.invokeMethod('openSettings');
+  /// [screen] is the name of a [SystemSettingsScreen]; the platform side picks the matching intents.
+  Future<bool> openSystemSettings(String screen) async => await _methodChannel.invokeMethod('openSystemSettings', screen);
 
   Future<void> openAppInfo(String packageName) async => await _methodChannel.invokeMethod('openAppInfo', packageName);
 
@@ -46,4 +47,18 @@ class FLauncherChannel {
 
   void addAppsChangedListener(void Function(Map<dynamic, dynamic>) listener) =>
       _eventChannel.receiveBroadcastStream().listen((event) => listener(event));
+
+  /// Calls from the platform: the remote's Home button while the launcher is already running, and a long press
+  /// on the Back button.
+  void setPlatformHandlers({required void Function() onHomePressed, required void Function() onQuickSettingsPressed}) =>
+      _methodChannel.setMethodCallHandler((call) async {
+        switch (call.method) {
+          case "homePressed":
+            onHomePressed();
+            break;
+          case "quickSettingsPressed":
+            onQuickSettingsPressed();
+            break;
+        }
+      });
 }

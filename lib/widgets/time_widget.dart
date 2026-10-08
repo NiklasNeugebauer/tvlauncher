@@ -18,10 +18,8 @@
 
 import 'dart:async';
 
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
 class TimeWidget extends StatefulWidget {
   @override
@@ -46,14 +44,10 @@ class _TimeWidgetState extends State<TimeWidget> {
   }
 
   @override
-  Widget build(BuildContext context) => Selector<SettingsService, bool>(
-        selector: (_, settingsService) => settingsService.use24HourTimeFormat,
-        builder: (context, use24HourTimeFormat, _) => Text(
-          use24HourTimeFormat ? DateFormat.Hm().format(_now) : DateFormat.jm().format(_now),
-          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-            shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
-          ),
-          textAlign: TextAlign.end,
+  Widget build(BuildContext context) => Text(
+        DateFormat.Hm().format(_now),
+        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+          shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
         ),
       );
 

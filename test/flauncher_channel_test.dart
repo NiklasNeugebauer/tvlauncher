@@ -61,21 +61,22 @@ void main() {
     expect(packageName, "me.efesser.flauncher");
   });
 
-  test("openSettings", () async {
+  test("openSystemSettings passes the screen name", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
-    bool called = false;
+    String? screen;
     channel.setMockMethodCallHandler((call) async {
-      if (call.method == "openSettings") {
-        called = true;
-        return;
+      if (call.method == "openSystemSettings") {
+        screen = call.arguments as String;
+        return true;
       }
       fail("Unhandled method name");
     });
     final fLauncherChannel = FLauncherChannel();
 
-    await fLauncherChannel.openSettings();
+    final opened = await fLauncherChannel.openSystemSettings("bluetooth");
 
-    expect(called, isTrue);
+    expect(opened, isTrue);
+    expect(screen, "bluetooth");
   });
 
   test("openAppInfo", () async {
@@ -157,5 +158,24 @@ void main() {
     await fLauncherChannel.startAmbientMode();
 
     expect(called, isTrue);
+  });
+
+  test("setPlatformHandlers routes homePressed and quickSettingsPressed", () async {
+    final fLauncherChannel = FLauncherChannel();
+    var home = 0;
+    var assist = 0;
+    fLauncherChannel.setPlatformHandlers(onHomePressed: () => home++, onQuickSettingsPressed: () => assist++);
+
+    final codec = StandardMethodCodec();
+    for (final method in ["homePressed", "quickSettingsPressed", "quickSettingsPressed"]) {
+      await ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+        'me.efesser.flauncher/method',
+        codec.encodeMethodCall(MethodCall(method)),
+        (_) {},
+      );
+    }
+
+    expect(home, 1);
+    expect(assist, 2);
   });
 }

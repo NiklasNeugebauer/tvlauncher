@@ -147,20 +147,6 @@ class FLauncherDatabase extends _$FLauncherDatabase {
 
   Future<void> insertCategory(CategoriesCompanion category) => into(categories).insert(category);
 
-  Future<void> deleteCategory(int id) => (delete(categories)..where((tbl) => tbl.id.equals(id))).go();
-
-  Future<void> updateCategories(List<CategoriesCompanion> values) => batch(
-        (batch) {
-          for (final value in values) {
-            batch.update<$CategoriesTable, Category>(
-              categories,
-              value,
-              where: (table) => (table.id.equals(value.id.value)),
-            );
-          }
-        },
-      );
-
   Future<void> updateCategory(int id, CategoriesCompanion value) =>
       (update(categories)..where((tbl) => tbl.id.equals(id))).write(value);
 
