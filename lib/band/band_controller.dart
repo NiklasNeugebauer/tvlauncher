@@ -24,6 +24,7 @@ import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
@@ -91,8 +92,8 @@ enum IdleMode {
 /// whether the frame should animate there or jump.
 class BandController extends ChangeNotifier with WidgetsBindingObserver {
   /// Release choices; tuning builds start from these and then follow the file.
-  static const LaunchMode releaseLaunchMode = LaunchMode.system;
-  static const ReturnMode releaseReturnMode = ReturnMode.system;
+  static const LaunchMode releaseLaunchMode = LaunchMode.growCut;
+  static const ReturnMode releaseReturnMode = ReturnMode.collapse;
   static const bool releaseFocusGlide = true;
   static const IdleMode releaseIdleMode = IdleMode.off;
 
@@ -198,9 +199,10 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
         await apps.launchApp(app, LaunchTransition.scaleUp(_physical(bandRect)));
       case LaunchMode.growCut:
       case LaunchMode.growFade:
-        // Apps take 300-400 ms to show their first frame (measured on the device), about as long as the growth, so
-        // both start together; waiting for the growth first leaves the full frame lit and empty for that long.
+        // Apps take 300-400 ms to show their first frame (measured on the device), so the start overlaps the
+        // growth and the app lands as it finishes; starting after it leaves the full frame lit and empty.
         _setExpansion(expanded: true, contentVisible: false, animate: true);
+        await Future.delayed(Motion.launch - const Duration(milliseconds: 350));
         await apps.launchApp(app, _launchMode == LaunchMode.growCut ? LaunchTransition.none : LaunchTransition.fade);
     }
   }

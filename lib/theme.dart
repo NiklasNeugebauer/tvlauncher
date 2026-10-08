@@ -51,6 +51,12 @@ abstract final class Shapes {
 abstract final class Motion {
   static const Duration focus = Duration(milliseconds: 180);
   static const Duration layout = Duration(milliseconds: 360);
+
+  /// The band growing to the full frame as an app starts.
+  static const Duration launch = Duration(milliseconds: 480);
+
+  /// The band settling back from the full frame when an app is left: slow, the room is coming back.
+  static const Duration returnHome = Duration(milliseconds: 1000);
   static const Curve curve = Curves.easeInOutCubic;
 }
 

@@ -45,8 +45,8 @@ class BandGeometry {
 
   const BandGeometry({required this.height, required this.position, required this.edge});
 
-  /// Chosen on the wall; until then a starting point from the screenshot round (60 % keeps full-size hero tiles).
-  static const BandGeometry release = BandGeometry(height: 0.6, position: 1.0, edge: BandEdge.soft);
+  /// Chosen on the wall on 2026-10-08.
+  static const BandGeometry release = BandGeometry(height: 0.6, position: 0.6, edge: BandEdge.hard);
 
   /// The band's rectangle inside a frame of [frame] size.
   Rect rect(Size frame) {

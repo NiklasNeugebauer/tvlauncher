@@ -68,12 +68,15 @@ contact sheets, plus widget tests (107 pass).
 2. Band layout with the picked constants: black frame, background confined to the band, clock and gear at its top
    edge (P3), row snapping (P4).
 
-   Done 2026-10-08 with starting constants (`BandGeometry.release`: 60 %, bottom, soft edge) until the wall
-   session. Row snapping: the grid moves between windows of whole rows (`HomeLayout.windowFor`); window 0 keeps
+   Done 2026-10-08. Picked on the wall: 60 % height, position 60 %, hard edge (`BandGeometry.release`). Row snapping: the grid moves between windows of whole rows (`HomeLayout.windowFor`); window 0 keeps
    the "Apps" heading, later windows start one gap above a row. The first grid row still peeks in under the hero
    as in v1. The soft edge fades only the background, so the clock sits in the fade zone at the band's top.
-3. Launch and return animation as picked. Open: needs the wall session. Release defaults stay "System default"
-   for both until then.
+3. Launch and return animation as picked.
+
+   Picked on the wall 2026-10-08: "Band grows, cut" and "Band collapses", now the release defaults. The first
+   round felt like a fast return after a slower launch, so they got their own durations (`Motion.launch` 480 ms,
+   `Motion.returnHome` 1000 ms); the app starts 350 ms before the growth ends, and the content comes back over
+   the last 60 % of the collapse instead of on its own timer.
 4. Motion vocabulary and focus glide, home entrance, panel motion (P7).
 
    Done 2026-10-08. `Motion` in `theme.dart`: 180 ms for focus and scrolling, 360 ms for layout, one
@@ -95,8 +98,6 @@ contact sheets, plus widget tests (107 pass).
 
 ## Open for the wall session
 
-- Band height, position and edge (nudge mode).
-- Launch: scale up from tile, scale up from band, or a band-grow variant. Return: collapse or system.
 - Focus glide versus jump; idle off, dim or picture frame.
 - Whether quick settings has enough room inside the band, or panels should float.
 - Whether the tuning build's switchers stay in the final build.

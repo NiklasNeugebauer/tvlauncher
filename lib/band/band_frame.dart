@@ -77,7 +77,7 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
     final target = controller.expanded ? 1.0 : 0.0;
     if (_expansion.value != target || _expansion.isAnimating) {
       if (controller.animateExpansion) {
-        _expansion.animateTo(target, curve: Motion.curve);
+        _expansion.animateTo(target, duration: target == 1 ? Motion.launch : Motion.returnHome, curve: Motion.curve);
       } else {
         _expansion.value = target;
       }
@@ -209,8 +209,10 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
             rect: band,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(geometry.cornerRadius),
+              // While the lit area is larger than the band (launching, or settling back after an app), the content
+              // stays out and comes in over the last part of the return.
               child: Opacity(
-                opacity: 1 - toFrame,
+                opacity: (1 - toFrame) * (1 - Interval(0, 0.6).transform(t)),
                 child: AnimatedOpacity(
                   opacity: controller.contentVisible ? 1 : 0,
                   duration: controller.contentVisible ? Motion.layout : Motion.focus,

@@ -153,7 +153,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.select);
       await tester.pumpAndSettle();
-      expect(controller.geometry, BandGeometry(height: 0.65, position: 0.95, edge: BandEdge.inset));
+      expect(controller.geometry, BandGeometry(height: 0.65, position: 0.55, edge: BandEdge.soft));
       expect(tester.getRect(find.byKey(Key("probe"))), controller.geometry.rect(_frame));
 
       controller.stopNudging();
@@ -267,10 +267,13 @@ void main() {
       final apps = MockAppsService();
       final controller = BandController(tuning: false)..launchMode = LaunchMode.growFade;
 
-      await controller.launch(apps, app, tile);
+      final launching = controller.launch(apps, app, tile);
       expect(controller.expanded, isTrue);
       expect(controller.contentVisible, isFalse);
       expect(controller.animateExpansion, isTrue);
+      verifyNever(apps.launchApp(any, any));
+      await tester.pump(Motion.launch);
+      await launching;
       verify(apps.launchApp(app, LaunchTransition.fade));
     });
 
