@@ -39,10 +39,16 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+// Signing: android/key.properties (git-ignored, local builds) wins; CI exports the SIGNING_* env vars instead.
+def keyProperties = new Properties()
+def keyPropertiesFile = rootProject.file('key.properties')
+if (keyPropertiesFile.exists()) {
+    keyPropertiesFile.withReader('UTF-8') { reader -> keyProperties.load(reader) }
+}
 def secretProperties = new Properties()
-secretProperties.setProperty("signing_keystore_password", "${System.getenv('SIGNING_KEYSTORE_PASSWORD')}")
-secretProperties.setProperty("signing_key_password", "${System.getenv('SIGNING_KEY_PASSWORD')}")
-secretProperties.setProperty("signing_key_alias", "${System.getenv('SIGNING_KEY_ALIAS')}")
+secretProperties.setProperty("signing_keystore_password", keyProperties.getProperty('storePassword', "${System.getenv('SIGNING_KEYSTORE_PASSWORD')}"))
+secretProperties.setProperty("signing_key_password", keyProperties.getProperty('keyPassword', "${System.getenv('SIGNING_KEY_PASSWORD')}"))
+secretProperties.setProperty("signing_key_alias", keyProperties.getProperty('keyAlias', "${System.getenv('SIGNING_KEY_ALIAS')}"))
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
@@ -56,7 +62,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "me.efesser.flauncher"
+        applicationId "dev.neugebauer.tvlauncher"
         minSdkVersion 21
         targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()

@@ -27,6 +27,10 @@
         android:required="true" />
 
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Lets the quick settings open the TV settings "Remotes & accessories" slice directly (the Bluetooth
+         device list). Never granted by the system: grant it once after the first install with
+         `adb shell pm grant <applicationId> android.permission.WRITE_SECURE_SETTINGS`. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
 
     <queries>
         <intent>
