@@ -19,6 +19,8 @@
 
 import 'dart:math';
 
+import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -27,17 +29,22 @@ import 'package:provider/provider.dart';
 /// Owns the home screen's scroll position and the two focus regions (hero row, apps grid).
 ///
 /// Focus drives scrolling: a focused hero tile keeps the page at the top, a focused grid tile keeps the hero fully
-/// scrolled out of view. The region nodes never take focus themselves and are skipped by traversal, so the
-/// row-by-row policy sees only the tiles.
+/// scrolled out of view and shows whole rows only (see [HomeLayout.windowFor]). The region nodes never take focus
+/// themselves and are skipped by traversal, so the row-by-row policy sees only the tiles.
 class HomeFocusController {
-  static const _scrollDuration = Duration(milliseconds: 150);
+  static const _scrollDuration = Motion.focus;
 
   final ScrollController scroll = ScrollController();
   final FocusNode heroNode = FocusNode(debugLabel: "hero", canRequestFocus: false, skipTraversal: true);
   final FocusNode gridNode = FocusNode(debugLabel: "grid", canRequestFocus: false, skipTraversal: true);
 
-  /// Height of the hero zone, set by the home screen's layout on every build.
-  double heroZoneHeight = 0;
+  /// The home screen's geometry, set by its layout on every build.
+  HomeLayout? layout;
+
+  // The grid window on screen, -1 while the hero is.
+  int _gridWindow = -1;
+
+  double get heroZoneHeight => layout?.heroZoneHeight ?? 0;
 
   bool get gridHasFocus => gridNode.hasFocus;
 
@@ -45,8 +52,9 @@ class HomeFocusController {
 
   /// Scrolls to the top and focuses the first hero tile, or the first grid tile when the hero is empty.
   void focusFirstTile({bool animate = false}) {
+    _gridWindow = -1;
     if (scroll.hasClients) {
-      animate ? scroll.animateTo(0, duration: _scrollDuration, curve: Curves.easeInOut) : scroll.jumpTo(0);
+      animate ? scroll.animateTo(0, duration: _scrollDuration, curve: Motion.curve) : scroll.jumpTo(0);
     }
     (_firstTraversable(heroNode) ?? _firstTraversable(gridNode))?.requestFocus();
   }
@@ -80,7 +88,9 @@ class HomeFocusController {
     if (!scroll.hasClients) {
       return;
     }
-    if (inHero) {
+    final layout = this.layout;
+    if (inHero || layout == null) {
+      _gridWindow = -1;
       _animateTo(0);
       return;
     }
@@ -89,9 +99,11 @@ class HomeFocusController {
     if (renderObject == null || viewport == null) {
       return;
     }
-    final maxExtent = scroll.position.maxScrollExtent;
-    final target = viewport.getOffsetToReveal(renderObject, 0.5).offset;
-    _animateTo(target.clamp(min(heroZoneHeight, maxExtent), maxExtent));
+    // The offset that would put the tile at the top edge is its position in the page, which gives its row.
+    final tileTop = viewport.getOffsetToReveal(renderObject, 0).offset;
+    final row = max(0, ((tileTop - layout.gridTop) / layout.rowPitch).round());
+    _gridWindow = layout.windowFor(row, _gridWindow);
+    _animateTo(min(layout.windowOffset(_gridWindow), scroll.position.maxScrollExtent));
   }
 
   void dispose() {
@@ -104,7 +116,7 @@ class HomeFocusController {
     if ((scroll.offset - offset).abs() < 0.5) {
       return;
     }
-    scroll.animateTo(offset, duration: _scrollDuration, curve: Curves.easeInOut);
+    scroll.animateTo(offset, duration: _scrollDuration, curve: Motion.curve);
   }
 
   FocusNode? _firstTraversable(FocusNode region) {

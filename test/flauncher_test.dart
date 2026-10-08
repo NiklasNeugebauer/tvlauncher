@@ -22,7 +22,6 @@ import 'package:flauncher/flauncher.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
@@ -56,7 +55,6 @@ void main() {
     expect(find.text("Apps"), findsOneWidget);
     expect(find.byKey(Key("grid-grid.1")), findsOneWidget);
     expect(find.byKey(Key("grid-grid.2")), findsOneWidget);
-    expect(tester.widget(find.byKey(Key("background"))), isA<ThemedBackground>());
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
     expect(_hasFocus(tester, "grid-grid.1"), isFalse);
   });
@@ -156,7 +154,7 @@ void main() {
     final appsService = _appsService(hero: [_app("hero.1")], grid: List.generate(30, (i) => _app("grid.$i")));
     final controller = await _pumpHome(tester, appsService);
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 6; ++i) {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pumpAndSettle();
     }
@@ -345,16 +343,6 @@ void main() {
     expect(find.byType(ApplicationInfoPanel), findsOneWidget);
     expect(find.text("Add to main apps"), findsOneWidget);
     verifyNever(appsService.launchApp(any));
-  });
-
-  testWidgets("Home page displays background image", (tester) async {
-    final appsService = _appsService(hero: [], grid: []);
-    final wallpaperService = MockWallpaperService();
-    when(wallpaperService.wallpaperBytes).thenReturn(kTransparentImage);
-
-    await _pumpHome(tester, appsService, wallpaperService: wallpaperService);
-
-    expect(tester.widget(find.byKey(Key("background"))), isA<Image>());
   });
 
   testWidgets("Tapping on app launches it", (tester) async {

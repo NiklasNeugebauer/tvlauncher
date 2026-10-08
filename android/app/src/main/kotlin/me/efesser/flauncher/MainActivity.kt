@@ -18,6 +18,7 @@
 
 package me.efesser.flauncher
 
+import android.app.ActivityOptions
 import android.content.Intent
 import android.content.Intent.*
 import android.content.pm.*
@@ -92,7 +93,7 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "getApplications" -> result.success(getApplications())
                 "applicationExists" -> result.success(applicationExists(call.arguments as String))
-                "launchApp" -> result.success(launchApp(call.arguments as String))
+                "launchApp" -> result.success(launchApp(call.arguments as Map<*, *>))
                 "openSystemSettings" -> result.success(openSystemSettings(call.arguments as String))
                 "openAppInfo" -> result.success(openAppInfo(call.arguments as String))
                 "uninstallApp" -> result.success(uninstallApp(call.arguments as String))
@@ -194,12 +195,29 @@ class MainActivity : FlutterActivity() {
             "sideloaded" to sideloaded,
     )
 
-    private fun launchApp(packageName: String) = try {
+    // The transition shapes how the app's window comes in: grown out of a rectangle of the launcher's window
+    // (a tile or the band, in physical pixels), with no animation after the launcher played its own, or the
+    // system default.
+    private fun launchApp(arguments: Map<*, *>) = try {
+        val packageName = arguments["packageName"] as String
         val intent = packageManager.getLeanbackLaunchIntentForPackage(packageName)
                 ?: packageManager.getLaunchIntentForPackage(packageName)
-        startActivity(intent)
+        val source = (arguments["source"] as? List<*>)?.map { (it as Number).toInt() }
+        val view = window.decorView
+        val options = when (arguments["transition"]) {
+            "reveal" -> source?.let { ActivityOptions.makeClipRevealAnimation(view, it[0], it[1], it[2], it[3]) }
+            "scaleUp" -> source?.let { ActivityOptions.makeScaleUpAnimation(view, it[0], it[1], it[2], it[3]) }
+            "fade" -> ActivityOptions.makeCustomAnimation(this, android.R.anim.fade_in, android.R.anim.fade_out)
+            "none" -> {
+                intent?.addFlags(FLAG_ACTIVITY_NO_ANIMATION)
+                null
+            }
+            else -> null
+        }
+        startActivity(intent, options?.toBundle())
         true
     } catch (e: Exception) {
+        Log.w("FLauncher", "launch failed: $e")
         false
     }
 

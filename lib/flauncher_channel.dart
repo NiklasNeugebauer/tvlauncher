@@ -20,6 +20,46 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+/// How Android animates an app's window in when the launcher starts it. [source] is in physical pixels of the
+/// launcher's window.
+class LaunchTransition {
+  final String kind;
+  final Rect? source;
+
+  const LaunchTransition._(this.kind, [this.source]);
+
+  /// Whatever the system does for a plain startActivity.
+  static const LaunchTransition system = LaunchTransition._("system");
+
+  /// No window animation at all: the launcher has already played its own.
+  static const LaunchTransition none = LaunchTransition._("none");
+
+  /// A short cross-fade, to soften the cut after the launcher's own animation.
+  static const LaunchTransition fade = LaunchTransition._("fade");
+
+  /// The app's window grows out of [source], uncovering itself like a widening hole.
+  const LaunchTransition.reveal(Rect source) : this._("reveal", source);
+
+  /// The app's window scales up from [source].
+  const LaunchTransition.scaleUp(Rect source) : this._("scaleUp", source);
+
+  Map<String, Object?> toArguments(String packageName) => {
+    "packageName": packageName,
+    "transition": kind,
+    if (source != null)
+      "source": [source!.left, source!.top, source!.width, source!.height].map((v) => v.round()).toList(),
+  };
+
+  @override
+  bool operator ==(Object other) => other is LaunchTransition && other.kind == kind && other.source == source;
+
+  @override
+  int get hashCode => Object.hash(kind, source);
+
+  @override
+  String toString() => "LaunchTransition($kind, $source)";
+}
+
 class FLauncherChannel {
   static const _methodChannel = MethodChannel('me.efesser.flauncher/method');
   static const _eventChannel = EventChannel('me.efesser.flauncher/event');
@@ -29,7 +69,8 @@ class FLauncherChannel {
   Future<bool> applicationExists(String packageName) async =>
       await _methodChannel.invokeMethod('applicationExists', packageName);
 
-  Future<void> launchApp(String packageName) async => await _methodChannel.invokeMethod('launchApp', packageName);
+  Future<void> launchApp(String packageName, [LaunchTransition transition = LaunchTransition.system]) async =>
+      await _methodChannel.invokeMethod('launchApp', transition.toArguments(packageName));
 
   /// [screen] is the name of a [SystemSettingsScreen]; the platform side picks the matching intents.
   Future<bool> openSystemSettings(String screen) async =>

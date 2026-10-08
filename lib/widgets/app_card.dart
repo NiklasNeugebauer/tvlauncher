@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
@@ -202,7 +203,7 @@ class _AppCardState extends State<AppCard> {
       }
       return KeyEventResult.handled;
     } else if (_validationKeys.contains(key)) {
-      context.read<AppsService>().launchApp(widget.application);
+      _launch(context);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -223,8 +224,21 @@ class _AppCardState extends State<AppCard> {
     if (_moving) {
       _endMove();
     } else {
-      context.read<AppsService>().launchApp(widget.application);
+      _launch(context);
     }
+  }
+
+  // Through the band when there is one, so the launch can open out of this tile; on its own, a plain launch.
+  void _launch(BuildContext context) {
+    final apps = context.read<AppsService>();
+    final band = BandScope.maybeOf(context);
+    if (band == null) {
+      apps.launchApp(widget.application);
+      return;
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    final tileRect = box == null || !box.hasSize ? null : box.localToGlobal(Offset.zero) & box.size;
+    band.launch(apps, widget.application, tileRect);
   }
 
   void _endMove() {

@@ -17,11 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:typed_data';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/hero_row.dart';
@@ -69,20 +67,14 @@ class _FLauncherState extends State<FLauncher> {
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
     policy: RowByRowTraversalPolicy(),
-    child: Stack(
-      children: [
-        Consumer<WallpaperService>(
-          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes),
-        ),
-        Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: _appBar(context),
-          body: Consumer<AppsService>(
-            builder: (context, appsService, _) =>
-                appsService.initialized ? _home(context, appsService) : _emptyState(context),
-          ),
-        ),
-      ],
+    // Transparent: the band frame paints the background behind the whole navigator.
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: _appBar(context),
+      body: Consumer<AppsService>(
+        builder: (context, appsService, _) =>
+            appsService.initialized ? _home(context, appsService) : _emptyState(context),
+      ),
     ),
   );
 
@@ -95,7 +87,7 @@ class _FLauncherState extends State<FLauncher> {
         headingHeight: _textHeight(context, "Apps", headingStyle),
       );
       final controller = context.read<HomeFocusController>();
-      controller.heroZoneHeight = layout.heroZoneHeight;
+      controller.layout = layout;
       final heroApps = appsService.heroApps;
       final gridApps = appsService.gridApps;
       WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
@@ -184,12 +176,6 @@ class _FLauncherState extends State<FLauncher> {
         child: _SettingsButton(onPressed: () => showPanel(context, (_) => SettingsPanel())),
       ),
     ],
-  );
-
-  Widget _wallpaper(Uint8List? wallpaperImage) => Positioned.fill(
-    child: wallpaperImage != null
-        ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
-        : ThemedBackground(key: Key("background")),
   );
 
   Widget _emptyState(BuildContext context) => Center(

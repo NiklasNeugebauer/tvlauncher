@@ -17,6 +17,8 @@
  */
 
 import 'package:flauncher/actions.dart';
+import 'package:flauncher/band/band_controller.dart';
+import 'package:flauncher/band/band_frame.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
@@ -46,6 +48,7 @@ class FLauncherApp extends StatelessWidget {
         create: (_) => HomeFocusController(),
         dispose: (_, controller) => controller.dispose(),
       ),
+      ChangeNotifierProvider(create: (_) => BandController()),
     ],
     child: MaterialApp(
       shortcuts: {
@@ -58,13 +61,19 @@ class FLauncherApp extends StatelessWidget {
       actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
       title: 'Launcher',
       theme: buildTheme(),
+      builder: (context, child) => BandFrame(controller: context.read<BandController>(), child: child!),
       home: Builder(
         builder: (context) => PopScope(
           canPop: false,
-          // Back: inside the grid it returns to the first main app; on the hero it starts the screensaver.
-          // As a non-default launcher the app exits like any other.
+          // Back: ends the nudge mode; inside the grid it returns to the first main app; on the hero it starts the
+          // screensaver. As a non-default launcher the app exits like any other.
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) {
+              return;
+            }
+            final band = context.read<BandController>();
+            if (band.nudging) {
+              band.stopNudging();
               return;
             }
             if (await shouldPopScope(context)) {
