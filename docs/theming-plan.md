@@ -91,8 +91,8 @@ Order relative to v2: after the Flutter upgrade lands, because the upgrade touch
   Round done 2026-10-08 on the device (Source Sans 3, Nunito Sans, IBM Plex Sans, Space Grotesk, Outfit, Fraunces,
   and Fraunces titles over Source Sans 3 rows). Recommendation: Fraunces for clock and titles with Source Sans 3
   for everything else; it is the only candidate that moves the mood toward the lamp-lit room, while the rows stay
-  a crisp sans for the projector. Runner-up: IBM Plex Sans alone. Nunito Sans and Space Grotesk rejected. Not
-  committed; awaiting Niklas's pick.
+  a crisp sans for the projector. Runner-up: IBM Plex Sans alone. Nunito Sans and Space Grotesk rejected.
+  Niklas picked **Source Sans 3** for everything; bundled under `fonts/` (OFL) and set as the theme font family.
 - T5. Native splash: an XML gradient drawable (`bgTop → bgBottom`) replaces `splash.jpg`; `NormalTheme` paints
   `bgBottom` behind Flutter so nothing flashes before the first frame.
 - T6. No separate dialog design. `dialogTheme` is `surface` with radius 12 and `brass` text buttons, and the About

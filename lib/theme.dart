@@ -46,8 +46,15 @@ abstract final class Shapes {
   static const double focusRing = 3;
 }
 
+/// Bundled under fonts/ (SIL Open Font License): the APK has no network, so a Google font must ship with it.
+const String fontFamily = 'SourceSans3';
+
 ThemeData buildTheme() {
-  final textTheme = Typography.material2018().white.apply(bodyColor: Palette.cream, displayColor: Palette.cream);
+  final textTheme = Typography.material2018().white.apply(
+    bodyColor: Palette.cream,
+    displayColor: Palette.cream,
+    fontFamily: fontFamily,
+  );
   return ThemeData(
     // Material 2: the launcher's look was designed for it and Material 3 restyles every widget.
     useMaterial3: false,

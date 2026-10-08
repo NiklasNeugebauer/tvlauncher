@@ -38,3 +38,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+  fonts:
+    - family: SourceSans3
+      fonts:
+        - asset: fonts/SourceSans3-Regular.ttf
+        - asset: fonts/SourceSans3-Medium.ttf
+          weight: 500
+        - asset: fonts/SourceSans3-SemiBold.ttf
+          weight: 600
