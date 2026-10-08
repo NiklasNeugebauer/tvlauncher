@@ -210,9 +210,13 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.hidden) {
-      // Behind an app there is nothing to idle; come back awake.
+      // Behind an app, the screensaver or a sleeping display there is nothing to idle; come back awake. The frame
+      // must hear about it, or it keeps showing the picture frame and holding focus with nothing left to wake.
       _idleTimer?.cancel();
-      _idle = false;
+      if (_idle) {
+        _idle = false;
+        notifyListeners();
+      }
     } else if (state == AppLifecycleState.resumed) {
       _restartIdleTimer();
     }

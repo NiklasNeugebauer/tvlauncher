@@ -194,6 +194,29 @@ void main() {
       button.dispose();
     });
 
+    testWidgets("hiding the launcher while idle wakes the band, so keys reach the tiles again", (tester) async {
+      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 10))..idleMode = IdleMode.frame;
+      final button = FocusNode();
+      await _pumpFrame(
+        tester,
+        controller,
+        TextButton(focusNode: button, autofocus: true, onPressed: () {}, child: Text("tile")),
+      );
+      await tester.pump(Duration(seconds: 11));
+      await tester.pumpAndSettle();
+      expect(button.hasFocus, isFalse);
+
+      controller.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(controller.idle, isFalse);
+      expect(button.hasFocus, isTrue);
+      expect(find.byKey(Key("idle-clock")), findsNothing);
+      controller.dispose();
+      button.dispose();
+    });
+
     testWidgets("Back wakes an idle band and ends the nudge mode before reaching the app", (tester) async {
       final controller = BandController(tuning: false, idleAfter: Duration(seconds: 1))..idleMode = IdleMode.dim;
       await tester.pump(Duration(seconds: 2));
