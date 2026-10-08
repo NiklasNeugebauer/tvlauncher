@@ -146,7 +146,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pumpAndSettle();
 
-    expect(Focus.of(findSettingsIcon(tester)!).hasFocus, isTrue);
+    expect(Focus.of(findSettingsIcon(tester)).hasFocus, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.byType(QuickSettingsPage), findsOneWidget);

@@ -56,6 +56,11 @@ Today: a flat blue slab with uniform text buttons. Target:
    custom image is set. The glow radius is computed per layout because `RadialGradient` measures against the
    shorter side. Tokens live in `Palette`, shapes in `Shapes`, both in `lib/theme.dart`.
 2. Tiles and home chrome (focus ring, radius, heading, clock, gear).
+
+   Done 2026-10-08. "70 % weight" for the heading is cream at 70 % opacity. The gear lost its blurred shadow
+   copy and became a small focus-aware widget (`_SettingsButton`, key `settings`) so it can turn brass.
+   Move-mode arrows are brass discs with a dark glyph. Text shadows on clock and heading stay for custom
+   wallpapers.
 3. `RightPanelDialog`, a shared `PanelRow` widget, and the five panels on it.
 4. Tests: delete gradient tests, update wallpaper tests, add a widget test that the home background is the themed
    one without a custom wallpaper and the image with one; panel row focus test.

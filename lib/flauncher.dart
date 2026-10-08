@@ -18,8 +18,6 @@
  */
 
 import 'dart:typed_data';
-import 'dart:ui';
-
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
@@ -160,7 +158,9 @@ class _FLauncherState extends State<FLauncher> {
     }
   }
 
+  // Quieter than the clock so it does not compete with the tiles.
   TextStyle _headingStyle(BuildContext context) => Theme.of(context).textTheme.titleLarge!.copyWith(
+    color: Palette.cream.withValues(alpha: 0.7),
     shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
   );
 
@@ -180,26 +180,7 @@ class _FLauncherState extends State<FLauncher> {
     actions: [
       Padding(
         padding: EdgeInsets.only(right: HomeLayout.sidePadding),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(
-              left: 2.0,
-              top: 18.0,
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2, tileMode: TileMode.decal),
-                child: Icon(Icons.settings_outlined, color: Colors.black54),
-              ),
-            ),
-            IconButton(
-              padding: EdgeInsets.all(2),
-              constraints: BoxConstraints(),
-              splashRadius: 20,
-              icon: Icon(Icons.settings_outlined),
-              onPressed: () => showDialog(context: context, builder: (_) => SettingsPanel()),
-            ),
-          ],
-        ),
+        child: _SettingsButton(onPressed: () => showDialog(context: context, builder: (_) => SettingsPanel())),
       ),
     ],
   );
@@ -218,6 +199,36 @@ class _FLauncherState extends State<FLauncher> {
         SizedBox(height: 16),
         Text("Loading...", style: Theme.of(context).textTheme.titleLarge),
       ],
+    ),
+  );
+}
+
+/// The gear: dim until focused, then brass like every other focus mark.
+class _SettingsButton extends StatefulWidget {
+  final VoidCallback onPressed;
+
+  const _SettingsButton({required this.onPressed});
+
+  @override
+  State<_SettingsButton> createState() => _SettingsButtonState();
+}
+
+class _SettingsButtonState extends State<_SettingsButton> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) => Focus(
+    canRequestFocus: false,
+    skipTraversal: true,
+    onFocusChange: (focused) => setState(() => _focused = focused),
+    child: IconButton(
+      key: Key("settings"),
+      padding: EdgeInsets.all(2),
+      constraints: BoxConstraints(),
+      splashRadius: 20,
+      color: _focused ? Palette.brass : Palette.creamDim,
+      icon: Icon(Icons.settings_outlined),
+      onPressed: widget.onPressed,
     ),
   );
 }

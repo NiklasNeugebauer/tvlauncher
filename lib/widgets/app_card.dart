@@ -19,6 +19,7 @@
 
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
 import 'package:flutter/foundation.dart' hide Category;
@@ -95,10 +96,11 @@ class _AppCardState extends State<AppCard> {
         transformAlignment: Alignment.center,
         transform: _scaleTransform(context),
         child: Material(
-          borderRadius: BorderRadius.circular(8),
+          color: Palette.surface,
+          borderRadius: BorderRadius.circular(Shapes.tileRadius),
           clipBehavior: Clip.antiAlias,
           elevation: Focus.of(context).hasFocus ? 16 : 0,
-          shadowColor: Colors.black,
+          shadowColor: Palette.shadow,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -127,8 +129,10 @@ class _AppCardState extends State<AppCard> {
                   duration: Duration(milliseconds: 200),
                   curve: Curves.easeInOut,
                   decoration: BoxDecoration(
-                    border: Focus.of(context).hasFocus ? Border.all(color: Colors.white, width: 3) : null,
-                    borderRadius: BorderRadius.circular(8),
+                    border: Focus.of(context).hasFocus
+                        ? Border.all(color: Palette.brass, width: Shapes.focusRing)
+                        : null,
+                    borderRadius: BorderRadius.circular(Shapes.tileRadius),
                   ),
                 ),
               ),
@@ -180,8 +184,8 @@ class _AppCardState extends State<AppCard> {
     child: Padding(
       padding: EdgeInsets.all(4),
       child: Container(
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).primaryColor.withValues(alpha: 0.8)),
-        child: Icon(icon, size: 16),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: Palette.brass),
+        child: Icon(icon, size: 16, color: Palette.bgBottom),
       ),
     ),
   );
