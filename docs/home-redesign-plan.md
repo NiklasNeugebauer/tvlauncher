@@ -343,6 +343,11 @@ areas; unhide in settings → back at its old hero position.
 
 Done 2026-10-08 as part of step 3.
 
+Fix 2026-10-08 (`fix/long-press-tiers`): a held select never reached the long-press code on the remote, because
+the key down bubbled to Flutter's shortcut layer and activated the tile at once. `FocusKeyboardListener` now
+consumes the key down and fires in tiers: release = launch, 0.5 s = move mode (hero) or panel (grid), 1.5 s =
+panel. Tile wrappers are keyed per app so a reorder keeps the moving card's state and focus.
+
 ### Step 7: quick settings (gear)
 
 Files: `MainActivity.kt`, `lib/flauncher_channel.dart`, `lib/providers/apps_service.dart` (or a new

@@ -48,13 +48,15 @@ class HeroRow extends StatelessWidget {
       children: [
         for (int index = 0; index < applications.length; ++index) ...[
           if (index > 0) SizedBox(width: HomeLayout.gap),
+          // Keyed at the tile level so a reorder moves the whole subtree, keeping the card's move-mode state
+          // and focus with its app.
           SizedBox(
+            key: Key("hero-${applications[index].packageName}"),
             width: tileWidth,
             height: tileHeight,
             child: RevealOnFocus(
               inHero: true,
               child: AppCard(
-                key: Key("hero-${applications[index].packageName}"),
                 application: applications[index],
                 inHero: true,
                 autofocus: index == 0,

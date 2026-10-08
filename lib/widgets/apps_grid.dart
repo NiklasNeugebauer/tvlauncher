@@ -51,12 +51,12 @@ class AppsGrid extends StatelessWidget {
             for (int index = start; index < end; ++index) ...[
               if (index > start) SizedBox(width: HomeLayout.gap),
               SizedBox(
+                key: Key("grid-${applications[index].packageName}"),
                 width: tileWidth,
                 height: tileWidth / HomeLayout.aspectRatio,
                 child: RevealOnFocus(
                   inHero: false,
                   child: AppCard(
-                    key: Key("grid-${applications[index].packageName}"),
                     application: applications[index],
                     inHero: false,
                     autofocus: autofocusFirst && index == 0,

@@ -86,6 +86,7 @@ class _AppCardState extends State<AppCard> {
   Widget build(BuildContext context) => FocusKeyboardListener(
         onPressed: (key) => _onPressed(context, key),
         onLongPress: (key) => _onLongPress(context, key),
+        onVeryLongPress: (key) => _onVeryLongPress(context),
         builder: (context) => AspectRatio(
           aspectRatio: 16 / 9,
           child: AnimatedContainer(
@@ -229,12 +230,27 @@ class _AppCardState extends State<AppCard> {
     widget.onMoveEnd?.call();
   }
 
+  // Held select on a hero tile starts moving it right away; the panel comes after a longer hold (or a pointer
+  // long press, which has no move mode). Grid tiles cannot move, so the hold opens the panel directly.
   KeyEventResult _onLongPress(BuildContext context, LogicalKeyboardKey? key) {
-    if (!_moving && (key == null || longPressableKeys.contains(key))) {
-      _showPanel(context);
-      return KeyEventResult.handled;
+    if (_moving) {
+      return KeyEventResult.ignored;
     }
-    return KeyEventResult.ignored;
+    if (key != null && widget.inHero && widget.onMove != null) {
+      setState(() => _moving = true);
+    } else {
+      _showPanel(context);
+    }
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _onVeryLongPress(BuildContext context) {
+    if (_moving) {
+      // Nothing was moved yet, so there is no order to save.
+      setState(() => _moving = false);
+    }
+    _showPanel(context);
+    return KeyEventResult.handled;
   }
 
   Future<void> _showPanel(BuildContext context) async {

@@ -188,27 +188,50 @@ void main() {
     expect(find.byType(ApplicationInfoPanel), findsNothing);
   });
 
-  testWidgets("'Move' on a hero tile reorders with left/right and saves on select", (tester) async {
-    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: []);
+  testWidgets("A held select moves a hero tile with left/right and saves on select", (tester) async {
+    // A real AppsService over mocked channel and database, so the reorder rebuilds the row like on the device.
+    final channel = MockFLauncherChannel();
+    final database = MockFLauncherDatabase();
+    final hero = fakeCategory(name: "Main");
+    final first = _app("hero.1");
+    final second = _app("hero.2");
+    when(channel.getApplications()).thenAnswer((_) => Future.value([]));
+    when(channel.applicationExists(any)).thenAnswer((_) => Future.value(true));
+    when(database.listApplications()).thenAnswer((_) => Future.value([first, second]));
+    when(database.listCategoriesWithVisibleApps())
+        .thenAnswer((_) => Future.value([CategoryWithApps(hero, [first, second])]));
+    when(database.transaction(any)).thenAnswer((invocation) => invocation.positionalArguments[0]());
+    final appsService = AppsService(channel, database);
+    await untilCalled(channel.addAppsChangedListener(any));
     await _pumpHome(tester, appsService);
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
 
-    await tester.longPress(find.byKey(Key("hero-hero.1")));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
-    expect(find.text("Remove from main apps"), findsOneWidget);
-    await tester.tap(find.text("Move"));
-    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
-    verify(appsService.reorderHero(0, 1));
+    expect(tester.getRect(find.byKey(Key("hero-hero.1"))).left,
+        greaterThan(tester.getRect(find.byKey(Key("hero-hero.2"))).left));
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
-    verifyNever(appsService.reorderHero(any, any));
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
-    verify(appsService.saveHeroOrder());
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+    verify(database.replaceAppsCategories([
+      AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: "hero.2", order: 0),
+      AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: "hero.1", order: 1),
+    ]));
+    verifyNever(channel.launchApp(any));
   });
 
   testWidgets("Home closes an open panel, ends move mode and focuses the first hero tile", (tester) async {
@@ -258,6 +281,53 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(QuickSettingsPage), findsOneWidget);
+  });
+
+  testWidgets("Select launches on release; a hold moves a hero tile, a longer hold opens its panel", (tester) async {
+    final hero1 = _app("hero.1");
+    final appsService = _appsService(hero: [hero1, _app("hero.2")], grid: []);
+    await _pumpHome(tester, appsService);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 100));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    verify(appsService.launchApp(hero1));
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
+    verifyNever(appsService.launchApp(any));
+
+    await tester.pump(Duration(milliseconds: 1000));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    verifyNever(appsService.launchApp(any));
+    verifyNever(appsService.saveHeroOrder());
+  });
+
+  testWidgets("A held select on a grid tile opens its panel without launching", (tester) async {
+    final appsService = _appsService(hero: [], grid: [_app("grid.1"), _app("grid.2")]);
+    await _pumpHome(tester, appsService);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    expect(find.text("Add to main apps"), findsOneWidget);
+    verifyNever(appsService.launchApp(any));
   });
 
   testWidgets("Home page displays background image", (tester) async {
