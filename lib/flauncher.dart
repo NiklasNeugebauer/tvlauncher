@@ -17,11 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
@@ -91,49 +93,52 @@ class _FLauncherState extends State<FLauncher> {
       final heroApps = appsService.heroApps;
       final gridApps = appsService.gridApps;
       WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
-      return SingleChildScrollView(
-        controller: controller.scroll,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: layout.heroZoneHeight,
-              child: Focus(
-                focusNode: controller.heroNode,
-                canRequestFocus: false,
-                skipTraversal: true,
-                child: Align(
-                  alignment: HomeLayout.heroAlignment,
-                  child: HeroRow(
-                    applications: heroApps,
-                    tileWidth: layout.heroTileWidth(heroApps.length),
-                    tileHeight: layout.heroTileHeight(heroApps.length),
+      return FocusGlide(
+        enabled: BandScope.maybeOf(context, listen: true)?.focusGlide ?? false,
+        child: SingleChildScrollView(
+          controller: controller.scroll,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: layout.heroZoneHeight,
+                child: Focus(
+                  focusNode: controller.heroNode,
+                  canRequestFocus: false,
+                  skipTraversal: true,
+                  child: Align(
+                    alignment: HomeLayout.heroAlignment,
+                    child: HeroRow(
+                      applications: heroApps,
+                      tileWidth: layout.heroTileWidth(heroApps.length),
+                      tileHeight: layout.heroTileHeight(heroApps.length),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                HomeLayout.sidePadding,
-                HomeLayout.headingTop,
-                HomeLayout.sidePadding,
-                HomeLayout.headingBottom,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  HomeLayout.sidePadding,
+                  HomeLayout.headingTop,
+                  HomeLayout.sidePadding,
+                  HomeLayout.headingBottom,
+                ),
+                child: Text("Apps", style: headingStyle),
               ),
-              child: Text("Apps", style: headingStyle),
-            ),
-            Focus(
-              focusNode: controller.gridNode,
-              canRequestFocus: false,
-              skipTraversal: true,
-              onKeyEvent: controller.handleGridKey,
-              child: AppsGrid(
-                applications: gridApps,
-                tileWidth: layout.gridTileWidth,
-                autofocusFirst: heroApps.isEmpty,
+              Focus(
+                focusNode: controller.gridNode,
+                canRequestFocus: false,
+                skipTraversal: true,
+                onKeyEvent: controller.handleGridKey,
+                child: AppsGrid(
+                  applications: gridApps,
+                  tileWidth: layout.gridTileWidth,
+                  autofocusFirst: heroApps.isEmpty,
+                ),
               ),
-            ),
-            SizedBox(height: layout.bottomSpacer(gridApps.length)),
-          ],
+              SizedBox(height: layout.bottomSpacer(gridApps.length)),
+            ],
+          ),
         ),
       );
     },

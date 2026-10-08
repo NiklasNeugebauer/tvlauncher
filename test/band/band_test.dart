@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -48,10 +47,7 @@ void main() {
 
   group("BandGeometry", () {
     test("places the band by height and position", () {
-      expect(
-        BandGeometry(height: 0.6, position: 1, edge: BandEdge.hard).rect(_frame),
-        Rect.fromLTWH(0, 216, 960, 324),
-      );
+      expect(BandGeometry(height: 0.6, position: 1, edge: BandEdge.hard).rect(_frame), Rect.fromLTWH(0, 216, 960, 324));
       expect(
         BandGeometry(height: 0.6, position: 0.5, edge: BandEdge.soft).rect(_frame),
         Rect.fromLTWH(0, 108, 960, 324),
@@ -268,7 +264,10 @@ Future<void> _pumpFrame(
       value: wallpaper,
       child: MaterialApp(
         builder: (context, child) => BandFrame(controller: controller, child: child!),
-        home: SizedBox.expand(key: Key("probe"), child: Center(child: home)),
+        home: SizedBox.expand(
+          key: Key("probe"),
+          child: Center(child: home),
+        ),
       ),
     ),
   );
