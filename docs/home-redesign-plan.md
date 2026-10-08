@@ -10,7 +10,7 @@ trimmed launcher settings, own `applicationId`/keystore. Pinned toolchain stays 
 - **v2**: Flutter/AGP upgrade and targetSdk bump. No feature changes.
 - **v3**: theming for the projector room, see `theming-plan.md`; also display name and banner (`android:label`,
   `@drawable/banner`), which v1 keeps inherited.
-- **v4**: polish for projector viewing: animations, black space and the final aspect checks (the widescreen band
+- **v4**: polish for projector viewing, see `v4-plan.md` (the widescreen band
   experiment from v3's screenshot round feeds into this).
 
 ---
