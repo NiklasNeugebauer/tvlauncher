@@ -8,7 +8,8 @@ trimmed launcher settings, own `applicationId`/keystore. Pinned toolchain stays 
 
 - **v1** (this plan): new home layout, long-press panel variants, quick settings, settings trim, own `applicationId`.
 - **v2**: Flutter/AGP upgrade and targetSdk bump. No feature changes.
-- **v3**: display name and banner (`android:label`, `@drawable/banner`); v1 keeps the inherited ones.
+- **v3**: theming for the projector room, see `theming-plan.md`; also display name and banner (`android:label`,
+  `@drawable/banner`), which v1 keeps inherited.
 
 ---
 
