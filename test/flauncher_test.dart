@@ -19,11 +19,10 @@
 
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher.dart';
-import 'package:flauncher/gradients.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
@@ -57,7 +56,7 @@ void main() {
     expect(find.text("Apps"), findsOneWidget);
     expect(find.byKey(Key("grid-grid.1")), findsOneWidget);
     expect(find.byKey(Key("grid-grid.2")), findsOneWidget);
-    expect(tester.widget(find.byKey(Key("background"))), isA<Container>());
+    expect(tester.widget(find.byKey(Key("background"))), isA<ThemedBackground>());
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
     expect(_hasFocus(tester, "grid-grid.1"), isFalse);
   });
@@ -352,7 +351,6 @@ void main() {
     final appsService = _appsService(hero: [], grid: []);
     final wallpaperService = MockWallpaperService();
     when(wallpaperService.wallpaperBytes).thenReturn(kTransparentImage);
-    when(wallpaperService.gradient).thenReturn(FLauncherGradients.greatWhale);
 
     await _pumpHome(tester, appsService, wallpaperService: wallpaperService);
 
@@ -416,7 +414,6 @@ Future<HomeFocusController> _pumpHome(
   if (wallpaperService == null) {
     wallpaperService = MockWallpaperService();
     when(wallpaperService.wallpaperBytes).thenReturn(null);
-    when(wallpaperService.gradient).thenReturn(FLauncherGradients.greatWhale);
   }
   // Not disposed: the controller's focus nodes live in the tree until the next pumpWidget replaces it.
   final controller = HomeFocusController();
@@ -425,7 +422,6 @@ Future<HomeFocusController> _pumpHome(
       providers: [
         ChangeNotifierProvider<WallpaperService>.value(value: wallpaperService),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
-        ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
         Provider<HomeFocusController>.value(value: controller),
       ],
       builder: (_, _) => MaterialApp(home: FLauncher()),

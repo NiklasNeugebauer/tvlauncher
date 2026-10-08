@@ -18,49 +18,30 @@
 
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database.dart';
 import 'flauncher.dart';
 import 'flauncher_channel.dart';
 
 class FLauncherApp extends StatelessWidget {
-  final SharedPreferences _sharedPreferences;
   final ImagePicker _imagePicker;
   final FLauncherChannel _fLauncherChannel;
   final FLauncherDatabase _fLauncherDatabase;
 
-  static const MaterialColor _swatch = MaterialColor(0xFF011526, <int, Color>{
-    50: Color(0xFF36A0FA),
-    100: Color(0xFF067BDE),
-    200: Color(0xFF045CA7),
-    300: Color(0xFF033662),
-    400: Color(0xFF022544),
-    500: Color(0xFF011526),
-    600: Color(0xFF000508),
-    700: Color(0xFF000000),
-    800: Color(0xFF000000),
-    900: Color(0xFF000000),
-  });
-
-  FLauncherApp(this._sharedPreferences, this._imagePicker, this._fLauncherChannel, this._fLauncherDatabase);
+  FLauncherApp(this._imagePicker, this._fLauncherChannel, this._fLauncherDatabase);
 
   @override
   Widget build(BuildContext context) => MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => SettingsService(_sharedPreferences), lazy: false),
       ChangeNotifierProvider(create: (_) => AppsService(_fLauncherChannel, _fLauncherDatabase)),
-      ChangeNotifierProxyProvider<SettingsService, WallpaperService>(
-        create: (_) => WallpaperService(_imagePicker, _fLauncherChannel),
-        update: (_, settingsService, wallpaperService) => wallpaperService!..settingsService = settingsService,
-      ),
+      ChangeNotifierProvider(create: (_) => WallpaperService(_imagePicker, _fLauncherChannel)),
       Provider<HomeFocusController>(
         create: (_) => HomeFocusController(),
         dispose: (_, controller) => controller.dispose(),
@@ -76,33 +57,7 @@ class FLauncherApp extends StatelessWidget {
       },
       actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
       title: 'FLauncher',
-      theme: ThemeData(
-        // Material 2: the launcher's look was designed for it and Material 3 restyles every widget.
-        useMaterial3: false,
-        brightness: Brightness.dark,
-        primarySwatch: _swatch,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: _swatch,
-          brightness: Brightness.dark,
-          accentColor: _swatch[200],
-        ),
-        cardColor: _swatch[300],
-        canvasColor: _swatch[300],
-        dialogTheme: DialogThemeData(backgroundColor: _swatch[400]),
-        scaffoldBackgroundColor: _swatch[400],
-        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: Colors.white)),
-        appBarTheme: AppBarTheme(elevation: 0, backgroundColor: Colors.transparent),
-        typography: Typography.material2018(),
-        inputDecorationTheme: InputDecorationTheme(
-          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
-          labelStyle: Typography.material2018().white.bodyMedium,
-        ),
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: Colors.white,
-          selectionColor: _swatch[200],
-          selectionHandleColor: _swatch[200],
-        ),
-      ),
+      theme: buildTheme(),
       home: Builder(
         builder: (context) => PopScope(
           canPop: false,

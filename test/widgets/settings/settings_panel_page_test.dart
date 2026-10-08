@@ -18,7 +18,6 @@
  */
 
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
 import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -77,7 +76,6 @@ Future<void> _pumpWidgetWithProviders(WidgetTester tester) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
       ],
       builder: (_, _) => MaterialApp(

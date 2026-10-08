@@ -17,7 +17,6 @@
  */
 
 import 'package:drift/drift.dart';
-import 'package:flauncher/gradients.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
@@ -41,10 +40,9 @@ void main() {
       when(pickedFile.readAsBytes()).thenAnswer((_) => Future.value(Uint8List.fromList([0x01])));
       final imagePicker = _MockImagePicker();
       final fLauncherChannel = MockFLauncherChannel();
-      final settingsService = MockSettingsService();
       when(imagePicker.pickImage(source: ImageSource.gallery)).thenAnswer((_) => Future.value(pickedFile));
       when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
+      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel);
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
       await wallpaperService.pickWallpaper();
@@ -63,45 +61,20 @@ void main() {
     });
   });
 
-  test("setGradient", () async {
+  test("clearWallpaper drops the image", () async {
+    final pickedFile = _MockXFile();
+    when(pickedFile.readAsBytes()).thenAnswer((_) => Future.value(Uint8List.fromList([0x01])));
     final imagePicker = _MockImagePicker();
     final fLauncherChannel = MockFLauncherChannel();
-    final settingsService = MockSettingsService();
-    final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
+    when(imagePicker.pickImage(source: ImageSource.gallery)).thenAnswer((_) => Future.value(pickedFile));
+    when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
+    final wallpaperService = WallpaperService(imagePicker, fLauncherChannel);
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
+    await wallpaperService.pickWallpaper();
 
-    await wallpaperService.setGradient(FLauncherGradients.greatWhale);
+    await wallpaperService.clearWallpaper();
 
-    verify(settingsService.setGradientUuid(FLauncherGradients.greatWhale.uuid));
     expect(wallpaperService.wallpaperBytes, null);
-  });
-
-  group("getGradient", () {
-    test("without uuid from settings", () async {
-      final imagePicker = _MockImagePicker();
-      final fLauncherChannel = MockFLauncherChannel();
-      final settingsService = MockSettingsService();
-      when(settingsService.gradientUuid).thenReturn(null);
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
-      await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
-
-      final gradient = wallpaperService.gradient;
-
-      expect(gradient, FLauncherGradients.greatWhale);
-    });
-
-    test("with uuid from settings", () async {
-      final imagePicker = _MockImagePicker();
-      final fLauncherChannel = MockFLauncherChannel();
-      final settingsService = MockSettingsService();
-      when(settingsService.gradientUuid).thenReturn(FLauncherGradients.grassShampoo.uuid);
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel)..settingsService = settingsService;
-      await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
-
-      final gradient = wallpaperService.gradient;
-
-      expect(gradient, FLauncherGradients.grassShampoo);
-    });
   });
 }
 

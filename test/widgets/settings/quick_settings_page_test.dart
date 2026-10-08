@@ -18,7 +18,6 @@
  */
 
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/settings_service.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -85,7 +84,6 @@ Future<void> _pumpPanel(WidgetTester tester, AppsService appsService) async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppsService>.value(value: appsService),
-        ChangeNotifierProvider<SettingsService>.value(value: MockSettingsService()),
       ],
       builder: (_, _) => MaterialApp(
         home: Builder(

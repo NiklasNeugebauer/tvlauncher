@@ -24,6 +24,7 @@ import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
@@ -72,7 +73,7 @@ class _FLauncherState extends State<FLauncher> {
     child: Stack(
       children: [
         Consumer<WallpaperService>(
-          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes, wallpaper.gradient.gradient),
+          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes),
         ),
         Scaffold(
           backgroundColor: Colors.transparent,
@@ -110,7 +111,8 @@ class _FLauncherState extends State<FLauncher> {
                 focusNode: controller.heroNode,
                 canRequestFocus: false,
                 skipTraversal: true,
-                child: Center(
+                child: Align(
+                  alignment: HomeLayout.heroAlignment,
                   child: HeroRow(
                     applications: heroApps,
                     tileWidth: layout.heroTileWidth(heroApps.length),
@@ -202,13 +204,10 @@ class _FLauncherState extends State<FLauncher> {
     ],
   );
 
-  Widget _wallpaper(Uint8List? wallpaperImage, Gradient gradient) => Positioned.fill(
+  Widget _wallpaper(Uint8List? wallpaperImage) => Positioned.fill(
     child: wallpaperImage != null
         ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
-        : Container(
-            key: Key("background"),
-            decoration: BoxDecoration(gradient: gradient),
-          ),
+        : ThemedBackground(key: Key("background")),
   );
 
   Widget _emptyState(BuildContext context) => Center(
