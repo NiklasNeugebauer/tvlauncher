@@ -88,6 +88,11 @@ Order relative to v2: after the Flutter upgrade lands, because the upgrade touch
 - T3. Hero row at 65 % of its zone supersedes D9 (centred): the tiles move toward the glow at 85 % height so the
   bright tiles and the lamp-light vignette read as one composition.
 - T4. Typeface stays Roboto in v3. Afterwards: a round of bundled font candidates, judged from screenshots.
+  Round done 2026-10-08 on the device (Source Sans 3, Nunito Sans, IBM Plex Sans, Space Grotesk, Outfit, Fraunces,
+  and Fraunces titles over Source Sans 3 rows). Recommendation: Fraunces for clock and titles with Source Sans 3
+  for everything else; it is the only candidate that moves the mood toward the lamp-lit room, while the rows stay
+  a crisp sans for the projector. Runner-up: IBM Plex Sans alone. Nunito Sans and Space Grotesk rejected. Not
+  committed; awaiting Niklas's pick.
 - T5. Native splash: an XML gradient drawable (`bgTop → bgBottom`) replaces `splash.jpg`; `NormalTheme` paints
   `bgBottom` behind Flutter so nothing flashes before the first frame.
 - T6. No separate dialog design. `dialogTheme` is `surface` with radius 12 and `brass` text buttons, and the About
@@ -100,4 +105,8 @@ Order relative to v2: after the Flutter upgrade lands, because the upgrade touch
   `bg_bottom`, and both JPEGs are gone. The splash itself could not be captured over adb: as the home app the
   launcher restarts before `screencap` runs.
 - Experiments after v3, screenshots only: the font round (T4) and a "widescreen" layout with the whole home
-  screen squashed into the bottom portion of the frame.
+  screen squashed into the bottom portion of the frame. Band shots taken 2026-10-08 at 60 % and 50 % of the
+  frame height: 60 % keeps full-size hero tiles and shows two grid rows at once; 50 % shrinks the hero. The
+  clock and gear drop to the band's top edge, which v4 has to place deliberately. The hidden height above the
+  band should be pure black (the projector's minimum light), with the olive gradient and glow confined to the
+  band. Goes into v4.
