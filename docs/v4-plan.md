@@ -100,4 +100,13 @@ contact sheets, plus widget tests (107 pass).
 
 - Focus glide versus jump; idle off, dim or picture frame.
 - Whether quick settings has enough room inside the band, or panels should float.
-- Whether the tuning build's switchers stay in the final build.
+- Settled: the switchers stay, in the "Band & motion" page.
+
+## After the first wall round (2026-10-08)
+
+- The tuning build is gone. Every build has "Quick settings → Band & motion": size and position (nudge mode),
+  launch and return variants, their lengths in 20 ms steps (defaults 480 ms and 880 ms), focus glide and idle.
+- The config moved to `/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json`, readable and
+  writable over adb without root, re-read whenever the launcher comes to the front, every load and save logged
+  as `band config ...` (see `CLAUDE.md`). The old private `band_tuning.json` is moved there on first start.
+- Performance profiling was dropped on request; no frame timings were measured.
