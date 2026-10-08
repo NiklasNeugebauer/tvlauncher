@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirrors Palette in lib/theme.dart. -->
+<resources>
+    <color name="bg_top">#FF1C2419</color>
+    <color name="bg_bottom">#FF0F140E</color>
+</resources>

@@ -71,6 +71,10 @@ Today: a flat blue slab with uniform text buttons. Target:
 4. Tests: delete gradient tests, update wallpaper tests, add a widget test that the home background is the themed
    one without a custom wallpaper and the image with one; panel row focus test.
 
+   Done 2026-10-08, spread over steps 1 and 3: the gradient and settings-service tests went with step 1, the
+   wallpaper tests cover "Custom image" and "Back to theme", the home test asserts `ThemedBackground` without
+   a custom image, and `test/widgets/panel_row_test.dart` covers focus colours, the destructive row and hover.
+
 Order relative to v2: after the Flutter upgrade lands, because the upgrade touches `ThemeData` (deprecated
 `accentColor`/`backgroundColor`) and this would conflict in the same lines.
 
@@ -90,5 +94,10 @@ Order relative to v2: after the Flutter upgrade lands, because the upgrade touch
   box inherits it. SnackBars: `surfaceRaised` with `cream` text. Text input: `brass` cursor and underline.
 - T7. Branch `v3-theming` in a worktree; one commit per step plus one for name, banner and splash, each with its
   Done note here. The font round is not committed; only the font picked afterwards lands.
+- Name, banner and splash done 2026-10-08: `android:label` and the app title are "Launcher"; `tool/banner.py`
+  renders `drawable-xhdpi/banner.png` (themed background, cream wordmark inside a brass tile ring, as asked);
+  `launch_background.xml` is a gradient shape over `@color/bg_top`/`bg_bottom`, the window background is
+  `bg_bottom`, and both JPEGs are gone. The splash itself could not be captured over adb: as the home app the
+  launcher restarts before `screencap` runs.
 - Experiments after v3, screenshots only: the font round (T4) and a "widescreen" layout with the whole home
   screen squashed into the bottom portion of the frame.

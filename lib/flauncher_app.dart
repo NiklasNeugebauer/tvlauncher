@@ -56,7 +56,7 @@ class FLauncherApp extends StatelessWidget {
         ),
       },
       actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
-      title: 'FLauncher',
+      title: 'Launcher',
       theme: buildTheme(),
       home: Builder(
         builder: (context) => PopScope(
