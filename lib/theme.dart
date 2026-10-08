@@ -56,7 +56,7 @@ abstract final class Motion {
   static const Duration launch = Duration(milliseconds: 480);
 
   /// The band settling back from the full frame when an app is left: slow, the room is coming back.
-  static const Duration returnHome = Duration(milliseconds: 1000);
+  static const Duration returnHome = Duration(milliseconds: 880);
   static const Curve curve = Curves.easeInOutCubic;
 }
 

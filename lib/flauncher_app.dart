@@ -49,7 +49,10 @@ class FLauncherApp extends StatelessWidget {
         dispose: (_, controller) => controller.dispose(),
       ),
       // Not lazy: created before the navigator, so Back reaches it first (see BandController.didPopRoute).
-      ChangeNotifierProvider(create: (_) => BandController(), lazy: false),
+      ChangeNotifierProvider(
+        create: (_) => BandController(configFile: BandController.defaultConfigFile),
+        lazy: false,
+      ),
     ],
     child: MaterialApp(
       shortcuts: {

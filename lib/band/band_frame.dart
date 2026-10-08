@@ -77,7 +77,7 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
     final target = controller.expanded ? 1.0 : 0.0;
     if (_expansion.value != target || _expansion.isAnimating) {
       if (controller.animateExpansion) {
-        _expansion.animateTo(target, duration: target == 1 ? Motion.launch : Motion.returnHome, curve: Motion.curve);
+        _expansion.animateTo(target, duration: target == 1 ? controller.launchDuration : controller.returnDuration, curve: Motion.curve);
       } else {
         _expansion.value = target;
       }

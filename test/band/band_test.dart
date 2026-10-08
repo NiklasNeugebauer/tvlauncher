@@ -114,7 +114,7 @@ void main() {
 
   group("BandFrame", () {
     testWidgets("gives the app the band as its screen and paints the theme behind it", (tester) async {
-      final controller = BandController(tuning: false);
+      final controller = BandController();
       Size? screen;
       await _pumpFrame(tester, controller, Builder(builder: (context) => _record(context, (s) => screen = s)));
 
@@ -127,7 +127,7 @@ void main() {
       final wallpaper = MockWallpaperService();
       when(wallpaper.wallpaperBytes).thenReturn(kTransparentImage);
 
-      await _pumpFrame(tester, BandController(tuning: false), SizedBox(), wallpaper: wallpaper);
+      await _pumpFrame(tester, BandController(), SizedBox(), wallpaper: wallpaper);
 
       expect(tester.widget(find.byKey(Key("background"))), isA<Image>());
     });
@@ -135,7 +135,7 @@ void main() {
     testWidgets("nudge mode moves the band with the arrows, cycles the edge with select and gives focus back", (
       tester,
     ) async {
-      final controller = BandController(tuning: false);
+      final controller = BandController();
       final button = FocusNode();
       await _pumpFrame(
         tester,
@@ -166,7 +166,7 @@ void main() {
 
   group("Idle", () {
     testWidgets("after the idle time the band shrinks to a picture frame; the next key only wakes it", (tester) async {
-      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 10))..idleMode = IdleMode.frame;
+      final controller = BandController(idleAfter: Duration(seconds: 10))..idleMode = IdleMode.frame;
       final button = FocusNode();
       await _pumpFrame(
         tester,
@@ -195,7 +195,7 @@ void main() {
     });
 
     testWidgets("hiding the launcher while idle wakes the band, so keys reach the tiles again", (tester) async {
-      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 10))..idleMode = IdleMode.frame;
+      final controller = BandController(idleAfter: Duration(seconds: 10))..idleMode = IdleMode.frame;
       final button = FocusNode();
       await _pumpFrame(
         tester,
@@ -218,7 +218,7 @@ void main() {
     });
 
     testWidgets("Back wakes an idle band and ends the nudge mode before reaching the app", (tester) async {
-      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 1))..idleMode = IdleMode.dim;
+      final controller = BandController(idleAfter: Duration(seconds: 1))..idleMode = IdleMode.dim;
       await tester.pump(Duration(seconds: 2));
       expect(controller.idle, isTrue);
       expect(await controller.didPopRoute(), isTrue);
@@ -233,7 +233,7 @@ void main() {
     });
 
     testWidgets("with idle off nothing happens", (tester) async {
-      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 1));
+      final controller = BandController(idleAfter: Duration(seconds: 1));
       await tester.pump(Duration(seconds: 5));
       expect(controller.idle, isFalse);
       controller.dispose();
@@ -246,7 +246,7 @@ void main() {
 
     Future<LaunchTransition> launchWith(LaunchMode mode, {double pixelRatio = 1}) async {
       final apps = MockAppsService();
-      final controller = BandController(tuning: false)
+      final controller = BandController()
         ..launchMode = mode
         ..devicePixelRatio = pixelRatio
         ..bandRect = Rect.fromLTWH(0, 216, 960, 324);
@@ -265,7 +265,7 @@ void main() {
 
     testWidgets("a grow launch lights the full frame as the app starts", (tester) async {
       final apps = MockAppsService();
-      final controller = BandController(tuning: false)..launchMode = LaunchMode.growFade;
+      final controller = BandController()..launchMode = LaunchMode.growFade;
 
       final launching = controller.launch(apps, app, tile);
       expect(controller.expanded, isTrue);
@@ -279,7 +279,7 @@ void main() {
 
     test("coming back from an app plays the chosen return", () {
       final apps = MockAppsService();
-      final controller = BandController(tuning: false)..returnMode = ReturnMode.collapse;
+      final controller = BandController()..returnMode = ReturnMode.collapse;
       controller.launch(apps, app, tile);
 
       controller.didChangeAppLifecycleState(AppLifecycleState.hidden);
@@ -290,7 +290,7 @@ void main() {
     });
 
     test("without a launch, hiding and resuming leave the band alone", () {
-      final controller = BandController(tuning: false)..returnMode = ReturnMode.collapse;
+      final controller = BandController()..returnMode = ReturnMode.collapse;
 
       controller.didChangeAppLifecycleState(AppLifecycleState.hidden);
       controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
@@ -298,18 +298,20 @@ void main() {
       expect((controller.expanded, controller.contentVisible), (false, true));
     });
 
-    test("a tuning build remembers its choices in a file", () async {
+    test("the config file keeps the choices", () async {
       final dir = await Directory.systemTemp.createTemp("band");
-      final file = File("${dir.path}/band_tuning.json");
-      final first = BandController(tuning: true, tuningFile: () async => file);
+      final file = File("${dir.path}/band_config.json");
+      final first = BandController(configFile: () async => file);
       first.geometry = BandGeometry(height: 0.5, position: 0.25, edge: BandEdge.hard);
       first.launchMode = LaunchMode.scaleTile;
       first.returnMode = ReturnMode.collapse;
       first.focusGlide = false;
       first.idleMode = IdleMode.dim;
+      first.launchDuration = Duration(milliseconds: 500);
+      first.returnDuration = Duration(milliseconds: 777);
       await Future.delayed(Duration(milliseconds: 50));
 
-      final second = BandController(tuning: true, tuningFile: () async => file);
+      final second = BandController(configFile: () async => file);
       await Future.delayed(Duration(milliseconds: 50));
 
       expect(second.geometry, first.geometry);
@@ -317,6 +319,9 @@ void main() {
       expect(second.returnMode, ReturnMode.collapse);
       expect(second.focusGlide, isFalse);
       expect(second.idleMode, IdleMode.dim);
+      expect(second.launchDuration, Duration(milliseconds: 500));
+      expect(second.returnDuration, Duration(milliseconds: 780), reason: "lengths snap to 20 ms");
+      expect(jsonDecode(await file.readAsString())["_doc"], contains("edge hard|soft|inset"));
       first.dispose();
       second.dispose();
       await dir.delete(recursive: true);

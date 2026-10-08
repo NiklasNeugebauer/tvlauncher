@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/widgets/right_panel_dialog.dart';
+import 'package:flauncher/widgets/settings/band_settings_page.dart';
 import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -63,6 +64,8 @@ class _SettingsPanelState extends State<SettingsPanel> {
                 return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
               case HiddenAppsPanelPage.routeName:
                 return MaterialPageRoute(builder: (_) => HiddenAppsPanelPage());
+              case BandSettingsPage.routeName:
+                return MaterialPageRoute(builder: (_) => BandSettingsPage());
               default:
                 throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
             }

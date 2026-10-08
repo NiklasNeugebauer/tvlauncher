@@ -29,10 +29,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Builds made with `--dart-define=TUNING=true` carry the nudge mode and the launch/return switcher, and remember
-/// what was picked in a file. Release builds use the constants below and touch no file.
-const bool tuningBuild = bool.fromEnvironment("TUNING");
-
 /// How an app comes up when its tile is selected.
 enum LaunchMode {
   /// The system's default activity transition.
@@ -86,25 +82,34 @@ enum IdleMode {
   const IdleMode(this.label);
 }
 
-/// The band's state: its geometry, the launch and return choreography, and the nudge mode of tuning builds.
+/// The band's state: its geometry, the launch and return choreography, the nudge mode and idle.
+///
+/// The config lives in a JSON file on the app's external storage, where `adb` can read and replace it without root
+/// or a debuggable build. It is read at start and whenever the launcher comes back to the front, and every load and
+/// save is logged with the tag `flutter` as `band config ...`.
 ///
 /// [expanded] drives the lit area between the band (false) and the full frame (true); [animateExpansion] says
 /// whether the frame should animate there or jump.
 class BandController extends ChangeNotifier with WidgetsBindingObserver {
-  /// Release choices; tuning builds start from these and then follow the file.
+  /// Defaults when the config file has no value.
   static const LaunchMode releaseLaunchMode = LaunchMode.growCut;
   static const ReturnMode releaseReturnMode = ReturnMode.collapse;
   static const bool releaseFocusGlide = true;
   static const IdleMode releaseIdleMode = IdleMode.off;
 
-  final bool tuning;
-  final Future<File> Function()? _tuningFile;
+  /// Where the config is, for logs and docs; the external files directory of the app.
+  static const String configPath = "/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json";
+
+  final Future<File> Function()? configFile;
+  DateTime? _configModified;
   final Duration idleAfter;
 
   BandGeometry _geometry = BandGeometry.release;
   LaunchMode _launchMode = releaseLaunchMode;
   ReturnMode _returnMode = releaseReturnMode;
   bool _focusGlide = releaseFocusGlide;
+  Duration _launchDuration = Motion.launch;
+  Duration _returnDuration = Motion.returnHome;
   bool _nudging = false;
   bool _expanded = false;
   bool _contentVisible = true;
@@ -118,17 +123,12 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   Rect bandRect = Rect.zero;
   double devicePixelRatio = 1;
 
-  BandController({
-    this.tuning = tuningBuild,
-    Future<File> Function()? tuningFile,
-    this.idleAfter = const Duration(minutes: 2),
-  }) : _tuningFile = tuningFile ?? (tuning ? _defaultTuningFile : null) {
+  /// [configFile] locates the config; without one (tests) nothing is read or written.
+  BandController({this.configFile, this.idleAfter = const Duration(minutes: 2)}) {
     WidgetsBinding.instance.addObserver(this);
     HardwareKeyboard.instance.addHandler(_onKey);
     _restartIdleTimer();
-    if (tuning) {
-      _load();
-    }
+    _load();
   }
 
   BandGeometry get geometry => _geometry;
@@ -138,6 +138,22 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   ReturnMode get returnMode => _returnMode;
 
   bool get focusGlide => _focusGlide;
+
+  /// How long the band takes to grow before an app, and to settle back after one.
+  Duration get launchDuration => _launchDuration;
+
+  Duration get returnDuration => _returnDuration;
+
+  set launchDuration(Duration value) => _update(() => _launchDuration = _durationStep(value));
+
+  set returnDuration(Duration value) => _update(() => _returnDuration = _durationStep(value));
+
+  static const Duration durationStep = Duration(milliseconds: 20);
+
+  static Duration _durationStep(Duration value) {
+    final steps = (value.inMilliseconds / durationStep.inMilliseconds).round().clamp(5, 150);
+    return durationStep * steps;
+  }
 
   bool get nudging => _nudging;
 
@@ -202,7 +218,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
         // Apps take 300-400 ms to show their first frame (measured on the device), so the start overlaps the
         // growth and the app lands as it finishes; starting after it leaves the full frame lit and empty.
         _setExpansion(expanded: true, contentVisible: false, animate: true);
-        await Future.delayed(Motion.launch - const Duration(milliseconds: 350));
+        final head = _launchDuration - const Duration(milliseconds: 350);
+        await Future.delayed(head.isNegative ? Duration.zero : head);
         await apps.launchApp(app, _launchMode == LaunchMode.growCut ? LaunchTransition.none : LaunchTransition.fade);
     }
   }
@@ -221,6 +238,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
       }
     } else if (state == AppLifecycleState.resumed) {
       _restartIdleTimer();
+      _load();
     }
     if (state == AppLifecycleState.hidden && _launchedApp) {
       switch (_returnMode) {
@@ -301,47 +319,84 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   void _update(VoidCallback change) {
     change();
     notifyListeners();
-    if (tuning) {
-      _save();
-    }
+    _save();
   }
 
-  static Future<File> _defaultTuningFile() async =>
-      File("${(await getApplicationSupportDirectory()).path}/band_tuning.json");
+  /// The config file in the app's external files directory, moved there from the tuning builds' private file.
+  static Future<File> defaultConfigFile() async {
+    final support = await getApplicationSupportDirectory();
+    final dir = await getExternalStorageDirectory() ?? support;
+    final file = File("${dir.path}/band_config.json");
+    final old = File("${support.path}/band_tuning.json");
+    if (!await file.exists() && await old.exists()) {
+      await old.copy(file.path);
+      await old.delete();
+    }
+    return file;
+  }
+
+  Map<String, Object> _toJson() => {
+    "_doc":
+        "height 0.3-1 and position 0 (top) to 1 (bottom) in steps of 0.05; edge ${_names(BandEdge.values)}; "
+        "launch ${_names(LaunchMode.values)}; launchMs and returnMs in steps of 20; return ${_names(ReturnMode.values)}; idle ${_names(IdleMode.values)}. "
+        "Read again whenever the launcher comes to the front.",
+    ..._geometry.toJson(),
+    "launch": _launchMode.name,
+    "return": _returnMode.name,
+    "focusGlide": _focusGlide,
+    "launchMs": _launchDuration.inMilliseconds,
+    "returnMs": _returnDuration.inMilliseconds,
+    "idle": _idleMode.name,
+  };
+
+  static String _names(List<Enum> values) => values.map((v) => v.name).join("|");
 
   Future<void> _load() async {
+    final locate = configFile;
+    if (locate == null) {
+      return;
+    }
     try {
-      final file = await _tuningFile!();
+      final file = await locate();
       if (!await file.exists()) {
+        debugPrint("band config: none at ${file.path}, using defaults");
         return;
       }
+      final modified = await file.lastModified();
+      if (modified == _configModified) {
+        return;
+      }
+      _configModified = modified;
       final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _geometry = BandGeometry.fromJson(json);
       _launchMode = LaunchMode.values.where((m) => m.name == json["launch"]).firstOrNull ?? _launchMode;
       _returnMode = ReturnMode.values.where((m) => m.name == json["return"]).firstOrNull ?? _returnMode;
       _focusGlide = json["focusGlide"] as bool? ?? _focusGlide;
+      final launchMs = json["launchMs"] as num?;
+      final returnMs = json["returnMs"] as num?;
+      _launchDuration = launchMs == null ? _launchDuration : _durationStep(Duration(milliseconds: launchMs.round()));
+      _returnDuration = returnMs == null ? _returnDuration : _durationStep(Duration(milliseconds: returnMs.round()));
       _idleMode = IdleMode.values.where((m) => m.name == json["idle"]).firstOrNull ?? _idleMode;
       _restartIdleTimer();
       notifyListeners();
+      debugPrint("band config loaded from ${file.path}: ${jsonEncode(_toJson()..remove("_doc"))}");
     } catch (e) {
-      debugPrint("band tuning not loaded: $e");
+      debugPrint("band config not loaded: $e");
     }
   }
 
   Future<void> _save() async {
+    final locate = configFile;
+    if (locate == null) {
+      return;
+    }
     try {
-      final file = await _tuningFile!();
-      await file.writeAsString(
-        jsonEncode({
-          ..._geometry.toJson(),
-          "launch": _launchMode.name,
-          "return": _returnMode.name,
-          "focusGlide": _focusGlide,
-          "idle": _idleMode.name,
-        }),
-      );
+      final file = await locate();
+      await file.writeAsString(JsonEncoder.withIndent("  ").convert(_toJson()));
+      _configModified = await file.lastModified();
+      debugPrint("band config saved to ${file.path}: ${jsonEncode(_toJson()..remove("_doc"))}");
     } catch (e) {
-      debugPrint("band tuning not saved: $e");
+      debugPrint("band config not saved: $e");
     }
   }
 }
