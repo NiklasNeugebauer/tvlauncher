@@ -1,83 +1,53 @@
-> **Zomp fork of FLauncher.** This is a modified version of
-> [FLauncher](https://gitlab.com/flauncher/flauncher) (GPL-3.0), maintained by
-> [Zomp](https://zomp.com) as a default Android TV home launcher.
->
-> Changes from upstream 0.18.0 (2026-07):
-> - **Pointer / mouse support** — app cards respond to mouse hover (focus) and
->   click (launch), so air-mouse remotes work. Offered back upstream.
-> - **Firebase removed** — Crashlytics, Analytics and Remote Config stripped, so
->   the launcher runs fully offline with no telemetry (it targets an
->   offline-first, privacy-focused Android TV appliance). As a consequence,
->   Unsplash online wallpaper browsing is disabled; local wallpapers and
->   gradients are unaffected.
->
-> Licensed under GPL-3.0, the same as upstream — see [LICENSE](LICENSE).
+# TV launcher
 
----
+Android TV home launcher for a Chromecast with Google TV, forked from
+[FLauncher](https://gitlab.com/flauncher/flauncher) via the [Zomp fork](https://github.com/zompinc/flauncher).
+Flutter, GPL-3.0 ([LICENSE](LICENSE)).
 
-# FLauncher
-FLauncher is an open-source alternative launcher for Android TV, built with [Flutter](https://flutter.dev).
-
-The project is still at an early development stage and may be unstable. It currently lacks testing on real devices and has only been tested on Chromecast with Google TV.
-
-<a href="https://play.google.com/store/apps/details?id=me.efesser.flauncher">
- <img alt="Get it on Google Play" width="200" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"/>
-</a>
+Built for a household that uses a handful of streaming apps: one row of large "main app" tiles, an alphabetical
+grid of everything else, and quick settings for the things you touch from the couch.
 
 ## Features
-- [x] No ads
-- [x] Customizable categories
-- [x] Manually reorder apps within categories
-- [x] Wallpaper support
-- [x] Open "Android Settings"
-- [x] Open "App info"
-- [x] Uninstall app
-- [x] Clock
-- [x] Switch between row and grid for categories
-- [x] Support for non-TV (sideloaded) apps
-- [x] Navigation sound feedback
-- [ ] Force stop app
 
-## Screenshots
-|  |  |  |
-|--|--|--|
-| ![](screenshots/Screenshot_1624378896.png) | ![](screenshots/Screenshot_1624378921.png) | ![](screenshots/Screenshot_1624378938.png) |
+- Main apps row: large tiles, your order, never scrolls. Held select on a grid tile adds, on a main tile moves,
+  a longer hold opens the tile's panel.
+- Apps grid: six per row, alphabetical, first row peeks in under the main apps. New installs show up by themselves.
+- Remote: Down into the grid, Up back out, Back to the first main tile, Home resets focus, long-press Back opens
+  quick settings. Pointer/air-mouse supported.
+- Quick settings: Bluetooth device list, Wi-Fi, Display & Sound, all settings, launcher settings (wallpaper,
+  hidden apps).
+- Offline: no `INTERNET` permission, no analytics, no crash reporting.
 
-## Set FLauncher as default launcher
+## Build
 
-### Method 1: remap the Home button
-This is the "safer" and easiest way. Use [Button Mapper](https://play.google.com/store/apps/details?id=flar2.homebutton) to remap the Home button of the remote to launch FLauncher.
+Toolchain is pinned in `mise.toml` (Flutter 3.7.5, JDK 11, Android SDK 33).
 
-### Method 2: disable the default launcher
-**:warning: Disclaimer :warning:**
-
-**You are doing this at your own risk, and you'll be responsible in any case of malfunction on your device.**
-
-The following commands have been tested on Chromecast with Google TV only. This may be different on other devices.
-
-Once the default launcher is disabled, press the Home button on the remote, and you'll be prompted by the system to choose which app to set as default.
-
-#### Disable default launcher
 ```shell
-# Disable com.google.android.apps.tv.launcherx which is the default launcher on CCwGTV
-$ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
-# com.google.android.tungsten.setupwraith will then be used as a 'fallback' and will automatically
-# re-enable the default launcher, so disable it as well
-$ adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
+flutter pub get
+flutter build apk --release
 ```
 
-#### Re-enable default launcher
+Release builds read `android/key.properties` (git-ignored) or the `SIGNING_*` environment variables.
+
+## Install
+
 ```shell
-$ adb shell pm enable com.google.android.apps.tv.launcherx
-$ adb shell pm enable com.google.android.tungsten.setupwraith
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+adb shell cmd package set-home-activity --user 0 dev.neugebauer.tvlauncher/me.efesser.flauncher.MainActivity
+adb shell pm grant dev.neugebauer.tvlauncher android.permission.WRITE_SECURE_SETTINGS   # once; TV settings requires it for the Bluetooth screen
 ```
 
-#### Known issues
-On Chromecast with Google TV (maybe others), the "YouTube" remote button will stop working if the default launcher is disabled. As a workaround, you can use [Button Mapper](https://play.google.com/store/apps/details?id=flar2.homebutton) to remap it correctly.
+Google TV ignores `set-home-activity` until its own launcher and the setup app are disabled (at your own risk):
 
-## Wallpaper
-Because Android's `WallpaperManager` is not available on some Android TV devices, FLauncher implements its own wallpaper management method.
+```shell
+adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
+adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
+# undo: adb shell pm enable <package>
+```
 
-Please note that changing wallpaper requires a file explorer to be installed on the device in order to pick a file.
+## Notes
 
-<a href="https://www.buymeacoffee.com/etienn01" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200"></a>
+- The Assistant button and the volume/mute buttons never reach a launcher on this device; the former belongs to
+  the voice service, the latter go to the TV or projector directly.
+- Picking a wallpaper image needs a file explorer app on the device.
+- `docs/` holds the design decisions and the plan for the next version.
