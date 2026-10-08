@@ -48,7 +48,8 @@ class FLauncherApp extends StatelessWidget {
         create: (_) => HomeFocusController(),
         dispose: (_, controller) => controller.dispose(),
       ),
-      ChangeNotifierProvider(create: (_) => BandController()),
+      // Not lazy: created before the navigator, so Back reaches it first (see BandController.didPopRoute).
+      ChangeNotifierProvider(create: (_) => BandController(), lazy: false),
     ],
     child: MaterialApp(
       shortcuts: {
@@ -65,15 +66,10 @@ class FLauncherApp extends StatelessWidget {
       home: Builder(
         builder: (context) => PopScope(
           canPop: false,
-          // Back: ends the nudge mode; inside the grid it returns to the first main app; on the hero it starts the
-          // screensaver. As a non-default launcher the app exits like any other.
+          // Back: inside the grid it returns to the first main app; on the hero it starts the screensaver. As a
+          // non-default launcher the app exits like any other. Idle and nudge mode take Back before this.
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) {
-              return;
-            }
-            final band = context.read<BandController>();
-            if (band.nudging) {
-              band.stopNudging();
               return;
             }
             if (await shouldPopScope(context)) {

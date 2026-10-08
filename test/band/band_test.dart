@@ -164,6 +164,59 @@ void main() {
     });
   });
 
+  group("Idle", () {
+    testWidgets("after the idle time the band shrinks to a picture frame; the next key only wakes it", (tester) async {
+      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 10))..idleMode = IdleMode.frame;
+      final button = FocusNode();
+      await _pumpFrame(
+        tester,
+        controller,
+        TextButton(focusNode: button, autofocus: true, onPressed: () {}, child: Text("tile")),
+      );
+
+      await tester.pump(Duration(seconds: 6));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(Duration(seconds: 6));
+      expect(controller.idle, isFalse, reason: "a key press restarts the idle time");
+
+      await tester.pump(Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(controller.idle, isTrue);
+      expect(button.hasFocus, isFalse);
+      expect(find.byKey(Key("idle-clock")), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+      expect(controller.idle, isFalse);
+      expect(button.hasFocus, isTrue, reason: "the waking key is consumed");
+      expect(find.byKey(Key("idle-clock")), findsNothing);
+      controller.dispose();
+      button.dispose();
+    });
+
+    testWidgets("Back wakes an idle band and ends the nudge mode before reaching the app", (tester) async {
+      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 1))..idleMode = IdleMode.dim;
+      await tester.pump(Duration(seconds: 2));
+      expect(controller.idle, isTrue);
+      expect(await controller.didPopRoute(), isTrue);
+      expect(controller.idle, isFalse);
+
+      controller.startNudging();
+      expect(await controller.didPopRoute(), isTrue);
+      expect(controller.nudging, isFalse);
+
+      expect(await controller.didPopRoute(), isFalse);
+      controller.dispose();
+    });
+
+    testWidgets("with idle off nothing happens", (tester) async {
+      final controller = BandController(tuning: false, idleAfter: Duration(seconds: 1));
+      await tester.pump(Duration(seconds: 5));
+      expect(controller.idle, isFalse);
+      controller.dispose();
+    });
+  });
+
   group("BandController", () {
     final app = fakeApp(packageName: "app.one");
     final tile = Rect.fromLTWH(100, 300, 200, 112.5);
@@ -227,6 +280,7 @@ void main() {
       first.launchMode = LaunchMode.scaleTile;
       first.returnMode = ReturnMode.collapse;
       first.focusGlide = false;
+      first.idleMode = IdleMode.dim;
       await Future.delayed(Duration(milliseconds: 50));
 
       final second = BandController(tuning: true, tuningFile: () async => file);
@@ -236,6 +290,9 @@ void main() {
       expect(second.launchMode, LaunchMode.scaleTile);
       expect(second.returnMode, ReturnMode.collapse);
       expect(second.focusGlide, isFalse);
+      expect(second.idleMode, IdleMode.dim);
+      first.dispose();
+      second.dispose();
       await dir.delete(recursive: true);
     });
   });

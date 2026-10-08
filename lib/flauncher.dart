@@ -48,6 +48,7 @@ class _FLauncherState extends State<FLauncher> {
   }
 
   void _onQuickSettingsPressed() {
+    BandScope.maybeOf(context)?.wake();
     if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) {
       return;
     }
@@ -60,6 +61,7 @@ class _FLauncherState extends State<FLauncher> {
     if (!mounted) {
       return;
     }
+    BandScope.maybeOf(context)?.wake();
     Navigator.of(context).popUntil((route) => route.isFirst);
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = context.read<HomeFocusController>();

@@ -85,6 +85,12 @@ class QuickSettingsPage extends StatelessWidget {
         "Focus: ${band.focusGlide ? "glide" : "jump"}",
         () => band.focusGlide = !band.focusGlide,
       ),
+      _entry(
+        context,
+        Icons.bedtime_outlined,
+        "Idle after ${band.idleAfter.inMinutes} min: ${band.idleMode.label}",
+        () => band.idleMode = next(IdleMode.values, band.idleMode),
+      ),
     ];
   }
 

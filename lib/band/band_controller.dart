@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -23,6 +24,7 @@ import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -68,6 +70,21 @@ enum ReturnMode {
   const ReturnMode(this.label);
 }
 
+/// What the band does after [BandController.idleAfter] without a key press, well before the system screensaver.
+enum IdleMode {
+  off("Off"),
+
+  /// The band and its content dim.
+  dim("Dim"),
+
+  /// The band shrinks to a small picture frame that shows only the time.
+  frame("Picture frame");
+
+  final String label;
+
+  const IdleMode(this.label);
+}
+
 /// The band's state: its geometry, the launch and return choreography, and the nudge mode of tuning builds.
 ///
 /// [expanded] drives the lit area between the band (false) and the full frame (true); [animateExpansion] says
@@ -77,9 +94,11 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   static const LaunchMode releaseLaunchMode = LaunchMode.system;
   static const ReturnMode releaseReturnMode = ReturnMode.system;
   static const bool releaseFocusGlide = true;
+  static const IdleMode releaseIdleMode = IdleMode.off;
 
   final bool tuning;
   final Future<File> Function()? _tuningFile;
+  final Duration idleAfter;
 
   BandGeometry _geometry = BandGeometry.release;
   LaunchMode _launchMode = releaseLaunchMode;
@@ -90,14 +109,22 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   bool _contentVisible = true;
   bool _animateExpansion = false;
   bool _launchedApp = false;
+  IdleMode _idleMode = releaseIdleMode;
+  bool _idle = false;
+  Timer? _idleTimer;
 
   /// The band's resting rectangle and the screen's pixel ratio, kept current by the frame that draws it.
   Rect bandRect = Rect.zero;
   double devicePixelRatio = 1;
 
-  BandController({this.tuning = tuningBuild, Future<File> Function()? tuningFile})
-    : _tuningFile = tuningFile ?? (tuning ? _defaultTuningFile : null) {
+  BandController({
+    this.tuning = tuningBuild,
+    Future<File> Function()? tuningFile,
+    this.idleAfter = const Duration(minutes: 2),
+  }) : _tuningFile = tuningFile ?? (tuning ? _defaultTuningFile : null) {
     WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_onKey);
+    _restartIdleTimer();
     if (tuning) {
       _load();
     }
@@ -119,6 +146,11 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
 
   bool get animateExpansion => _animateExpansion;
 
+  IdleMode get idleMode => _idleMode;
+
+  /// Idle and showing it; the next key press only wakes the band.
+  bool get idle => _idle;
+
   set geometry(BandGeometry value) => _update(() => _geometry = value);
 
   set launchMode(LaunchMode value) => _update(() => _launchMode = value);
@@ -126,6 +158,19 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   set returnMode(ReturnMode value) => _update(() => _returnMode = value);
 
   set focusGlide(bool value) => _update(() => _focusGlide = value);
+
+  set idleMode(IdleMode value) => _update(() {
+    _idleMode = value;
+    _restartIdleTimer();
+  });
+
+  void wake() {
+    if (_idle) {
+      _idle = false;
+      notifyListeners();
+    }
+    _restartIdleTimer();
+  }
 
   void startNudging() {
     _nudging = true;
@@ -164,6 +209,13 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   // the way back is already right. Coming back, it plays the return.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden) {
+      // Behind an app there is nothing to idle; come back awake.
+      _idleTimer?.cancel();
+      _idle = false;
+    } else if (state == AppLifecycleState.resumed) {
+      _restartIdleTimer();
+    }
     if (state == AppLifecycleState.hidden && _launchedApp) {
       switch (_returnMode) {
         case ReturnMode.system:
@@ -179,10 +231,51 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  // Back arrives as a route pop, not a key. While idle it only wakes the band; while nudging it ends the mode.
+  // The controller is created before the app's navigator registers, so it is asked first.
+  @override
+  Future<bool> didPopRoute() async {
+    if (_idle) {
+      wake();
+      return true;
+    }
+    if (_nudging) {
+      stopNudging();
+      return true;
+    }
+    _restartIdleTimer();
+    return false;
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    HardwareKeyboard.instance.removeHandler(_onKey);
+    _idleTimer?.cancel();
     super.dispose();
+  }
+
+  // Watches every key without handling it. While idle the frame takes focus and consumes the waking press itself.
+  bool _onKey(KeyEvent event) {
+    if (!_idle) {
+      _restartIdleTimer();
+    }
+    return false;
+  }
+
+  void _restartIdleTimer() {
+    _idleTimer?.cancel();
+    if (_idleMode == IdleMode.off) {
+      return;
+    }
+    _idleTimer = Timer(idleAfter, () {
+      if (_nudging) {
+        _restartIdleTimer();
+        return;
+      }
+      _idle = true;
+      notifyListeners();
+    });
   }
 
   void _setExpansion({required bool expanded, required bool contentVisible, required bool animate}) {
@@ -221,6 +314,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
       _launchMode = LaunchMode.values.where((m) => m.name == json["launch"]).firstOrNull ?? _launchMode;
       _returnMode = ReturnMode.values.where((m) => m.name == json["return"]).firstOrNull ?? _returnMode;
       _focusGlide = json["focusGlide"] as bool? ?? _focusGlide;
+      _idleMode = IdleMode.values.where((m) => m.name == json["idle"]).firstOrNull ?? _idleMode;
+      _restartIdleTimer();
       notifyListeners();
     } catch (e) {
       debugPrint("band tuning not loaded: $e");
@@ -236,6 +331,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
           "launch": _launchMode.name,
           "return": _returnMode.name,
           "focusGlide": _focusGlide,
+          "idle": _idleMode.name,
         }),
       );
     } catch (e) {

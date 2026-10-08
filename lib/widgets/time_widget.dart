@@ -18,10 +18,16 @@
 
 import 'dart:async';
 
+import 'package:flauncher/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class TimeWidget extends StatefulWidget {
+  /// The idle picture frame shows the time on its own, much larger than in the band's corner.
+  final bool large;
+
+  const TimeWidget({super.key, this.large = false});
+
   @override
   State<TimeWidget> createState() => _TimeWidgetState();
 }
@@ -46,9 +52,11 @@ class _TimeWidgetState extends State<TimeWidget> {
   @override
   Widget build(BuildContext context) => Text(
     DateFormat.Hm().format(_now),
-    style: Theme.of(context).textTheme.titleLarge!.copyWith(
-      shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
-    ),
+    style: (widget.large ? Theme.of(context).textTheme.displaySmall! : Theme.of(context).textTheme.titleLarge!)
+        .copyWith(
+          color: Palette.cream,
+          shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
+        ),
   );
 
   void _refreshTime() {

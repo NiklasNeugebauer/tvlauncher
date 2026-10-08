@@ -21,6 +21,7 @@ import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/band/nudge_overlay.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -29,7 +30,8 @@ import 'package:provider/provider.dart';
 /// navigator puts every route, dialog and scrim into the band, and gives them the band's size as their screen.
 ///
 /// The lit area and the content are separate layers: the lit area can grow to the full frame (launch) and shrink
-/// back (return) while the content keeps its layout and only fades.
+/// back (return) while the content keeps its layout and only fades. Idle, the lit area dims or shrinks to a small
+/// picture frame with the time.
 class BandFrame extends StatefulWidget {
   final BandController controller;
   final Widget child;
@@ -40,15 +42,20 @@ class BandFrame extends StatefulWidget {
   State<BandFrame> createState() => _BandFrameState();
 }
 
-class _BandFrameState extends State<BandFrame> with SingleTickerProviderStateMixin {
+class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
+  /// The idle picture frame: a small 16:9 panel centred in the band.
+  static const Size idleFrameSize = Size(240, 135);
+  static const double idleDim = 0.25;
+
   late final AnimationController _expansion = AnimationController(
     vsync: this,
     duration: Motion.layout,
     value: widget.controller.expanded ? 1 : 0,
   );
-  final FocusNode _nudgeFocus = FocusNode(debugLabel: "nudge", canRequestFocus: false, skipTraversal: true);
-  FocusNode? _focusBeforeNudge;
-  bool _wasNudging = false;
+  late final AnimationController _idle = AnimationController(vsync: this, duration: Motion.layout * 2);
+  // Takes focus from the app while nudging or idle, so keys reach the band and not the tiles.
+  final FocusNode _captureFocus = FocusNode(debugLabel: "band", canRequestFocus: false, skipTraversal: true);
+  FocusNode? _focusBeforeCapture;
 
   @override
   void initState() {
@@ -60,7 +67,8 @@ class _BandFrameState extends State<BandFrame> with SingleTickerProviderStateMix
   void dispose() {
     widget.controller.removeListener(_onControllerChanged);
     _expansion.dispose();
-    _nudgeFocus.dispose();
+    _idle.dispose();
+    _captureFocus.dispose();
     super.dispose();
   }
 
@@ -74,29 +82,44 @@ class _BandFrameState extends State<BandFrame> with SingleTickerProviderStateMix
         _expansion.value = target;
       }
     }
-    if (controller.nudging != _wasNudging) {
-      _wasNudging = controller.nudging;
-      if (controller.nudging) {
-        // Taking focus away from the tiles pauses their navigation; the arrows go to the nudge mode instead.
-        _focusBeforeNudge = FocusManager.instance.primaryFocus;
-        _nudgeFocus.canRequestFocus = true;
-        _nudgeFocus.requestFocus();
-      } else {
-        _nudgeFocus.canRequestFocus = false;
-        final previous = _focusBeforeNudge;
-        if (previous != null && previous.context != null && previous.canRequestFocus) {
-          previous.requestFocus();
-        } else {
-          _nudgeFocus.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
-        }
-        _focusBeforeNudge = null;
-      }
+    if (controller.idle) {
+      _idle.animateTo(1, curve: Motion.curve);
+    } else {
+      _idle.animateBack(0, duration: Motion.layout, curve: Motion.curve);
     }
+    _updateCapture(controller.nudging || controller.idle);
     setState(() {});
   }
 
-  KeyEventResult _onNudgeKey(FocusNode node, KeyEvent event) {
+  void _updateCapture(bool capture) {
+    if (capture == _captureFocus.canRequestFocus) {
+      return;
+    }
+    if (capture) {
+      _focusBeforeCapture = FocusManager.instance.primaryFocus;
+      _captureFocus.canRequestFocus = true;
+      _captureFocus.requestFocus();
+    } else {
+      _captureFocus.canRequestFocus = false;
+      final previous = _focusBeforeCapture;
+      if (previous != null && previous.context != null && previous.canRequestFocus) {
+        previous.requestFocus();
+      } else {
+        _captureFocus.unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
+      }
+      _focusBeforeCapture = null;
+    }
+  }
+
+  KeyEventResult _onCapturedKey(FocusNode node, KeyEvent event) {
     final controller = widget.controller;
+    if (controller.idle) {
+      // The waking press only wakes; its key up lands on the tile, which ignores a release it never saw pressed.
+      if (event is KeyDownEvent) {
+        controller.wake();
+      }
+      return KeyEventResult.handled;
+    }
     if (!controller.nudging) {
       return KeyEventResult.ignored;
     }
@@ -134,8 +157,8 @@ class _BandFrameState extends State<BandFrame> with SingleTickerProviderStateMix
       final rest = geometry.rect(frame.size);
       controller.devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
       return Focus(
-        focusNode: _nudgeFocus,
-        onKeyEvent: _onNudgeKey,
+        focusNode: _captureFocus,
+        onKeyEvent: _onCapturedKey,
         child: ColoredBox(
           color: Colors.black,
           child: TweenAnimationBuilder<Rect?>(
@@ -146,7 +169,7 @@ class _BandFrameState extends State<BandFrame> with SingleTickerProviderStateMix
               final band = animatedRest ?? rest;
               controller.bandRect = band;
               return AnimatedBuilder(
-                animation: _expansion,
+                animation: Listenable.merge([_expansion, _idle]),
                 builder: (context, _) => _layers(context, frame, band, geometry),
               );
             },
@@ -159,48 +182,66 @@ class _BandFrameState extends State<BandFrame> with SingleTickerProviderStateMix
   Widget _layers(BuildContext context, Rect frame, Rect band, BandGeometry geometry) {
     final controller = widget.controller;
     final t = _expansion.value;
-    final lit = Rect.lerp(band, frame, t)!;
-    final radius = geometry.cornerRadius * (1 - t);
+    final idle = _idle.value;
+    final toFrame = controller.idleMode == IdleMode.frame ? idle : 0.0;
+    final dim = controller.idleMode == IdleMode.dim ? 1 - (1 - idleDim) * idle : 1.0;
+    final idleRect = Rect.fromCenter(center: band.center, width: idleFrameSize.width, height: idleFrameSize.height);
+    final lit = Rect.lerp(Rect.lerp(band, frame, t)!, idleRect, toFrame)!;
+    final radius = geometry.cornerRadius * (1 - t) * (1 - toFrame) + BandGeometry.insetRadius * toFrame;
     final mediaQuery = MediaQuery.of(context);
-    return Stack(
-      children: [
-        Positioned.fromRect(
-          rect: lit,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(radius),
-            child: _SoftEdges(
-              fade: geometry.edge == BandEdge.soft ? BandGeometry.softFade * (1 - t) : 0,
-              fadeTop: lit.top > frame.top,
-              fadeBottom: lit.bottom < frame.bottom,
-              child: Consumer<WallpaperService>(builder: (_, wallpaper, _) => _background(wallpaper.wallpaperBytes)),
-            ),
-          ),
-        ),
-        Positioned.fromRect(
-          rect: band,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(geometry.cornerRadius),
-            child: AnimatedOpacity(
-              opacity: controller.contentVisible ? 1 : 0,
-              duration: controller.contentVisible ? Motion.layout : Motion.focus,
-              curve: Motion.curve,
-              child: MediaQuery(
-                data: mediaQuery.copyWith(
-                  size: band.size,
-                  padding: EdgeInsets.zero,
-                  viewPadding: EdgeInsets.zero,
-                  viewInsets: EdgeInsets.zero,
-                ),
-                child: BandScope(controller: controller, child: widget.child),
+    return Opacity(
+      opacity: dim,
+      child: Stack(
+        children: [
+          Positioned.fromRect(
+            rect: lit,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: _SoftEdges(
+                fade: geometry.edge == BandEdge.soft ? BandGeometry.softFade * (1 - t) * (1 - toFrame) : 0,
+                fadeTop: lit.top > frame.top,
+                fadeBottom: lit.bottom < frame.bottom,
+                child: Consumer<WallpaperService>(builder: (_, wallpaper, _) => _background(wallpaper.wallpaperBytes)),
               ),
             ),
           ),
-        ),
-        if (controller.nudging)
-          Positioned.fill(
-            child: NudgeOverlay(controller: controller, band: band),
+          Positioned.fromRect(
+            rect: band,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(geometry.cornerRadius),
+              child: Opacity(
+                opacity: 1 - toFrame,
+                child: AnimatedOpacity(
+                  opacity: controller.contentVisible ? 1 : 0,
+                  duration: controller.contentVisible ? Motion.layout : Motion.focus,
+                  curve: Motion.curve,
+                  child: MediaQuery(
+                    data: mediaQuery.copyWith(
+                      size: band.size,
+                      padding: EdgeInsets.zero,
+                      viewPadding: EdgeInsets.zero,
+                      viewInsets: EdgeInsets.zero,
+                    ),
+                    child: BandScope(controller: controller, child: widget.child),
+                  ),
+                ),
+              ),
+            ),
           ),
-      ],
+          if (toFrame > 0)
+            Positioned.fromRect(
+              rect: idleRect,
+              child: Opacity(
+                opacity: Interval(0.5, 1).transform(toFrame),
+                child: Center(child: TimeWidget(key: Key("idle-clock"), large: true)),
+              ),
+            ),
+          if (controller.nudging)
+            Positioned.fill(
+              child: NudgeOverlay(controller: controller, band: band),
+            ),
+        ],
+      ),
     );
   }
 

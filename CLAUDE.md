@@ -37,6 +37,8 @@ after a schema change also `dart run drift_dev schema generate --data-classes --
 ## Build
 
 - `flutter pub get && flutter build apk --release`
+- Tuning build (nudge mode and the launch/return/idle switchers in quick settings, choices kept in
+  `band_tuning.json`): add `--dart-define=TUNING=true`. Same package and key, so it installs over the release.
 - Release signing: see "Package name and signing" below.
 - `.github/workflows/release.yml` is inherited from the Zomp fork and builds on `v*` tags.
 
