@@ -20,6 +20,7 @@
 import 'package:flauncher/database.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/app_card.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
@@ -79,7 +80,7 @@ class HeroRow extends StatelessWidget {
     key: Key("hero-empty"),
     textAlign: TextAlign.center,
     style: Theme.of(context).textTheme.titleMedium!.copyWith(
-      color: Colors.white70,
+      color: Palette.creamDim,
       shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
     ),
   );

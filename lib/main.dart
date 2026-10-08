@@ -20,16 +20,14 @@ import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'flauncher_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final sharedPreferences = await SharedPreferences.getInstance();
   final imagePicker = ImagePicker();
   final fLauncherChannel = FLauncherChannel();
   final fLauncherDatabase = FLauncherDatabase(connect());
-  runApp(FLauncherApp(sharedPreferences, imagePicker, fLauncherChannel, fLauncherDatabase));
+  runApp(FLauncherApp(imagePicker, fLauncherChannel, fLauncherDatabase));
 }

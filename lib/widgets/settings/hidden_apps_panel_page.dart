@@ -20,17 +20,19 @@
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-/// Apps hidden from the home screen, each with a button to bring it back.
+/// Apps hidden from the home screen; selecting one brings it back.
 class HiddenAppsPanelPage extends StatelessWidget {
   static const String routeName = "hidden_apps_panel";
 
   @override
   Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text("Hidden apps", style: Theme.of(context).textTheme.titleLarge),
+      PanelHeader("Hidden apps"),
       Divider(),
       Expanded(
         child: Selector<AppsService, List<App>>(
@@ -42,7 +44,7 @@ class HiddenAppsPanelPage extends StatelessWidget {
                     for (int index = 0; index < applications.length; ++index)
                       EnsureVisible(
                         alignment: 0.5,
-                        child: _appCard(context, applications[index], autofocus: index == 0),
+                        child: _appRow(context, applications[index], autofocus: index == 0),
                       ),
                   ],
                 ),
@@ -51,25 +53,13 @@ class HiddenAppsPanelPage extends StatelessWidget {
     ],
   );
 
-  Widget _appCard(BuildContext context, App application, {required bool autofocus}) => Card(
-    clipBehavior: Clip.antiAlias,
-    child: ListTile(
-      contentPadding: EdgeInsets.symmetric(horizontal: 8),
-      title: Text(
-        application.name,
-        style: Theme.of(context).textTheme.bodyMedium,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      leading: application.icon != null ? Image.memory(application.icon!, height: 48) : Icon(Icons.android),
-      trailing: IconButton(
-        autofocus: autofocus,
-        constraints: BoxConstraints(),
-        splashRadius: 20,
-        tooltip: "Unhide",
-        icon: Icon(Icons.visibility),
-        onPressed: () => context.read<AppsService>().unHideApplication(application),
-      ),
-    ),
+  Widget _appRow(BuildContext context, App application, {required bool autofocus}) => PanelRow(
+    autofocus: autofocus,
+    leading: application.icon != null
+        ? Image.memory(application.icon!, height: 24, fit: BoxFit.contain)
+        : Icon(Icons.android, size: PanelRow.iconSize),
+    trailingIcon: Icons.visibility,
+    label: application.name,
+    onPressed: () => context.read<AppsService>().unHideApplication(application),
   );
 }

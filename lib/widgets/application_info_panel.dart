@@ -2,6 +2,7 @@
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
  * Copyright (C) 2026  Niklas Neugebauer
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,8 @@
 
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,39 +32,25 @@ class ApplicationInfoPanel extends StatelessWidget {
 
   ApplicationInfoPanel({required this.application, required this.inHero});
 
+  static const double artworkWidth = 96;
+
   @override
   Widget build(BuildContext context) => RightPanelDialog(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            application.icon != null ? Image.memory(application.icon!, width: 50) : Icon(Icons.android, size: 50),
-            SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                application.name,
-                style: Theme.of(context).textTheme.titleLarge,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
-        Text(application.packageName, style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
-        Text("v${application.version}", style: Theme.of(context).textTheme.bodySmall, overflow: TextOverflow.ellipsis),
+        _header(context),
         Divider(),
         if (inHero)
           _entry(context, Icons.star_outline, "Remove from main apps", () async {
             await context.read<AppsService>().removeFromHero(application);
             Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-          })
+          }, autofocus: true)
         else
           _entry(context, Icons.star, "Add to main apps", () async {
             await context.read<AppsService>().addToHero(application);
             Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-          }),
+          }, autofocus: true),
         if (inHero)
           _entry(
             context,
@@ -87,28 +76,51 @@ class ApplicationInfoPanel extends StatelessWidget {
         _entry(context, Icons.delete_outlined, "Uninstall", () async {
           await context.read<AppsService>().uninstallApp(application);
           Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-        }),
+        }, destructive: true),
       ],
     ),
   );
 
-  Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed) => TextButton(
-    child: Row(
-      children: [
-        Icon(icon),
-        Container(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
-    onPressed: onPressed,
-  );
+  Widget _header(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final dim = textTheme.bodySmall!.copyWith(color: Palette.creamDim);
+    return Padding(
+      padding: EdgeInsets.only(left: PanelRow.gap, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _artwork(),
+          SizedBox(height: 12),
+          Text(application.name, style: textTheme.titleLarge, maxLines: 2, overflow: TextOverflow.ellipsis),
+          SizedBox(height: 4),
+          Text(application.packageName, style: dim, overflow: TextOverflow.ellipsis),
+          Text("v${application.version}", style: dim, overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+
+  Widget _artwork() {
+    if (application.banner != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(Shapes.rowRadius),
+        child: Image.memory(application.banner!, width: artworkWidth, fit: BoxFit.cover),
+      );
+    }
+    if (application.icon != null) {
+      return Image.memory(application.icon!, width: artworkWidth / 2);
+    }
+    return Icon(Icons.android, size: artworkWidth / 2);
+  }
+
+  Widget _entry(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onPressed, {
+    bool autofocus = false,
+    bool destructive = false,
+  }) => PanelRow(icon: icon, label: label, onPressed: onPressed, autofocus: autofocus, destructive: destructive);
 }
 
 enum ApplicationInfoPanelResult { none, reorderApp }

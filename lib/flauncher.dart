@@ -18,15 +18,15 @@
  */
 
 import 'dart:typed_data';
-import 'dart:ui';
-
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
+import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +51,7 @@ class _FLauncherState extends State<FLauncher> {
     if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) {
       return;
     }
-    showDialog(context: context, builder: (_) => SettingsPanel());
+    showPanel(context, (_) => SettingsPanel());
   }
 
   // Home always lands on the first main app: close whatever panel is open, drop a tile being moved (it ends its
@@ -72,7 +72,7 @@ class _FLauncherState extends State<FLauncher> {
     child: Stack(
       children: [
         Consumer<WallpaperService>(
-          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes, wallpaper.gradient.gradient),
+          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes),
         ),
         Scaffold(
           backgroundColor: Colors.transparent,
@@ -110,7 +110,8 @@ class _FLauncherState extends State<FLauncher> {
                 focusNode: controller.heroNode,
                 canRequestFocus: false,
                 skipTraversal: true,
-                child: Center(
+                child: Align(
+                  alignment: HomeLayout.heroAlignment,
                   child: HeroRow(
                     applications: heroApps,
                     tileWidth: layout.heroTileWidth(heroApps.length),
@@ -158,7 +159,9 @@ class _FLauncherState extends State<FLauncher> {
     }
   }
 
+  // Quieter than the clock so it does not compete with the tiles.
   TextStyle _headingStyle(BuildContext context) => Theme.of(context).textTheme.titleLarge!.copyWith(
+    color: Palette.cream.withValues(alpha: 0.7),
     shadows: [Shadow(color: Colors.black54, offset: Offset(1, 1), blurRadius: 8)],
   );
 
@@ -178,37 +181,15 @@ class _FLauncherState extends State<FLauncher> {
     actions: [
       Padding(
         padding: EdgeInsets.only(right: HomeLayout.sidePadding),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(
-              left: 2.0,
-              top: 18.0,
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2, tileMode: TileMode.decal),
-                child: Icon(Icons.settings_outlined, color: Colors.black54),
-              ),
-            ),
-            IconButton(
-              padding: EdgeInsets.all(2),
-              constraints: BoxConstraints(),
-              splashRadius: 20,
-              icon: Icon(Icons.settings_outlined),
-              onPressed: () => showDialog(context: context, builder: (_) => SettingsPanel()),
-            ),
-          ],
-        ),
+        child: _SettingsButton(onPressed: () => showPanel(context, (_) => SettingsPanel())),
       ),
     ],
   );
 
-  Widget _wallpaper(Uint8List? wallpaperImage, Gradient gradient) => Positioned.fill(
+  Widget _wallpaper(Uint8List? wallpaperImage) => Positioned.fill(
     child: wallpaperImage != null
         ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
-        : Container(
-            key: Key("background"),
-            decoration: BoxDecoration(gradient: gradient),
-          ),
+        : ThemedBackground(key: Key("background")),
   );
 
   Widget _emptyState(BuildContext context) => Center(
@@ -219,6 +200,36 @@ class _FLauncherState extends State<FLauncher> {
         SizedBox(height: 16),
         Text("Loading...", style: Theme.of(context).textTheme.titleLarge),
       ],
+    ),
+  );
+}
+
+/// The gear: dim until focused, then brass like every other focus mark.
+class _SettingsButton extends StatefulWidget {
+  final VoidCallback onPressed;
+
+  const _SettingsButton({required this.onPressed});
+
+  @override
+  State<_SettingsButton> createState() => _SettingsButtonState();
+}
+
+class _SettingsButtonState extends State<_SettingsButton> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) => Focus(
+    canRequestFocus: false,
+    skipTraversal: true,
+    onFocusChange: (focused) => setState(() => _focused = focused),
+    child: IconButton(
+      key: Key("settings"),
+      padding: EdgeInsets.all(2),
+      constraints: BoxConstraints(),
+      splashRadius: 20,
+      color: _focused ? Palette.brass : Palette.creamDim,
+      icon: Icon(Icons.settings_outlined),
+      onPressed: widget.onPressed,
     ),
   );
 }

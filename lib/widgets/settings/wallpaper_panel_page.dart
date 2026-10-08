@@ -17,56 +17,58 @@
  */
 
 import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+/// A custom image replaces the themed background; "Back to theme" removes it again.
 class WallpaperPanelPage extends StatelessWidget {
   static const String routeName = "wallpaper_panel";
 
   @override
   Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text("Wallpaper", style: Theme.of(context).textTheme.titleLarge),
+      PanelHeader("Wallpaper"),
       Divider(),
-      TextButton(
+      PanelRow(
         autofocus: true,
-        child: Row(
-          children: [
-            Icon(Icons.gradient),
-            Container(width: 8),
-            Text("Gradient", style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-        onPressed: () => Navigator.of(context).pushNamed(GradientPanelPage.routeName),
+        icon: Icons.insert_drive_file_outlined,
+        label: "Custom image",
+        onPressed: () => _pickWallpaper(context),
       ),
-      TextButton(
-        child: Row(
-          children: [
-            Icon(Icons.insert_drive_file_outlined),
-            Container(width: 8),
-            Text("Custom", style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-        onPressed: () async {
-          try {
-            await context.read<WallpaperService>().pickWallpaper();
-          } on NoFileExplorerException {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                duration: Duration(seconds: 8),
-                content: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text("Please install a file explorer in order to pick an image."),
-                  ],
-                ),
-              ),
-            );
-          }
-        },
+      Selector<WallpaperService, bool>(
+        selector: (_, wallpaperService) => wallpaperService.wallpaperBytes != null,
+        builder: (context, hasWallpaper, _) => hasWallpaper
+            ? PanelRow(
+                icon: Icons.palette_outlined,
+                label: "Back to theme",
+                onPressed: () => context.read<WallpaperService>().clearWallpaper(),
+              )
+            : SizedBox.shrink(),
       ),
     ],
   );
+
+  Future<void> _pickWallpaper(BuildContext context) async {
+    try {
+      await context.read<WallpaperService>().pickWallpaper();
+    } on NoFileExplorerException {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: Duration(seconds: 8),
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+              SizedBox(width: 8),
+              Text("Please install a file explorer in order to pick an image."),
+            ],
+          ),
+        ),
+      );
+    }
+  }
 }

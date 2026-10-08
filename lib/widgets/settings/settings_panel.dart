@@ -17,7 +17,6 @@
  */
 
 import 'package:flauncher/widgets/right_panel_dialog.dart';
-import 'package:flauncher/widgets/settings/gradient_panel_page.dart';
 import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -51,7 +50,6 @@ class _SettingsPanelState extends State<SettingsPanel> {
     child: Scaffold(
       backgroundColor: Colors.transparent,
       body: RightPanelDialog(
-        width: 350,
         child: Navigator(
           key: _navigatorKey,
           initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,
@@ -63,8 +61,6 @@ class _SettingsPanelState extends State<SettingsPanel> {
                 return MaterialPageRoute(builder: (_) => SettingsPanelPage());
               case WallpaperPanelPage.routeName:
                 return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
-              case GradientPanelPage.routeName:
-                return MaterialPageRoute(builder: (_) => GradientPanelPage());
               case HiddenAppsPanelPage.routeName:
                 return MaterialPageRoute(builder: (_) => HiddenAppsPanelPage());
               default:

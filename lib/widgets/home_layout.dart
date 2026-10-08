@@ -19,6 +19,8 @@
 
 import 'dart:math';
 
+import 'package:flutter/painting.dart';
+
 /// Geometry of the home screen: one row of large "main app" tiles above a grid of every other app, of which the
 /// first row peeks in at the bottom edge of the initial view.
 class HomeLayout {
@@ -29,6 +31,9 @@ class HomeLayout {
   static const double headingBottom = 12;
   static const double peekFraction = 0.35;
   static const double aspectRatio = 16 / 9;
+
+  /// Where the hero row sits in its zone: below centre, toward the glow rising from the bottom of the screen.
+  static const Alignment heroAlignment = Alignment(0, 0.3);
 
   final double width;
   final double height;
