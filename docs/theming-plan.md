@@ -62,6 +62,12 @@ Today: a flat blue slab with uniform text buttons. Target:
    Move-mode arrows are brass discs with a dark glyph. Text shadows on clock and heading stay for custom
    wallpapers.
 3. `RightPanelDialog`, a shared `PanelRow` widget, and the five panels on it.
+
+   Done 2026-10-08. The scrim is the dialog barrier, so panels open through `showPanel()` instead of a bare
+   `showDialog`. `PanelRow` (own file, with `PanelHeader`) takes an icon or any small leading widget plus an
+   optional trailing icon; the hidden-apps list is one row per app that unhides on select, with the eye icon
+   trailing. The app panel's first row autofocuses like the other pages. Titles are left-aligned above a
+   divider rather than centred.
 4. Tests: delete gradient tests, update wallpaper tests, add a widget test that the home background is the themed
    one without a custom wallpaper and the image with one; panel row focus test.
 

@@ -18,6 +18,7 @@
  */
 
 import 'package:flauncher/widgets/ensure_visible.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
 import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
@@ -31,8 +32,9 @@ class SettingsPanelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text("Launcher settings", style: Theme.of(context).textTheme.titleLarge),
+        PanelHeader("Launcher settings"),
         Divider(),
         EnsureVisible(
           alignment: 0.5,
@@ -70,15 +72,5 @@ class SettingsPanelPage extends StatelessWidget {
   );
 
   Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed, {bool autofocus = false}) =>
-      TextButton(
-        autofocus: autofocus,
-        child: Row(
-          children: [
-            Icon(icon),
-            Container(width: 8),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-        onPressed: onPressed,
-      );
+      PanelRow(icon: icon, label: label, onPressed: onPressed, autofocus: autofocus);
 }

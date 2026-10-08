@@ -1,6 +1,7 @@
 /*
  * FLauncher
  * Copyright (C) 2021  Étienne Fesser
+ * Copyright (C) 2026  Niklas Neugebauer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,13 +18,22 @@
  */
 
 import 'package:flauncher/actions.dart';
+import 'package:flauncher/theme.dart';
 import 'package:flutter/material.dart';
 
+/// Opens [builder]'s panel over the home screen behind the panel scrim.
+Future<T?> showPanel<T>(BuildContext context, WidgetBuilder builder) =>
+    showDialog<T>(context: context, barrierColor: Palette.scrim, builder: builder);
+
+/// A panel docked to the right edge, on the surface colour with a hairline toward the home screen.
 class RightPanelDialog extends StatelessWidget {
+  static const double defaultWidth = 380;
+  static const double padding = 24;
+
   final Widget child;
   final double width;
 
-  RightPanelDialog({required this.child, this.width = 250});
+  const RightPanelDialog({super.key, required this.child, this.width = defaultWidth});
 
   @override
   Widget build(BuildContext context) => Dialog(
@@ -32,8 +42,11 @@ class RightPanelDialog extends StatelessWidget {
     child: Align(
       alignment: Alignment.centerRight,
       child: Container(
-        padding: EdgeInsets.all(16),
-        color: Theme.of(context).scaffoldBackgroundColor,
+        padding: EdgeInsets.all(padding),
+        decoration: BoxDecoration(
+          color: Palette.surface,
+          border: Border(left: BorderSide(color: Palette.line)),
+        ),
         width: width,
         child: Actions(actions: {BackIntent: BackAction(context)}, child: child),
       ),

@@ -50,7 +50,6 @@ class _SettingsPanelState extends State<SettingsPanel> {
     child: Scaffold(
       backgroundColor: Colors.transparent,
       body: RightPanelDialog(
-        width: 350,
         child: Navigator(
           key: _navigatorKey,
           initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,

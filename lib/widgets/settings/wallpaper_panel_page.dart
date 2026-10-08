@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,31 +27,22 @@ class WallpaperPanelPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text("Wallpaper", style: Theme.of(context).textTheme.titleLarge),
+      PanelHeader("Wallpaper"),
       Divider(),
-      TextButton(
+      PanelRow(
         autofocus: true,
-        child: Row(
-          children: [
-            Icon(Icons.insert_drive_file_outlined),
-            Container(width: 8),
-            Text("Custom image", style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
+        icon: Icons.insert_drive_file_outlined,
+        label: "Custom image",
         onPressed: () => _pickWallpaper(context),
       ),
       Selector<WallpaperService, bool>(
         selector: (_, wallpaperService) => wallpaperService.wallpaperBytes != null,
         builder: (context, hasWallpaper, _) => hasWallpaper
-            ? TextButton(
-                child: Row(
-                  children: [
-                    Icon(Icons.palette_outlined),
-                    Container(width: 8),
-                    Text("Back to theme", style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
+            ? PanelRow(
+                icon: Icons.palette_outlined,
+                label: "Back to theme",
                 onPressed: () => context.read<WallpaperService>().clearWallpaper(),
               )
             : SizedBox.shrink(),

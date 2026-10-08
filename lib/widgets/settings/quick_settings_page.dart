@@ -18,6 +18,7 @@
  */
 
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -29,8 +30,9 @@ class QuickSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text("Quick settings", style: Theme.of(context).textTheme.titleLarge),
+        PanelHeader("Quick settings"),
         Divider(),
         _systemEntry(context, Icons.bluetooth, "Bluetooth", SystemSettingsScreen.bluetooth, autofocus: true),
         _systemEntry(context, Icons.wifi, "Wi-Fi", SystemSettingsScreen.wifi),
@@ -60,15 +62,5 @@ class QuickSettingsPage extends StatelessWidget {
   }, autofocus: autofocus);
 
   Widget _entry(BuildContext context, IconData icon, String label, VoidCallback onPressed, {bool autofocus = false}) =>
-      TextButton(
-        autofocus: autofocus,
-        child: Row(
-          children: [
-            Icon(icon),
-            Container(width: 8),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-        onPressed: onPressed,
-      );
+      PanelRow(icon: icon, label: label, onPressed: onPressed, autofocus: autofocus);
 }

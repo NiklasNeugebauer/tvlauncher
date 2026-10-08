@@ -26,6 +26,7 @@ import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
+import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +51,7 @@ class _FLauncherState extends State<FLauncher> {
     if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) {
       return;
     }
-    showDialog(context: context, builder: (_) => SettingsPanel());
+    showPanel(context, (_) => SettingsPanel());
   }
 
   // Home always lands on the first main app: close whatever panel is open, drop a tile being moved (it ends its
@@ -180,7 +181,7 @@ class _FLauncherState extends State<FLauncher> {
     actions: [
       Padding(
         padding: EdgeInsets.only(right: HomeLayout.sidePadding),
-        child: _SettingsButton(onPressed: () => showDialog(context: context, builder: (_) => SettingsPanel())),
+        child: _SettingsButton(onPressed: () => showPanel(context, (_) => SettingsPanel())),
       ),
     ],
   );

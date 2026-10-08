@@ -22,6 +22,7 @@ import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
+import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -255,9 +256,9 @@ class _AppCardState extends State<AppCard> {
   }
 
   Future<void> _showPanel(BuildContext context) async {
-    final result = await showDialog<ApplicationInfoPanelResult>(
-      context: context,
-      builder: (context) => ApplicationInfoPanel(application: widget.application, inHero: widget.inHero),
+    final result = await showPanel<ApplicationInfoPanelResult>(
+      context,
+      (context) => ApplicationInfoPanel(application: widget.application, inHero: widget.inHero),
     );
     if (result == ApplicationInfoPanelResult.reorderApp && widget.onMove != null && mounted) {
       setState(() => _moving = true);

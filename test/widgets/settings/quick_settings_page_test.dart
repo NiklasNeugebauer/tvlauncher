@@ -18,6 +18,7 @@
  */
 
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
@@ -72,10 +73,8 @@ void main() {
     final appsService = MockAppsService();
     await _pumpPanel(tester, appsService);
 
-    final button = tester.widget<TextButton>(
-      find.ancestor(of: find.text("Bluetooth"), matching: find.byType(TextButton)),
-    );
-    expect(button.autofocus, isTrue);
+    final row = tester.widget<PanelRow>(find.ancestor(of: find.text("Bluetooth"), matching: find.byType(PanelRow)));
+    expect(row.autofocus, isTrue);
   });
 }
 
