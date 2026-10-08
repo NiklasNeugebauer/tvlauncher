@@ -23,7 +23,6 @@ import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/theme.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -36,14 +35,11 @@ enum LaunchMode {
   /// The system's default activity transition.
   system("System default"),
 
-  /// The app's window opens out of the selected tile.
-  revealTile("Reveal from tile"),
-
-  /// The app's window opens out of the whole band.
-  revealBand("Reveal from band"),
-
   /// The app's window scales up from the selected tile.
   scaleTile("Scale up from tile"),
+
+  /// The app's window scales up from the whole band, so the band seems to grow into the app.
+  scaleBand("Scale up from band"),
 
   /// The band grows to the full frame, then the app cuts in.
   growCut("Band grows, cut"),
@@ -148,24 +144,18 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     switch (_launchMode) {
       case LaunchMode.system:
         await apps.launchApp(app);
-      case LaunchMode.revealTile:
-        await apps.launchApp(
-          app,
-          tileRect == null ? LaunchTransition.system : LaunchTransition.reveal(_physical(tileRect)),
-        );
-      case LaunchMode.revealBand:
-        await apps.launchApp(app, LaunchTransition.reveal(_physical(bandRect)));
       case LaunchMode.scaleTile:
         await apps.launchApp(
           app,
           tileRect == null ? LaunchTransition.system : LaunchTransition.scaleUp(_physical(tileRect)),
         );
+      case LaunchMode.scaleBand:
+        await apps.launchApp(app, LaunchTransition.scaleUp(_physical(bandRect)));
       case LaunchMode.growCut:
       case LaunchMode.growFade:
-        // Apps take a few hundred milliseconds to show their first frame, so the start overlaps the growth; waiting
-        // for the growth to finish first leaves the full frame lit and empty for that long (measured on the device).
+        // Apps take 300-400 ms to show their first frame (measured on the device), about as long as the growth, so
+        // both start together; waiting for the growth first leaves the full frame lit and empty for that long.
         _setExpansion(expanded: true, contentVisible: false, animate: true);
-        await Future.delayed(Motion.layout * 0.3);
         await apps.launchApp(app, _launchMode == LaunchMode.growCut ? LaunchTransition.none : LaunchTransition.fade);
     }
   }

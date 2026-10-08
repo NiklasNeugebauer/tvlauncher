@@ -184,20 +184,17 @@ void main() {
         await launchWith(LaunchMode.scaleTile, pixelRatio: 2),
         LaunchTransition.scaleUp(Rect.fromLTWH(200, 600, 400, 225)),
       );
-      expect(await launchWith(LaunchMode.revealTile), LaunchTransition.reveal(tile));
-      expect(await launchWith(LaunchMode.revealBand), LaunchTransition.reveal(Rect.fromLTWH(0, 216, 960, 324)));
+      expect(await launchWith(LaunchMode.scaleBand), LaunchTransition.scaleUp(Rect.fromLTWH(0, 216, 960, 324)));
     });
 
-    testWidgets("a grow launch lights the full frame before the app starts", (tester) async {
+    testWidgets("a grow launch lights the full frame as the app starts", (tester) async {
       final apps = MockAppsService();
       final controller = BandController(tuning: false)..launchMode = LaunchMode.growFade;
 
-      final launching = controller.launch(apps, app, tile);
+      await controller.launch(apps, app, tile);
       expect(controller.expanded, isTrue);
       expect(controller.contentVisible, isFalse);
-      verifyNever(apps.launchApp(any, any));
-      await tester.pump(Motion.layout);
-      await launching;
+      expect(controller.animateExpansion, isTrue);
       verify(apps.launchApp(app, LaunchTransition.fade));
     });
 

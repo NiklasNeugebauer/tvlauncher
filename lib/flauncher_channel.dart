@@ -37,9 +37,6 @@ class LaunchTransition {
   /// A short cross-fade, to soften the cut after the launcher's own animation.
   static const LaunchTransition fade = LaunchTransition._("fade");
 
-  /// The app's window grows out of [source], uncovering itself like a widening hole.
-  const LaunchTransition.reveal(Rect source) : this._("reveal", source);
-
   /// The app's window scales up from [source].
   const LaunchTransition.scaleUp(Rect source) : this._("scaleUp", source);
 
