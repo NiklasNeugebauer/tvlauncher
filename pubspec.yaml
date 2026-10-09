@@ -40,6 +40,7 @@ flutter:
     - assets/
   shaders:
     - shaders/diamonds.frag
+    - shaders/diamond_light.frag
   fonts:
     - family: SourceSans3
       fonts:

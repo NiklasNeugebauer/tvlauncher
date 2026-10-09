@@ -36,7 +36,10 @@ import 'package:flutter/scheduler.dart';
 class DiamondBackground extends StatefulWidget {
   final BandController band;
 
-  const DiamondBackground({super.key, required this.band});
+  /// Brightness, 1 for full.
+  final double dim;
+
+  const DiamondBackground({super.key, required this.band, this.dim = 1});
 
   /// The ground and the colour of an unlit diamond, one step lighter.
   static const Color ground = Palette.bgBottom;
@@ -53,7 +56,7 @@ class DiamondBackground extends StatefulWidget {
 
 class _DiamondBackgroundState extends State<DiamondBackground>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  static Future<ui.FragmentProgram>? _program;
+  static Future<List<ui.FragmentProgram>>? _programs;
 
   // Plan values: velocity kept at 0.0009^dt, pulse decays as 0.18^dt, warm light steps scaled by 0.82.
   static const double _spotDrag = 0.0009;
@@ -63,6 +66,9 @@ class _DiamondBackgroundState extends State<DiamondBackground>
   static const double _colourEase = 0.04;
 
   ui.FragmentShader? _shader;
+  ui.FragmentShader? _lightShader;
+  // The light of every cell for the current frame, one pixel per cell; the previous frame's is disposed.
+  ui.Image? _cells;
   late final Ticker _ticker = createTicker(_tick);
   final _Repaint _repaint = _Repaint();
   final Stopwatch _clock = Stopwatch()..start();
@@ -84,10 +90,16 @@ class _DiamondBackgroundState extends State<DiamondBackground>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _program ??= ui.FragmentProgram.fromAsset("shaders/diamonds.frag");
-    _program!.then((program) {
+    _programs ??= Future.wait([
+      ui.FragmentProgram.fromAsset("shaders/diamonds.frag"),
+      ui.FragmentProgram.fromAsset("shaders/diamond_light.frag"),
+    ]);
+    _programs!.then((programs) {
       if (mounted) {
-        setState(() => _shader = program.fragmentShader());
+        setState(() {
+          _shader = programs[0].fragmentShader();
+          _lightShader = programs[1].fragmentShader();
+        });
       }
     }, onError: (Object e) => debugPrint("diamonds shader not loaded: $e"));
     widget.band.spotlight.addListener(_onSpotlight);
@@ -106,6 +118,8 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     _ticker.dispose();
     _ambient?.cancel();
     _shader?.dispose();
+    _lightShader?.dispose();
+    _cells?.dispose();
     _repaint.dispose();
     super.dispose();
   }
@@ -227,7 +241,7 @@ class _DiamondBackgroundState extends State<DiamondBackground>
   Widget build(BuildContext context) => RepaintBoundary(
     child: CustomPaint(
       key: Key("diamonds"),
-      painter: _DiamondPainter(this, _shader, MediaQuery.devicePixelRatioOf(context)),
+      painter: _DiamondPainter(this, _shader, _lightShader, MediaQuery.devicePixelRatioOf(context), widget.dim),
       child: SizedBox.expand(),
     ),
   );
@@ -240,16 +254,19 @@ class _Repaint extends ChangeNotifier {
 class _DiamondPainter extends CustomPainter {
   final _DiamondBackgroundState state;
   final ui.FragmentShader? shader;
+  final ui.FragmentShader? lightShader;
   final double dpr;
+  final double dim;
 
-  _DiamondPainter(this.state, this.shader, this.dpr) : super(repaint: state._repaint);
+  _DiamondPainter(this.state, this.shader, this.lightShader, this.dpr, this.dim) : super(repaint: state._repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final shader = this.shader;
-    if (shader == null) {
-      canvas.drawRect(rect, Paint()..color = DiamondBackground.ground);
+    final lightShader = this.lightShader;
+    if (shader == null || lightShader == null || size.isEmpty) {
+      canvas.drawRect(rect, Paint()..color = Color.lerp(Colors.black, DiamondBackground.ground, dim)!);
       return;
     }
     final tuning = state.widget.band.tuning;
@@ -257,7 +274,32 @@ class _DiamondPainter extends CustomPainter {
     final x = state._x ?? size.width * dpr / 2;
     final y = state._x == null ? size.height * dpr * 0.6 : state._y;
     final tileW = state._tileW > 0 ? state._tileW : size.width * dpr * 0.17;
+    final grid = tuning[Tune.grid];
+    final columns = (size.width * dpr / grid).ceil();
+    final rows = (size.height * dpr / grid).ceil();
+
+    // The light of each cell, rendered once per cell into a columns × rows image.
     var i = 0;
+    void setLight(double value) => lightShader.setFloat(i++, value);
+    setLight(x);
+    setLight(y);
+    setLight(tileW);
+    setLight(state._pulse);
+    // Behind an open panel the light dims, following the panel's slide.
+    final panel = Motion.sheenCurve.transform(state.widget.band.panel.value.clamp(0.0, 1.0));
+    setLight(tuning[Tune.lightStrength] * (1 - (1 - tuning[Tune.panelLight]) * panel));
+    setLight(state._clock.elapsedMicroseconds / 1e6);
+    setLight(grid);
+    setLight(state._ambientFps > 0 ? 1 : 0);
+    final recorder = ui.PictureRecorder();
+    Canvas(recorder).drawRect(Rect.fromLTWH(0, 0, columns.toDouble(), rows.toDouble()), Paint()..shader = lightShader);
+    final picture = recorder.endRecording();
+    final cells = picture.toImageSync(columns, rows);
+    picture.dispose();
+    state._cells?.dispose();
+    state._cells = cells;
+
+    i = 0;
     void set(double value) => shader.setFloat(i++, value);
     void colour(Color c) {
       set(c.r);
@@ -266,23 +308,19 @@ class _DiamondPainter extends CustomPainter {
     }
 
     set(dpr);
-    set(x);
-    set(y);
-    set(tileW);
-    set(state._pulse);
-    // Behind an open panel the light dims, following the panel's slide.
-    final panel = Motion.sheenCurve.transform(state.widget.band.panel.value.clamp(0.0, 1.0));
-    set(tuning[Tune.lightStrength] * (1 - (1 - tuning[Tune.panelLight]) * panel));
-    set(state._clock.elapsedMicroseconds / 1e6);
-    set(tuning[Tune.grid]);
+    set(grid);
+    set(columns.toDouble());
+    set(rows.toDouble());
     set(state._scale);
-    set(state._ambientFps > 0 ? 1 : 0);
     colour(DiamondBackground.ground);
     colour(DiamondBackground.base);
     colour(state._light);
+    set(dim);
+    shader.setImageSampler(0, cells);
     canvas.drawRect(rect, Paint()..shader = shader);
   }
 
   @override
-  bool shouldRepaint(_DiamondPainter oldDelegate) => oldDelegate.dpr != dpr || oldDelegate.shader != shader;
+  bool shouldRepaint(_DiamondPainter oldDelegate) =>
+      oldDelegate.dpr != dpr || oldDelegate.shader != shader || oldDelegate.dim != dim;
 }
