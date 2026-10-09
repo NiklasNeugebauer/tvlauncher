@@ -19,6 +19,7 @@
 
 import 'dart:math';
 
+import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/home_layout.dart';
@@ -98,9 +99,10 @@ class HomeFocusController {
     (_firstTraversable(heroNode) ?? _firstTraversable(gridNode))?.requestFocus();
   }
 
-  /// Up from the grid's first row goes to the hero tile focused last, or the one nearest above when there is none,
-  /// not to whatever happens to be above it on screen (the hero is scrolled out of view then, so plain geometry
-  /// would pick the gear).
+  /// Up from the grid's first row goes to the hero tile nearest the focused column, not to whatever happens to be
+  /// above it on screen (the hero is scrolled out of view then, so plain geometry would pick the gear). When down
+  /// from the hero tile focused last would land on the focused tile, up goes back to that tile, so a straight round
+  /// trip ends where it started even where two hero tiles are about equally near.
   KeyEventResult handleGridKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowUp) {
       return KeyEventResult.ignored;
@@ -120,13 +122,19 @@ class HomeFocusController {
     }
     final last = _lastHeroTile;
     if (last != null && heroTiles.contains(last)) {
-      last.requestFocus();
-      return KeyEventResult.handled;
+      final firstRow = gridNode.traversalDescendants.where((tile) => tile.isOnTheSameRow(current));
+      if (_nearestInX(firstRow, last) == current) {
+        last.requestFocus();
+        return KeyEventResult.handled;
+      }
     }
-    final currentX = current.rect.center.dx;
-    heroTiles.sort((a, b) => (a.rect.center.dx - currentX).abs().compareTo((b.rect.center.dx - currentX).abs()));
-    heroTiles.first.requestFocus();
+    _nearestInX(heroTiles, current).requestFocus();
     return KeyEventResult.handled;
+  }
+
+  FocusNode _nearestInX(Iterable<FocusNode> tiles, FocusNode to) {
+    final x = to.rect.center.dx;
+    return tiles.reduce((a, b) => (b.rect.center.dx - x).abs() < (a.rect.center.dx - x).abs() ? b : a);
   }
 
   /// From the gear, left and down go back to the hero: the tile focused there last (where the light still is), else

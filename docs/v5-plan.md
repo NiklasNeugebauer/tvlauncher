@@ -177,3 +177,9 @@ during scripted navigation, a Settings launch and the HOME return, and the kerne
   before the growth ends. Starting the app after the growth gets it to ~3 but delays the app; kept as is by
   decision.
 - Not done: a lower shimmer rate (15 fps would roughly halve the idle GPU work) is left to the settings.
+
+## v5.2.1: up from the grid follows the column (2026-10-09)
+
+- Up from the grid's first row goes to the hero tile nearest the focused column instead of always the one focused
+  last. Down from the hero and straight back up still returns to the tile it started on, even where two hero tiles
+  are about equally near the grid tile.

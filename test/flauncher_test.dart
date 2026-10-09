@@ -157,7 +157,7 @@ void main() {
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
   });
 
-  testWidgets("Up from the grid returns to the hero tile focused last", (tester) async {
+  testWidgets("Up from the grid goes to the hero tile above the focused column", (tester) async {
     final appsService = _appsService(
       hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")],
       grid: List.generate(12, (i) => _app("grid.$i")),
@@ -178,7 +178,25 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    expect(_hasFocus(tester, "hero-hero.3"), isTrue);
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
+  });
+
+  testWidgets("Down into the grid and straight back up returns to the same hero tile", (tester) async {
+    final appsService = _appsService(
+      hero: [_app("hero.1"), _app("hero.2"), _app("hero.3"), _app("hero.4"), _app("hero.5")],
+      grid: List.generate(12, (i) => _app("grid.$i")),
+    );
+    await _pumpHome(tester, appsService);
+
+    for (var index = 1; index <= 5; ++index) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(_hasFocus(tester, "hero-hero.$index"), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+    }
   });
 
   testWidgets("A held select shrinks the focused tile until it is released", (tester) async {
