@@ -91,17 +91,19 @@ class FLauncherChannel {
   void addAppsChangedListener(void Function(Map<dynamic, dynamic>) listener) =>
       _eventChannel.receiveBroadcastStream().listen((event) => listener(event));
 
-  /// Calls from the platform: the remote's Home button while the launcher is already running, and a long press
-  /// on the Back button.
-  void setPlatformHandlers({required void Function() onHomePressed, required void Function() onQuickSettingsPressed}) =>
-      _methodChannel.setMethodCallHandler((call) async {
-        switch (call.method) {
-          case "homePressed":
-            onHomePressed();
-            break;
-          case "quickSettingsPressed":
-            onQuickSettingsPressed();
-            break;
-        }
-      });
+  /// Calls from the platform: the remote's Home button while the launcher is already running ([onHomePressed] gets
+  /// whether an app was in front), and a long press on the Back button.
+  void setPlatformHandlers({
+    required void Function(bool fromApp) onHomePressed,
+    required void Function() onQuickSettingsPressed,
+  }) => _methodChannel.setMethodCallHandler((call) async {
+    switch (call.method) {
+      case "homePressed":
+        onHomePressed((call.arguments as Map?)?["fromApp"] == true);
+        break;
+      case "quickSettingsPressed":
+        onQuickSettingsPressed();
+        break;
+    }
+  });
 }

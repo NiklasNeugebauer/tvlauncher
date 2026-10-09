@@ -171,20 +171,25 @@ void main() {
 
   test("setPlatformHandlers routes homePressed and quickSettingsPressed", () async {
     final fLauncherChannel = FLauncherChannel();
-    var home = 0;
     var assist = 0;
-    fLauncherChannel.setPlatformHandlers(onHomePressed: () => home++, onQuickSettingsPressed: () => assist++);
+    final fromApp = <bool>[];
+    fLauncherChannel.setPlatformHandlers(onHomePressed: fromApp.add, onQuickSettingsPressed: () => assist++);
 
     final codec = StandardMethodCodec();
-    for (final method in ["homePressed", "quickSettingsPressed", "quickSettingsPressed"]) {
+    for (final (method, arguments) in [
+      ("homePressed", {"fromApp": true}),
+      ("homePressed", null),
+      ("quickSettingsPressed", null),
+      ("quickSettingsPressed", null),
+    ]) {
       await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
         'me.efesser.flauncher/method',
-        codec.encodeMethodCall(MethodCall(method)),
+        codec.encodeMethodCall(MethodCall(method, arguments)),
         (_) {},
       );
     }
 
-    expect(home, 1);
+    expect(fromApp, [true, false]);
     expect(assist, 2);
   });
 }

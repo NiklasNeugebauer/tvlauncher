@@ -491,7 +491,7 @@ void main() {
                 onQuickSettingsPressed: anyNamed("onQuickSettingsPressed"),
               ),
             ).captured.single
-            as void Function();
+            as void Function(bool);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
@@ -499,7 +499,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(ApplicationInfoPanel), findsOneWidget);
 
-    homePressed();
+    homePressed(false);
     await tester.pumpAndSettle();
     expect(find.byType(ApplicationInfoPanel), findsNothing);
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
@@ -512,12 +512,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
 
-    homePressed();
+    homePressed(false);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
     verify(appsService.saveHeroOrder());
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
     expect(controller.scroll.offset, 0);
+  });
+
+  testWidgets("Home from inside an app keeps focus on the tile that launched it", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: [_app("grid.1"), _app("grid.2")]);
+    final controller = await _pumpHome(tester, appsService);
+    final homePressed =
+        verify(
+              appsService.setPlatformHandlers(
+                onHomePressed: captureAnyNamed("onHomePressed"),
+                onQuickSettingsPressed: anyNamed("onQuickSettingsPressed"),
+              ),
+            ).captured.single
+            as void Function(bool);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    final offset = controller.scroll.offset;
+
+    homePressed(true);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "grid-grid.2"), isTrue);
+    expect(controller.scroll.offset, offset);
   });
 
   testWidgets("Long-pressed mute opens the quick settings panel once", (tester) async {
