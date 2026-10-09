@@ -21,6 +21,7 @@ import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/band/nudge_overlay.dart';
 import 'package:flauncher/motion/frame_times.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/time_widget.dart';
@@ -48,6 +49,9 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
   /// The idle picture frame: a small 16:9 panel centred in the band.
   static const Size idleFrameSize = Size(240, 135);
   static const double idleDim = 0.25;
+
+  /// Fraction of the growth by which the launch dim is complete.
+  static const double launchDimBy = 0.7;
 
   late final AnimationController _expansion = AnimationController(
     vsync: this,
@@ -190,7 +194,11 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
     final t = _expansion.value;
     final idle = _idle.value;
     final toFrame = controller.idleMode == IdleMode.frame ? idle : 0.0;
-    final dim = controller.idleMode == IdleMode.dim ? 1 - (1 - idleDim) * idle : 1.0;
+    final idleLevel = controller.idleMode == IdleMode.dim ? 1 - (1 - idleDim) * idle : 1.0;
+    // Growing toward an app the lit frame darkens, so the app cuts in from near black instead of from a lit frame;
+    // coming back it starts dark and brightens as it settles into the band.
+    final launchLevel = 1 - controller.tuning[Tune.launchDim] * Interval(0, launchDimBy).transform(t);
+    final dim = idleLevel * launchLevel;
     final idleRect = Rect.fromCenter(center: band.center, width: idleFrameSize.width, height: idleFrameSize.height);
     final lit = Rect.lerp(Rect.lerp(band, frame, t)!, idleRect, toFrame)!;
     final radius = geometry.cornerRadius * (1 - t) * (1 - toFrame) + BandGeometry.insetRadius * toFrame;

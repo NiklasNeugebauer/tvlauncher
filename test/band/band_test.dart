@@ -286,6 +286,32 @@ void main() {
       verify(apps.launchApp(app, LaunchTransition.fade));
     });
 
+    testWidgets("the frame darkens as it grows for an app and brightens as it settles back", (tester) async {
+      final apps = MockAppsService();
+      final controller = BandController()
+        ..launchMode = LaunchMode.growCut
+        ..returnMode = ReturnMode.collapse;
+      await _pumpFrame(tester, controller, SizedBox());
+      double level() => tester
+          .widget<Opacity>(find.descendant(of: find.byType(BandFrame), matching: find.byType(Opacity)).first)
+          .opacity;
+      expect(level(), 1);
+
+      final launching = controller.launch(apps, app, tile);
+      await tester.pump();
+      await tester.pump(controller.launchDuration);
+      await launching;
+      expect(level(), closeTo(1 - Tune.launchDim.defaultValue, 0.01));
+
+      controller.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(level(), closeTo(1 - Tune.launchDim.defaultValue, 0.01));
+      await tester.pumpAndSettle();
+      expect(level(), 1);
+      controller.dispose();
+    });
+
     test("coming back from an app plays the chosen return", () {
       final apps = MockAppsService();
       final controller = BandController()..returnMode = ReturnMode.collapse;

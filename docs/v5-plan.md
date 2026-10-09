@@ -114,7 +114,7 @@ records the difference.
 5. Sound, reduced motion and performance: the prototype tones with their repeat rules, reduced-motion variants,
    frame timings on the device, and the order in which things degrade when over budget.
 
-## Fixes found on the TV
+## Fixes and changes after TV checks
 
 - 2026-10-09: moving an app into or out of the main apps from its panel left focus on the first tile, and a select
   still held when the panel closed reached that tile as key repeats, which started move mode there. Repeats of a
@@ -122,6 +122,9 @@ records the difference.
   an app added to the main apps gets focus on its new hero tile in move mode; a removed one hands focus to its
   hero neighbour, without move mode (following the app into the grid would scroll away from the row being
   arranged).
+- 2026-10-09, on request: launch and return dip toward black. The lit frame darkens as the band grows for an app
+  (80 % darker by 70 % of the growth, `launchDim`), so the app cuts in from near black instead of a lit olive
+  frame; coming back, the full frame starts dark and brightens as it settles into the band.
 
 ## v5.1
 
