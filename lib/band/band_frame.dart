@@ -206,8 +206,12 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
     final lit = Rect.lerp(Rect.lerp(band, frame, t)!, idleRect, toFrame)!;
     final radius = geometry.cornerRadius * (1 - t) * (1 - toFrame) + BandGeometry.insetRadius * toFrame;
     final mediaQuery = MediaQuery.of(context);
+    final contentOpacity = (1 - toFrame) * (1 - Interval(0, 0.6).transform(t));
+    // With the content faded out only the background is lit, and it dims in its own paint; an Opacity over the
+    // whole frame costs the GPU a full-frame offscreen pass, the most expensive part of a launch or return frame.
+    final backgroundDim = contentOpacity > 0 ? 1.0 : dim;
     return Opacity(
-      opacity: dim,
+      opacity: contentOpacity > 0 ? dim : 1,
       child: Stack(
         children: [
           Positioned.fromRect(
@@ -218,7 +222,9 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
                 fade: geometry.edge == BandEdge.soft ? BandGeometry.softFade * (1 - t) * (1 - toFrame) : 0,
                 fadeTop: lit.top > frame.top,
                 fadeBottom: lit.bottom < frame.bottom,
-                child: Consumer<WallpaperService>(builder: (_, wallpaper, _) => _background(wallpaper.wallpaperBytes)),
+                child: Consumer<WallpaperService>(
+                  builder: (_, wallpaper, _) => _background(wallpaper.wallpaperBytes, backgroundDim),
+                ),
               ),
             ),
           ),
@@ -228,21 +234,20 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(geometry.cornerRadius),
               // While the lit area is larger than the band (launching, or settling back after an app), the content
               // stays out and comes in over the last part of the return.
-              child: Opacity(
-                opacity: (1 - toFrame) * (1 - Interval(0, 0.6).transform(t)),
-                child: AnimatedOpacity(
-                  opacity: controller.contentVisible ? 1 : 0,
-                  duration: controller.contentVisible ? Motion.layout : Motion.focus,
-                  curve: Motion.curve,
-                  child: MediaQuery(
-                    data: mediaQuery.copyWith(
-                      size: band.size,
-                      padding: EdgeInsets.zero,
-                      viewPadding: EdgeInsets.zero,
-                      viewInsets: EdgeInsets.zero,
-                    ),
-                    child: BandScope(controller: controller, child: widget.child),
+              // One opacity layer for both fades; nested, each would take its own offscreen pass.
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(end: controller.contentVisible ? 1 : 0),
+                duration: controller.contentVisible ? Motion.layout : Motion.focus,
+                curve: Motion.curve,
+                builder: (context, visible, child) => Opacity(opacity: contentOpacity * visible, child: child),
+                child: MediaQuery(
+                  data: mediaQuery.copyWith(
+                    size: band.size,
+                    padding: EdgeInsets.zero,
+                    viewPadding: EdgeInsets.zero,
+                    viewInsets: EdgeInsets.zero,
                   ),
+                  child: BandScope(controller: controller, child: widget.child),
                 ),
               ),
             ),
@@ -265,11 +270,34 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
     );
   }
 
-  Widget _background(Uint8List? wallpaperImage) => wallpaperImage != null
-      ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
+  Widget _background(Uint8List? wallpaperImage, double dim) => wallpaperImage != null
+      ? CustomPaint(
+          foregroundPainter: _Veil(dim),
+          child: Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover),
+        )
       : widget.controller.background == BackgroundMode.diamonds
-      ? DiamondBackground(key: Key("background"), band: widget.controller)
-      : ThemedBackground(key: Key("background"));
+      ? DiamondBackground(key: Key("background"), band: widget.controller, dim: dim)
+      : CustomPaint(
+          foregroundPainter: _Veil(dim),
+          child: ThemedBackground(key: Key("background")),
+        );
+}
+
+/// Darkens what is below it toward black, to [dim] of its brightness.
+class _Veil extends CustomPainter {
+  final double dim;
+
+  const _Veil(this.dim);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (dim < 1) {
+      canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black.withValues(alpha: 1 - dim));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Veil oldDelegate) => oldDelegate.dim != dim;
 }
 
 /// Fades [child] to transparent (so to the black behind it) over [fade] pixels at the chosen edges.

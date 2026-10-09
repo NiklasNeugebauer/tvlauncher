@@ -292,9 +292,12 @@ void main() {
         ..launchMode = LaunchMode.growCut
         ..returnMode = ReturnMode.collapse;
       await _pumpFrame(tester, controller, SizedBox());
-      double level() => tester
-          .widget<Opacity>(find.descendant(of: find.byType(BandFrame), matching: find.byType(Opacity)).first)
-          .opacity;
+      // The frame's Opacity while the content shows, the background's own dim once it has faded out.
+      double level() =>
+          tester
+              .widget<Opacity>(find.descendant(of: find.byType(BandFrame), matching: find.byType(Opacity)).first)
+              .opacity *
+          tester.widget<DiamondBackground>(find.byType(DiamondBackground)).dim;
       expect(level(), 1);
 
       final launching = controller.launch(apps, app, tile);
