@@ -57,8 +57,9 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
 
   final GlobalKey _stackKey = GlobalKey();
   late final Ticker _ticker = createTicker(_tick);
+  final _Repaint _repaint = _Repaint();
   BuildContext? _tracked;
-  Rect? _rect;
+  Rect? _painted;
   Rect? _lastTarget;
   SpringSpec? _spring;
   double _radius = Shapes.tileRadius;
@@ -70,14 +71,17 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
 
   bool get enabled => widget.enabled;
 
+  /// Where the ring was last drawn, in the glide's coordinates.
+  @visibleForTesting
+  Rect? get ringRect => _painted;
+
   /// [tile] gained focus: the ring heads there from where it is, or appears there when it was hidden.
   void track(BuildContext tile) {
-    final from = _tracked == null ? null : _rect;
+    final from = _tracked == null ? null : _painted;
     _tracked = tile;
     _spring = widget.spring?.call();
     final to = _targetRect();
     if (from == null || to == null) {
-      _rect = null;
       for (final offset in _offsets) {
         offset.jumpTo(0);
       }
@@ -90,6 +94,7 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
           ..target = 0;
       }
     }
+    setState(() {});
     kick();
   }
 
@@ -118,20 +123,23 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
   @override
   void dispose() {
     _ticker.dispose();
+    _repaint.dispose();
     super.dispose();
   }
 
+  // Steps the offsets and asks for a repaint; where the tile is, is measured when the ring is painted, after this
+  // frame's layout, so the ring never trails the tile by a frame.
   void _tick(Duration elapsed) {
     // A ticker's first frame reports zero elapsed time; count it as one display frame so the ring moves at once.
     final dt = elapsed == Duration.zero ? 1 / 60 : (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
     _elapsed = elapsed;
-    final target = _targetRect();
-    if (target == null) {
+    if (_tracked == null) {
       _ticker.stop();
       return;
     }
     // The tile itself is still moving (scroll, lift, nudge): keep following.
+    final target = _painted == null ? null : _targetRect();
     if (target != _lastTarget) {
       _quietSince = elapsed;
       _lastTarget = target;
@@ -150,17 +158,24 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
         }
       }
     }
-    setState(
-      () => _rect = Rect.fromLTRB(
+    _repaint.ping();
+    if (settled && elapsed - _quietSince > _settle) {
+      _ticker.stop();
+    }
+  }
+
+  /// The ring for this paint: the tracked tile plus the offsets, or where it was while it fades out.
+  Rect? _ringForPaint() {
+    final target = _tracked == null ? null : _targetRect();
+    if (target != null) {
+      _painted = Rect.fromLTRB(
         target.left + _offsets[0].value,
         target.top + _offsets[1].value,
         target.right + _offsets[2].value,
         target.bottom + _offsets[3].value,
-      ),
-    );
-    if (settled && elapsed - _quietSince > _settle) {
-      _ticker.stop();
+      );
     }
+    return _painted;
   }
 
   Rect? _targetRect() {
@@ -179,42 +194,62 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
   }
 
   @override
-  Widget build(BuildContext context) {
-    final rect = _rect;
-    return FocusGlideScope(
-      state: widget.enabled ? this : null,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (_) {
-          if (_tracked != null) {
-            kick();
-          }
-          return false;
-        },
-        child: Stack(
-          key: _stackKey,
-          clipBehavior: Clip.none,
-          children: [
-            widget.child,
-            if (widget.enabled && rect != null)
-              Positioned.fromRect(
-                rect: rect,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    opacity: _tracked == null ? 0 : 1,
-                    duration: Motion.focus,
-                    curve: Motion.curve,
-                    child: CustomPaint(
-                      key: Key("focus-glide"),
-                      painter: FocusRingPainter(style: widget.style, radius: _radius),
-                    ),
-                  ),
+  Widget build(BuildContext context) => FocusGlideScope(
+    state: widget.enabled ? this : null,
+    child: NotificationListener<ScrollNotification>(
+      onNotification: (_) {
+        if (_tracked != null) {
+          kick();
+        }
+        return false;
+      },
+      child: Stack(
+        key: _stackKey,
+        clipBehavior: Clip.none,
+        children: [
+          widget.child,
+          if (widget.enabled)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  key: Key("focus-glide"),
+                  opacity: _tracked == null ? 0 : 1,
+                  duration: Motion.focus,
+                  curve: Motion.curve,
+                  child: CustomPaint(painter: _GlidePainter(this)),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
-    );
+    ),
+  );
+}
+
+class _Repaint extends ChangeNotifier {
+  void ping() => notifyListeners();
+}
+
+class _GlidePainter extends CustomPainter {
+  final FocusGlideState glide;
+
+  _GlidePainter(this.glide) : super(repaint: glide._repaint);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final ring = glide._ringForPaint();
+    if (ring == null) {
+      return;
+    }
+    canvas.save();
+    canvas.translate(ring.left, ring.top);
+    FocusRingPainter(style: glide.widget.style, radius: glide._radius).paint(canvas, ring.size);
+    canvas.restore();
   }
+
+  // Repaints come from the ticker; a rebuild (style change, focus change) makes a new painter.
+  @override
+  bool shouldRepaint(_GlidePainter oldDelegate) => true;
 }
 
 /// Lets tiles find the glide; absent (or disabled) they draw their own ring.

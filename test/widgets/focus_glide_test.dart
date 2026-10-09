@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/motion/edge_nudge.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,27 +48,61 @@ void main() {
 
     first.requestFocus();
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byKey(Key("focus-glide"))), tester.getRect(find.byKey(Key("first"))));
+    expect(_ring(tester), tester.getRect(find.byKey(Key("first"))));
 
     second.requestFocus();
     await tester.pump();
     await tester.pump(Duration(milliseconds: 40));
-    final midway = tester.getRect(find.byKey(Key("focus-glide")));
+    final midway = _ring(tester);
     expect(midway.left, greaterThan(tester.getRect(find.byKey(Key("first"))).left));
     expect(midway.left, lessThan(tester.getRect(find.byKey(Key("second"))).left));
 
     // pumpAndSettle only returns once no frames are scheduled, so the ticker has stopped.
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byKey(Key("focus-glide"))), tester.getRect(find.byKey(Key("second"))));
+    expect(_ring(tester), tester.getRect(find.byKey(Key("second"))));
 
     second.unfocus();
     await tester.pumpAndSettle();
-    final opacity = tester.widget<AnimatedOpacity>(
-      find.ancestor(of: find.byKey(Key("focus-glide")), matching: find.byType(AnimatedOpacity)),
-    );
+    final opacity = tester.widget<AnimatedOpacity>(find.byKey(Key("focus-glide")));
     expect(opacity.opacity, 0);
     first.dispose();
     second.dispose();
+  });
+
+  testWidgets("after the ring has settled, a nudge still moves it with the tile", (tester) async {
+    final node = FocusNode();
+    final nudgeKey = GlobalKey<EdgeNudgeState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FocusGlide(
+          enabled: true,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Builder(
+              builder: (context) => EdgeNudge(
+                key: nudgeKey,
+                distance: 10,
+                duration: Duration(milliseconds: 280),
+                onNudge: () => FocusGlideScope.maybeOf(context)?.kick(),
+                child: _Tile(key: Key("tile"), focusNode: node),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    node.requestFocus();
+    await tester.pumpAndSettle();
+    final rest = _ring(tester);
+
+    nudgeKey.currentState!.nudge(AxisDirection.right);
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+
+    expect(_ring(tester), tester.getRect(find.byKey(Key("tile"))));
+    expect(_ring(tester).left, greaterThan(rest.left + 4));
+    await tester.pumpAndSettle();
+    node.dispose();
   });
 
   testWidgets("disabled, it draws nothing and tiles find no glide", (tester) async {
@@ -90,6 +125,8 @@ void main() {
     expect(find.byKey(Key("focus-glide")), findsNothing);
   });
 }
+
+Rect _ring(WidgetTester tester) => tester.state<FocusGlideState>(find.byType(FocusGlide)).ringRect!;
 
 class _Tile extends StatelessWidget {
   final FocusNode focusNode;

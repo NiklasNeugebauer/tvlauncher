@@ -57,6 +57,7 @@ abstract final class Tune {
   static const dimSaturation = TuningParam("dimSaturation", "Unfocused saturation", 0.85, 0, 1, 0.05);
   static const ringGap = TuningParam("ringGapPx", "Ring gap", 4, 0, 12, 1, unit: " px");
   static const ringHalo = TuningParam("ringHalo", "Ring halo", 0.08, 0, 0.4, 0.02);
+  static const ringHaloWidth = TuningParam("ringHaloPx", "Ring halo width", 3, 0, 8, 1, unit: " px");
   static const sheen = TuningParam("sheenOpacity", "Sheen", 0.22, 0, 0.6, 0.02);
   static const sheenLength = TuningParam("sheenMs", "Sheen length", 900, 300, 2000, 50, unit: " ms");
   static const pressScale = TuningParam("pressScale", "Press scale", 0.96, 0.85, 1, 0.01);
@@ -76,6 +77,7 @@ abstract final class Tune {
     dimSaturation,
     ringGap,
     ringHalo,
+    ringHaloWidth,
     sheen,
     sheenLength,
     pressScale,

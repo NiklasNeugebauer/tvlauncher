@@ -165,6 +165,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
         child: EdgeNudge(
           distance: tuning[Tune.nudge],
           duration: tuning.nudgeDuration,
+          // The ring's ticker stops once it settles; restart it so the ring moves with the tile.
+          onNudge: () => _glide?.kick(),
           child: SpringBuilder(
             value: raised ? 1 : 0,
             spec: towards(raised),

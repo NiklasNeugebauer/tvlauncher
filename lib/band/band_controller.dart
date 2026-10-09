@@ -187,7 +187,12 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
 
   set ringColor(RingColor value) => _update(() => _ringColor = value);
 
-  RingStyle get ringStyle => RingStyle(color: _ringColor.color, gap: tuning[Tune.ringGap], halo: tuning[Tune.ringHalo]);
+  RingStyle get ringStyle => RingStyle(
+    color: _ringColor.color,
+    gap: tuning[Tune.ringGap],
+    halo: tuning[Tune.ringHalo],
+    haloWidth: tuning[Tune.ringHaloWidth],
+  );
 
   /// A direction key is held and repeating: focus runs along the row rather than stepping.
   bool get holding => _holding;

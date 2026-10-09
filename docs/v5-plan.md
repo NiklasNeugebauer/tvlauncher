@@ -67,6 +67,10 @@ records the difference.
    - Measured on the device: the nudge goes 9 px out and back in about 300 ms; the sheen is visible on dark
      banners and not on white ones (YouTube, Netflix). Focus moves 0.4 s apart: build p50 5-6 ms (was 1.6, the
      springing tiles rebuild every frame), 0-3 missed vsyncs per 60 frames.
+   - After the first check: a nudge on a tile focused for a while moved the tile but not the ring, because the
+     ring's ticker had stopped. The nudge now restarts it, and the ring measures the tile at paint time (after
+     layout) instead of in the ticker, so it never trails the tile by a frame. The halo is 3 px instead of 6
+     (`ringHaloPx`), so it overlaps the neighbours less.
 3. Diamond background: the light function as a fragment shader with uniforms, spotlight spring, pulse, hue ease,
    Warm or App colour, and strength.
 4. Panel style: quick settings and the app panel slide in with staggered rows over a dimmed launcher, and the

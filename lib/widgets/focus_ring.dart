@@ -19,23 +19,27 @@
 import 'package:flauncher/theme.dart';
 import 'package:flutter/material.dart';
 
-/// How the focus ring looks: a stroke [gap] outside the tile, with a faint white [halo] stroke around it.
+/// How the focus ring looks: a stroke [gap] outside the tile, with a faint white [halo] stroke of [haloWidth]
+/// around it.
 @immutable
 class RingStyle {
-  static const double haloWidth = 6;
-
   final Color color;
   final double gap;
   final double halo;
+  final double haloWidth;
 
-  const RingStyle({this.color = Palette.brass, this.gap = 0, this.halo = 0});
+  const RingStyle({this.color = Palette.brass, this.gap = 0, this.halo = 0, this.haloWidth = 0});
 
   @override
   bool operator ==(Object other) =>
-      other is RingStyle && other.color == color && other.gap == gap && other.halo == halo;
+      other is RingStyle &&
+      other.color == color &&
+      other.gap == gap &&
+      other.halo == halo &&
+      other.haloWidth == haloWidth;
 
   @override
-  int get hashCode => Object.hash(color, gap, halo);
+  int get hashCode => Object.hash(color, gap, halo, haloWidth);
 }
 
 /// Paints the ring around a tile of the painter's size, outside its bounds, with corners following [radius].
@@ -50,12 +54,12 @@ class FocusRingPainter extends CustomPainter {
     const width = Shapes.focusRing;
     final tile = Offset.zero & size;
     RRect around(double outset) => RRect.fromRectAndRadius(tile.inflate(outset), Radius.circular(radius + outset));
-    if (style.halo > 0) {
+    if (style.halo > 0 && style.haloWidth > 0) {
       canvas.drawRRect(
-        around(style.gap + width + RingStyle.haloWidth / 2),
+        around(style.gap + width + style.haloWidth / 2),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = RingStyle.haloWidth
+          ..strokeWidth = style.haloWidth
           ..color = Colors.white.withValues(alpha: style.halo),
       );
     }

@@ -25,9 +25,12 @@ import 'package:flutter/widgets.dart';
 class EdgeNudge extends StatefulWidget {
   final double distance;
   final Duration duration;
+
+  /// Called as a nudge starts, for whatever draws around the child and has to follow it.
+  final VoidCallback? onNudge;
   final Widget child;
 
-  const EdgeNudge({super.key, required this.distance, required this.duration, required this.child});
+  const EdgeNudge({super.key, required this.distance, required this.duration, this.onNudge, required this.child});
 
   static EdgeNudgeState? of(BuildContext context) => context.findAncestorStateOfType<EdgeNudgeState>();
 
@@ -63,6 +66,7 @@ class EdgeNudgeState extends State<EdgeNudge> with SingleTickerProviderStateMixi
       AxisDirection.down => Offset(0, 1),
     };
     _controller.forward(from: 0);
+    widget.onNudge?.call();
   }
 
   static double _shape(double t) {
