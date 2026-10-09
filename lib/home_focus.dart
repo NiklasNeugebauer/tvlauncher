@@ -47,6 +47,26 @@ class HomeFocusController {
   // The hero tile focused last, which up from the grid returns to.
   FocusNode? _lastHeroTile;
 
+  // A tile that should take focus once it is built, after the hero changed under the focused tile.
+  ({String packageName, bool inHero, bool move})? _pending;
+
+  /// The tile of [packageName] in the hero or the grid takes focus once it is built, and starts moving if [move].
+  void focusWhenBuilt(String packageName, {required bool inHero, bool move = false}) =>
+      _pending = (packageName: packageName, inHero: inHero, move: move);
+
+  /// Whether a tile is waiting to take focus for [packageName] in that region.
+  bool isPending(String packageName, bool inHero) => _pending?.packageName == packageName && _pending?.inHero == inHero;
+
+  /// Takes the pending focus for [packageName]; null if there is none for it, else whether to start moving.
+  bool? claimFocus(String packageName, bool inHero) {
+    final pending = _pending;
+    if (pending == null || !isPending(packageName, inHero)) {
+      return null;
+    }
+    _pending = null;
+    return pending.move;
+  }
+
   double get heroZoneHeight => layout?.heroZoneHeight ?? 0;
 
   bool get gridHasFocus => gridNode.hasFocus;

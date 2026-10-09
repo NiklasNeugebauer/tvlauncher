@@ -73,6 +73,11 @@ class _FocusKeyboardListenerState extends State<FocusKeyboardListener> {
       return widget.onPressed?.call(key) ?? KeyEventResult.ignored;
     }
     final downAt = _keyDownAt;
+    // The repeats of a key pressed before this widget had focus (the select that confirmed a panel entry): not a
+    // hold that started here.
+    if (downAt == null && event is KeyRepeatEvent) {
+      return KeyEventResult.handled;
+    }
     if (downAt == null) {
       _keyDownAt = clock.now();
       _repeated = false;

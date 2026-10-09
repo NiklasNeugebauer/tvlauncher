@@ -296,6 +296,58 @@ void main() {
     verifyNever(channel.launchApp(any));
   });
 
+  testWidgets("Adding a grid app to the main apps focuses its new hero tile in move mode", (tester) async {
+    final appsService = await _realAppsService(hero: ["hero.1"], grid: ["grid.1"]);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byKey(Key("grid-grid.1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Add to main apps"));
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-grid.1"), isTrue);
+    expect(
+      find.descendant(of: find.byKey(Key("hero-grid.1")), matching: find.byIcon(Icons.keyboard_arrow_left)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets("Removing a main app focuses its hero neighbour without move mode", (tester) async {
+    final appsService = await _realAppsService(hero: ["hero.1", "hero.2", "hero.3"], grid: []);
+    await _pumpHome(tester, appsService);
+
+    await tester.longPress(find.byKey(Key("hero-hero.2")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Remove from main apps"));
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.3"), isTrue);
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+  });
+
+  testWidgets("Repeats of a select pressed elsewhere do not start move mode", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: []);
+    await _pumpHome(tester, appsService);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    tester
+        .widget<InkWell>(find.descendant(of: find.byKey(Key("hero-hero.2")), matching: find.byType(InkWell)))
+        .focusNode!
+        .requestFocus();
+    await tester.pump();
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.2"), isTrue);
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
+  });
+
   testWidgets("Home closes an open panel, ends move mode and focuses the first hero tile", (tester) async {
     final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: []);
     final controller = await _pumpHome(tester, appsService);
@@ -441,6 +493,35 @@ MockAppsService _appsService({required List<App> hero, required List<App> grid})
   when(appsService.heroApps).thenReturn(hero);
   when(appsService.gridApps).thenReturn(grid);
   when(appsService.applications).thenReturn([...hero, ...grid]);
+  return appsService;
+}
+
+// A real AppsService over a mocked channel and an in-memory hero, so adding and removing rebuild the home screen.
+Future<AppsService> _realAppsService({required List<String> hero, required List<String> grid}) async {
+  final channel = MockFLauncherChannel();
+  final database = MockFLauncherDatabase();
+  final category = fakeCategory(name: "Main");
+  final apps = {
+    for (final name in [...hero, ...grid]) name: _app(name),
+  };
+  final heroApps = [for (final name in hero) apps[name]!];
+  when(channel.getApplications()).thenAnswer((_) => Future.value([]));
+  when(channel.applicationExists(any)).thenAnswer((_) => Future.value(true));
+  when(database.listApplications()).thenAnswer((_) => Future.value(apps.values.toList()));
+  when(database.listCategoriesWithVisibleApps())
+      .thenAnswer((_) => Future.value([CategoryWithApps(category, List.of(heroApps))]));
+  when(database.transaction(any)).thenAnswer((invocation) => invocation.positionalArguments[0]());
+  when(database.nextAppCategoryOrder(any)).thenAnswer((_) => Future.value(heroApps.length));
+  when(database.insertAppsCategories(any)).thenAnswer((invocation) async {
+    for (final row in invocation.positionalArguments[0] as List<AppsCategoriesCompanion>) {
+      heroApps.add(apps[row.appPackageName.value]!);
+    }
+  });
+  when(database.deleteAppCategory(any, any)).thenAnswer((invocation) async {
+    heroApps.removeWhere((app) => app.packageName == invocation.positionalArguments[1]);
+  });
+  final appsService = AppsService(channel, database);
+  await untilCalled(channel.addAppsChangedListener(any));
   return appsService;
 }
 

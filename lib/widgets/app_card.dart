@@ -20,6 +20,7 @@
 import 'package:flauncher/background/banner_hue.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
+import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/motion/edge_nudge.dart';
 import 'package:flauncher/motion/spring.dart';
 import 'package:flauncher/motion/tuning.dart';
@@ -78,6 +79,34 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
+    _claimPendingFocus();
+  }
+
+  // After the hero changed under a panel, the tile the panel picked takes focus (and starts moving, for a tile just
+  // added). After the frame, so it wins over the home screen's recovery of lost focus.
+  void _claimPendingFocus() {
+    final homeFocus = _homeFocus;
+    if (homeFocus == null || !homeFocus.isPending(widget.application.packageName, widget.inHero)) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final move = homeFocus.claimFocus(widget.application.packageName, widget.inHero);
+      if (move == null || !mounted) {
+        return;
+      }
+      _focusNode.requestFocus();
+      if (move && widget.onMove != null) {
+        setState(() => _moving = true);
+      }
+    });
+  }
+
+  HomeFocusController? get _homeFocus {
+    try {
+      return context.read<HomeFocusController>();
+    } on ProviderNotFoundException {
+      return null;
+    }
   }
 
   @override
@@ -156,6 +185,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   @override
   void didUpdateWidget(AppCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _claimPendingFocus();
     if (_focusNode.hasFocus) {
       _glide?.kick();
     }

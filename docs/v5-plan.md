@@ -97,6 +97,15 @@ records the difference.
 5. Sound, reduced motion and performance: the prototype tones with their repeat rules, reduced-motion variants,
    frame timings on the device, and the order in which things degrade when over budget.
 
+## Fixes found on the TV
+
+- 2026-10-09: moving an app into or out of the main apps from its panel left focus on the first tile, and a select
+  still held when the panel closed reached that tile as key repeats, which started move mode there. Repeats of a
+  key pressed before a tile had focus are now ignored, and the panel tells the home screen where focus goes:
+  an app added to the main apps gets focus on its new hero tile in move mode; a removed one hands focus to its
+  hero neighbour, without move mode (following the app into the grid would scroll away from the row being
+  arranged).
+
 ## v5.1
 
 - Sound test on the device: levels against the projector's fan and the room, pitch spread, and whether designed

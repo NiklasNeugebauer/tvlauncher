@@ -19,6 +19,7 @@
  */
 
 import 'package:flauncher/database.dart';
+import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/panel_row.dart';
@@ -43,11 +44,15 @@ class ApplicationInfoPanel extends StatelessWidget {
         Divider(),
         if (inHero)
           _entry(context, Icons.star_outline, "Remove from main apps", () async {
-            await context.read<AppsService>().removeFromHero(application);
+            final apps = context.read<AppsService>();
+            _focusAfterRemoval(context, apps);
+            await apps.removeFromHero(application);
             Navigator.of(context).pop(ApplicationInfoPanelResult.none);
           }, autofocus: true)
         else
           _entry(context, Icons.star, "Add to main apps", () async {
+            // The new hero tile takes focus, ready to be moved into place.
+            _homeFocus(context)?.focusWhenBuilt(application.packageName, inHero: true, move: true);
             await context.read<AppsService>().addToHero(application);
             Navigator.of(context).pop(ApplicationInfoPanelResult.none);
           }, autofocus: true),
@@ -80,6 +85,34 @@ class ApplicationInfoPanel extends StatelessWidget {
       ],
     ),
   );
+
+  // Focus stays in the hero, on the tile that takes the removed one's place; with no hero left, it follows the
+  // app into the grid.
+  void _focusAfterRemoval(BuildContext context, AppsService apps) {
+    final homeFocus = _homeFocus(context);
+    if (homeFocus == null) {
+      return;
+    }
+    final hero = apps.heroApps;
+    final index = hero.indexWhere((app) => app.packageName == application.packageName);
+    if (index < 0) {
+      return;
+    }
+    if (hero.length == 1) {
+      homeFocus.focusWhenBuilt(application.packageName, inHero: false);
+    } else {
+      final neighbour = index + 1 < hero.length ? hero[index + 1] : hero[index - 1];
+      homeFocus.focusWhenBuilt(neighbour.packageName, inHero: true);
+    }
+  }
+
+  static HomeFocusController? _homeFocus(BuildContext context) {
+    try {
+      return context.read<HomeFocusController>();
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
 
   Widget _header(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
