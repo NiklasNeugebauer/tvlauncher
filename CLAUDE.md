@@ -30,7 +30,8 @@ Versions are pinned in three places that must stay in sync: `mise.toml`, `pubspe
 or with mise activated. Device renders at 1920×1080, density 320 → 960×540 logical px.
 
 `compileSdk`, `targetSdk` (36) and `minSdk` (24) follow the Flutter Gradle plugin defaults (`flutter.*SdkVersion` in
-`android/app/build.gradle.kts`); bump them by upgrading Flutter. SQLite comes from `package:sqlite3` 3.x via Dart build
+`android/app/build.gradle.kts`); bump them by upgrading Flutter. UI sounds are WAV files in `android/app/src/main/res/raw`, rendered by `uv run tool/sounds.py`; run it again after
+changing a tone. SQLite comes from `package:sqlite3` 3.x via Dart build
 hooks, so there is no `sqlite3_flutter_libs` any more. Code generation: `dart run build_runner build` (drift, mockito);
 after a schema change also `dart run drift_dev schema generate --data-classes --companions drift_schemas/ test/generated_migrations/`.
 
@@ -67,14 +68,15 @@ If the stock launcher or the setup app's `RecoveryActivity` takes HOME back, see
 
 ## Band config (readable and writable over adb)
 
-Band size, position, edge, launch/return variants and lengths, focus glide and idle live in
-`/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json` (pretty JSON; its `_doc` key lists the
-allowed values). The launcher writes it on every change from "Quick settings → Band & motion" and re-reads it
-whenever it comes to the front, so no root or debuggable build is needed:
+Band size, position, edge, launch/return variants and lengths, focus motion, idle, the frame-time readout and the
+motion tuning numbers (`tuning`) live in `/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json`
+(pretty JSON; its `_doc` key lists the allowed values). The launcher writes it on every change from
+"Quick settings → Band & motion" and checks it once a second while in front, so a push applies within a second,
+with no restart, root or debuggable build:
 
 ```
 adb shell cat /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
 adb push band_config.json /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
-adb shell am force-stop dev.neugebauer.tvlauncher && adb shell input keyevent KEYCODE_HOME   # apply
-adb logcat -s flutter | grep "band config"                                                   # loads and saves
+adb logcat -s flutter | grep "band config"     # loads and saves
+adb logcat -s flutter | grep "frame times"     # with frameTimes on: fps, build/raster ms, missed vsyncs per batch
 ```

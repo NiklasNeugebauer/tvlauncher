@@ -17,12 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/background/banner_hue.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
+import 'package:flauncher/home_focus.dart';
+import 'package:flauncher/motion/edge_nudge.dart';
+import 'package:flauncher/motion/spring.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
+import 'package:flauncher/widgets/focus_ring.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/foundation.dart' hide Category;
@@ -53,8 +60,16 @@ class AppCard extends StatefulWidget {
   State<AppCard> createState() => _AppCardState();
 }
 
-class _AppCardState extends State<AppCard> {
+class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
+  static const Duration _sheenDelay = Duration(milliseconds: 50);
+
   bool _moving = false;
+  bool _pressed = false;
+  bool _held = false;
+  BandController? _holdBand;
+  double? _hue;
+  bool _hueKnown = false;
+  late final AnimationController _sheen = AnimationController(vsync: this);
   MemoryImage? _imageProvider;
   final FocusNode _focusNode = FocusNode();
   final GlobalKey _tileKey = GlobalKey();
@@ -65,6 +80,34 @@ class _AppCardState extends State<AppCard> {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
+    _claimPendingFocus();
+  }
+
+  // After the hero changed under a panel, the tile the panel picked takes focus (and starts moving, for a tile just
+  // added). After the frame, so it wins over the home screen's recovery of lost focus.
+  void _claimPendingFocus() {
+    final homeFocus = _homeFocus;
+    if (homeFocus == null || !homeFocus.isPending(widget.application.packageName, widget.inHero)) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final move = homeFocus.claimFocus(widget.application.packageName, widget.inHero);
+      if (move == null || !mounted) {
+        return;
+      }
+      _focusNode.requestFocus();
+      if (move && widget.onMove != null) {
+        setState(() => _moving = true);
+      }
+    });
+  }
+
+  HomeFocusController? get _homeFocus {
+    try {
+      return context.read<HomeFocusController>();
+    } on ProviderNotFoundException {
+      return null;
+    }
   }
 
   @override
@@ -76,13 +119,17 @@ class _AppCardState extends State<AppCard> {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    _releaseHold();
     final reported = _reportedTile;
     if (reported != null) {
       _glide?.release(reported);
     }
     _focusNode.dispose();
+    _sheen.dispose();
     super.dispose();
   }
+
+  Tuning get _tuning => BandScope.maybeOf(context)?.tuning ?? Tuning.defaults;
 
   // Losing focus while moving (Home, Back, a hovering pointer) drops the tile where it is, so the order in memory
   // never silently diverges from the one persisted.
@@ -91,21 +138,113 @@ class _AppCardState extends State<AppCard> {
       _endMove();
     }
     final tile = _tileKey.currentContext;
+    final band = BandScope.maybeOf(context);
+    // Focus going to a side panel: the tile keeps looking focused (and keeps the ring) behind the panel, so closing
+    // the panel does not replay the focus animation.
+    if (!_focusNode.hasFocus && (band?.panelOpen.value ?? false)) {
+      if (!_held) {
+        _held = true;
+        _holdBand = band!..panelOpen.addListener(_onPanelClosed);
+      }
+      return;
+    }
+    if (_focusNode.hasFocus && _held) {
+      _releaseHold();
+      if (tile != null) {
+        _reportedTile = tile;
+        _glide?.track(tile);
+      }
+      return;
+    }
+    if (_focusNode.hasFocus) {
+      _startSheen();
+    } else {
+      _sheen.value = 0;
+      if (_pressed) {
+        setState(() => _pressed = false);
+      }
+    }
     if (tile != null && _focusNode.hasFocus) {
       _reportedTile = tile;
       _glide?.track(tile);
+      _lightUp(tile);
     } else if (_reportedTile != null) {
       _glide?.release(_reportedTile!);
       _reportedTile = null;
     }
   }
 
-  // A focused tile that is rebuilt may have moved (reordered, resized with the band): let the ring follow.
+  void _releaseHold() {
+    _held = false;
+    _holdBand?.panelOpen.removeListener(_onPanelClosed);
+    _holdBand = null;
+  }
+
+  // The panel closed without handing focus back here (it went elsewhere, or the tile moved): let go of the look.
+  void _onPanelClosed() {
+    if (_holdBand?.panelOpen.value ?? true) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_held || _focusNode.hasFocus) {
+        return;
+      }
+      _releaseHold();
+      setState(() {});
+      final reported = _reportedTile;
+      if (reported != null) {
+        _glide?.release(reported);
+        _reportedTile = null;
+      }
+    });
+  }
+
+  // Puts the background's light on this tile, in the app's colour once it is known.
+  void _lightUp(BuildContext tile) {
+    final spotlight = BandScope.maybeOf(context)?.spotlight;
+    if (spotlight == null) {
+      return;
+    }
+    spotlight.focus(tile, _hue);
+    final banner = widget.application.banner;
+    if (!_hueKnown && banner != null) {
+      BannerHue.of(banner).then((hue) {
+        _hue = hue;
+        _hueKnown = true;
+        spotlight.updateHue(tile, hue);
+      });
+    }
+  }
+
+  // Once per focus, never while a held key runs along the row.
+  void _startSheen() {
+    final tuning = _tuning;
+    final band = BandScope.maybeOf(context);
+    if (tuning[Tune.sheen] <= 0 || (band?.holding ?? false) || (band?.reducedMotion ?? false)) {
+      return;
+    }
+    _sheen.duration = tuning.sheenDuration + _sheenDelay;
+    _sheen.forward(from: 0);
+  }
+
+  void _followTile() {
+    if (_focusNode.hasFocus || _held) {
+      _glide?.kick();
+    }
+  }
+
+  // A focused tile that is rebuilt may have moved (reordered, resized with the band): let the ring and the light
+  // follow.
   @override
   void didUpdateWidget(AppCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _claimPendingFocus();
     if (_focusNode.hasFocus) {
       _glide?.kick();
+      final tile = _tileKey.currentContext;
+      if (tile != null) {
+        BandScope.maybeOf(context)?.spotlight.follow(tile);
+      }
     }
   }
 
@@ -121,19 +260,70 @@ class _AppCardState extends State<AppCard> {
     onPressed: (key) => _onPressed(context, key),
     onLongPress: (key) => _onLongPress(context, key),
     onVeryLongPress: (key) => _onVeryLongPress(context),
-    builder: (context) => AspectRatio(
-      aspectRatio: 16 / 9,
-      child: AnimatedContainer(
-        duration: Motion.focus,
-        curve: Motion.curve,
-        transformAlignment: Alignment.center,
-        transform: _scaleTransform(context),
+    onPressChanged: (pressed) {
+      if (pressed) {
+        UiSounds.maybeOf(context)?.select();
+      }
+      setState(() => _pressed = pressed);
+    },
+    builder: (context) {
+      final band = BandScope.maybeOf(context, listen: true);
+      final tuning = band?.tuning ?? Tuning.defaults;
+      final focused = Focus.of(context).hasFocus || _held;
+      final focusSpring = band?.focusSpring ?? tuning.focusSpring;
+      SpringSpec towards(bool on) => on ? focusSpring : tuning.focusOutSpring;
+      final raised = focused && !_moving;
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: EdgeNudge(
+          distance: (band?.reducedMotion ?? false) ? 0 : tuning[Tune.nudge],
+          duration: tuning.nudgeDuration,
+          // The ring's ticker stops once it settles; restart it so the ring moves with the tile.
+          onNudge: () => _glide?.kick(),
+          // The springs rebuild only what they move: the transform here, the banner's colour filter inside. The
+          // tile itself is built once per focus change and handed down as a child.
+          // The ring's ticker stops once it settles; every step of these springs restarts it.
+          child: SpringBuilder(
+            value: raised ? 1 : 0,
+            spec: towards(raised),
+            onTick: _followTile,
+            builder: (context, raise, tile) => SpringBuilder(
+              value: _pressed ? tuning[Tune.pressScale] : 1,
+              spec: _pressed ? tuning.pressDownSpring : tuning.pressUpSpring,
+              onTick: _followTile,
+              builder: (context, press, tile) => Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.translationValues(0, -tuning[Tune.lift] * raise, 0)
+                  ..scaleByDouble(
+                    (1 + (tuning[Tune.focusScale] - 1) * raise) * press,
+                    (1 + (tuning[Tune.focusScale] - 1) * raise) * press,
+                    1,
+                    1,
+                  ),
+                child: tile,
+              ),
+              child: tile,
+            ),
+            child: _tile(context, band, tuning, focused, towards(focused)),
+          ),
+        ),
+      );
+    },
+  );
+
+  // The light of the tile runs on [spring] from 0 (unfocused: dimmed and desaturated) to 1 (focused: full colour).
+  Widget _tile(BuildContext context, BandController? band, Tuning tuning, bool focused, SpringSpec spring) =>
+      CustomPaint(
+        // With a glide, the home screen draws one ring that travels between tiles instead.
+        foregroundPainter: focused && _glide == null
+            ? FocusRingPainter(style: band?.ringStyle ?? RingStyle(), radius: Shapes.tileRadius)
+            : null,
         child: Material(
           key: _tileKey,
           color: Palette.surface,
           borderRadius: BorderRadius.circular(Shapes.tileRadius),
           clipBehavior: Clip.antiAlias,
-          elevation: Focus.of(context).hasFocus ? 16 : 0,
+          elevation: focused ? 16 : 0,
           shadowColor: Palette.shadow,
           child: Stack(
             fit: StackFit.expand,
@@ -146,37 +336,72 @@ class _AppCardState extends State<AppCard> {
                 onHover: _onHover,
                 onLongPress: () => _onLongPress(context, null),
                 child: widget.application.banner != null
-                    ? Ink.image(image: _cachedMemoryImage(widget.application.banner!), fit: BoxFit.cover)
+                    ? SpringBuilder(
+                        value: focused ? 1 : 0,
+                        spec: spring,
+                        builder: (context, light, _) => Ink.image(
+                          image: _cachedMemoryImage(widget.application.banner!),
+                          fit: BoxFit.cover,
+                          colorFilter: _dimFilter(tuning, light.clamp(0.0, 1.0)),
+                        ),
+                      )
                     : _iconWithName(context),
               ),
               if (_moving) ..._arrows(),
-              IgnorePointer(
-                child: AnimatedOpacity(
-                  duration: Motion.focus,
-                  curve: Motion.curve,
-                  opacity: Focus.of(context).hasFocus ? 0 : 0.10,
-                  child: Container(color: Colors.black),
-                ),
-              ),
-              IgnorePointer(
-                child: AnimatedContainer(
-                  duration: Motion.focus,
-                  curve: Motion.curve,
-                  decoration: BoxDecoration(
-                    // With a glide, the home screen draws one ring that travels between tiles instead.
-                    border: Focus.of(context).hasFocus && _glide == null
-                        ? Border.all(color: Palette.brass, width: Shapes.focusRing)
-                        : null,
-                    borderRadius: BorderRadius.circular(Shapes.tileRadius),
+              // Icon tiles have no image to filter; they only darken.
+              if (widget.application.banner == null)
+                IgnorePointer(
+                  child: SpringBuilder(
+                    value: focused ? 1 : 0,
+                    spec: spring,
+                    builder: (context, light, _) => ColoredBox(
+                      color: Colors.black.withValues(
+                        alpha: (1 - tuning[Tune.dimBrightness]) * (1 - light.clamp(0.0, 1.0)),
+                      ),
+                    ),
                   ),
+                ),
+              IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _sheen,
+                  builder: (context, _) => _sheen.value == 0 || _sheen.value == 1
+                      ? SizedBox()
+                      : CustomPaint(
+                          key: Key("sheen"),
+                          painter: _SheenPainter(
+                            progress: Interval(
+                              _sheenDelay.inMicroseconds / _sheen.duration!.inMicroseconds,
+                              1,
+                              curve: Motion.sheenCurve,
+                            ).transform(_sheen.value),
+                            opacity: tuning[Tune.sheen],
+                          ),
+                        ),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    ),
-  );
+      );
+
+  /// Brightness and saturation lowered by [1 - light]; none at full light, so a focused tile is drawn unfiltered.
+  static ColorFilter? _dimFilter(Tuning tuning, double light) {
+    if (light >= 0.999) {
+      return null;
+    }
+    final b = 1 - (1 - tuning[Tune.dimBrightness]) * (1 - light);
+    final s = 1 - (1 - tuning[Tune.dimSaturation]) * (1 - light);
+    // Rec. 709 luma weights.
+    const lr = 0.2126, lg = 0.7152, lb = 0.0722;
+    List<double> row(int channel) => [
+      b * (lr * (1 - s) + (channel == 0 ? s : 0)),
+      b * (lg * (1 - s) + (channel == 1 ? s : 0)),
+      b * (lb * (1 - s) + (channel == 2 ? s : 0)),
+      0,
+      0,
+    ];
+    return ColorFilter.matrix([...row(0), ...row(1), ...row(2), 0, 0, 0, 1, 0]);
+  }
 
   Widget _iconWithName(BuildContext context) => Padding(
     padding: EdgeInsets.all(8),
@@ -203,11 +428,6 @@ class _AppCardState extends State<AppCard> {
       ],
     ),
   );
-
-  Matrix4 _scaleTransform(BuildContext context) {
-    final scale = !_moving && Focus.of(context).hasFocus ? 1.1 : 1.0;
-    return Matrix4.diagonal3Values(scale, scale, 1.0);
-  }
 
   List<Widget> _arrows() => [
     _arrow(Alignment.centerLeft, Icons.keyboard_arrow_left),
@@ -279,36 +499,67 @@ class _AppCardState extends State<AppCard> {
     widget.onMoveEnd?.call();
   }
 
-  // Held select on a hero tile starts moving it right away; the panel comes after a longer hold (or a pointer
-  // long press, which has no move mode). Grid tiles cannot move, so the hold opens the panel directly.
+  // A held select on a hero tile starts moving it; held longer, the app goes back down to the grid. A pointer has no
+  // move mode, so its long press on a hero tile moves the app down at once. Grid tiles open their panel.
   KeyEventResult _onLongPress(BuildContext context, LogicalKeyboardKey? key) {
     if (_moving) {
       return KeyEventResult.ignored;
     }
-    if (key != null && widget.inHero && widget.onMove != null) {
+    if (!widget.inHero) {
+      _showPanel(context);
+    } else if (key != null && widget.onMove != null) {
       setState(() => _moving = true);
     } else {
-      _showPanel(context);
+      _moveDown(context);
     }
     return KeyEventResult.handled;
   }
 
   KeyEventResult _onVeryLongPress(BuildContext context) {
+    if (!widget.inHero) {
+      return KeyEventResult.handled;
+    }
     if (_moving) {
       // Nothing was moved yet, so there is no order to save.
       setState(() => _moving = false);
     }
-    _showPanel(context);
+    _moveDown(context);
     return KeyEventResult.handled;
   }
 
-  Future<void> _showPanel(BuildContext context) async {
-    final result = await showPanel<ApplicationInfoPanelResult>(
-      context,
-      (context) => ApplicationInfoPanel(application: widget.application, inHero: widget.inHero),
-    );
-    if (result == ApplicationInfoPanelResult.reorderApp && widget.onMove != null && mounted) {
-      setState(() => _moving = true);
-    }
+  void _moveDown(BuildContext context) {
+    final apps = context.read<AppsService>();
+    _homeFocus?.focusAfterLeavingHero(widget.application, apps.heroApps);
+    apps.removeFromHero(widget.application);
   }
+
+  Future<void> _showPanel(BuildContext context) =>
+      showPanel<void>(context, (context) => ApplicationInfoPanel(application: widget.application));
+}
+
+/// One diagonal highlight crossing the tile from top left to bottom right as [progress] runs from 0 to 1.
+class _SheenPainter extends CustomPainter {
+  static const double _halfWidth = 0.16;
+
+  final double progress;
+  final double opacity;
+
+  const _SheenPainter({required this.progress, required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final centre = -_halfWidth + progress * (1 + 2 * _halfWidth);
+    final white = Colors.white.withValues(alpha: opacity);
+    final gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [white.withValues(alpha: 0), white, white.withValues(alpha: 0)],
+      stops: [(centre - _halfWidth).clamp(0.0, 1.0), centre.clamp(0.0, 1.0), (centre + _halfWidth).clamp(0.0, 1.0)],
+    );
+    canvas.drawRect(rect, Paint()..shader = gradient.createShader(rect));
+  }
+
+  @override
+  bool shouldRepaint(_SheenPainter oldDelegate) => oldDelegate.progress != progress || oldDelegate.opacity != opacity;
 }

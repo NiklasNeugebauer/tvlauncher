@@ -58,6 +58,9 @@ abstract final class Motion {
   /// The band settling back from the full frame when an app is left: slow, the room is coming back.
   static const Duration returnHome = Duration(milliseconds: 880);
   static const Curve curve = Curves.easeInOutCubic;
+
+  /// The polish plan's ease-out for one-off flourishes: quick start, long soft landing.
+  static const Curve sheenCurve = Cubic(0.22, 1, 0.36, 1);
 }
 
 /// Bundled under fonts/ (SIL Open Font License): the APK has no network, so a Google font must ship with it.
@@ -152,7 +155,10 @@ class ThemedBackground extends StatelessWidget {
             gradient: RadialGradient(
               center: glowCenter,
               radius: radius,
-              colors: [Palette.glow.withValues(alpha: Palette.glowOpacity), Palette.glow.withValues(alpha: 0)],
+              colors: [
+                Palette.glow.withValues(alpha: Palette.glowOpacity),
+                Palette.glow.withValues(alpha: 0),
+              ],
             ),
           ),
         ),

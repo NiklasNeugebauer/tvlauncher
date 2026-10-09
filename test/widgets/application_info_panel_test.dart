@@ -38,10 +38,10 @@ void main() {
     binding.platformDispatcher.textScaleFactorTestValue = 0.8;
   });
 
-  testWidgets("Grid app offers 'Add to main apps' and no 'Move'", (tester) async {
+  testWidgets("The panel offers 'Add to main apps' and nothing for main apps", (tester) async {
     final appsService = MockAppsService();
     final app = _app();
-    await _pump(tester, appsService, app, inHero: false);
+    await _pump(tester, appsService, app);
 
     expect(find.text("Add to main apps"), findsOneWidget);
     expect(find.text("Remove from main apps"), findsNothing);
@@ -56,40 +56,16 @@ void main() {
     expect(find.byType(ApplicationInfoPanel), findsNothing);
   });
 
-  testWidgets("Hero app offers 'Remove from main apps' and 'Move'", (tester) async {
-    final appsService = MockAppsService();
-    final app = _app();
-    await _pump(tester, appsService, app, inHero: true);
-
-    expect(find.text("Remove from main apps"), findsOneWidget);
-    expect(find.text("Add to main apps"), findsNothing);
-    expect(find.text("Move"), findsOneWidget);
-
-    await tester.tap(find.text("Remove from main apps"));
-    await tester.pumpAndSettle();
-    verify(appsService.removeFromHero(app));
-  });
-
-  testWidgets("'Move' pops with the reorder result", (tester) async {
-    final appsService = MockAppsService();
-    final opened = await _pump(tester, appsService, _app(), inHero: true);
-
-    await tester.tap(find.text("Move"));
-    await tester.pumpAndSettle();
-
-    expect(await opened.result, ApplicationInfoPanelResult.reorderApp);
-  });
-
   testWidgets("'Hide' and 'Unhide' call AppsService", (tester) async {
     final appsService = MockAppsService();
     final visible = _app();
-    await _pump(tester, appsService, visible, inHero: false);
+    await _pump(tester, appsService, visible);
     await tester.tap(find.text("Hide"));
     await tester.pumpAndSettle();
     verify(appsService.hideApplication(visible));
 
     final hidden = _app(hidden: true);
-    await _pump(tester, appsService, hidden, inHero: false);
+    await _pump(tester, appsService, hidden);
     await tester.tap(find.text("Unhide"));
     await tester.pumpAndSettle();
     verify(appsService.unHideApplication(hidden));
@@ -98,7 +74,7 @@ void main() {
   testWidgets("'App info' and 'Uninstall' call AppsService", (tester) async {
     final appsService = MockAppsService();
     final app = _app();
-    await _pump(tester, appsService, app, inHero: false);
+    await _pump(tester, appsService, app);
 
     await tester.tap(find.text("App info"));
     await tester.pumpAndSettle();
@@ -111,7 +87,7 @@ void main() {
 
   testWidgets("An app without icon renders a placeholder", (tester) async {
     final appsService = MockAppsService();
-    await _pump(tester, appsService, fakeApp(packageName: "no.icon", name: "No icon", icon: null), inHero: false);
+    await _pump(tester, appsService, fakeApp(packageName: "no.icon", name: "No icon", icon: null));
 
     expect(find.byIcon(Icons.android), findsOneWidget);
   });
@@ -126,19 +102,7 @@ App _app({bool hidden = false}) => fakeApp(
   hidden: hidden,
 );
 
-class _OpenedPanel {
-  final Future<ApplicationInfoPanelResult?> result;
-
-  _OpenedPanel(this.result);
-}
-
-Future<_OpenedPanel> _pump(
-  WidgetTester tester,
-  AppsService appsService,
-  App application, {
-  required bool inHero,
-}) async {
-  late Future<ApplicationInfoPanelResult?> result;
+Future<void> _pump(WidgetTester tester, AppsService appsService, App application) async {
   await tester.pumpWidget(
     ChangeNotifierProvider<AppsService>.value(
       value: appsService,
@@ -146,9 +110,9 @@ Future<_OpenedPanel> _pump(
         home: Builder(
           builder: (context) => TextButton(
             child: Text("open"),
-            onPressed: () => result = showDialog<ApplicationInfoPanelResult>(
+            onPressed: () => showDialog<void>(
               context: context,
-              builder: (_) => ApplicationInfoPanel(application: application, inHero: inHero),
+              builder: (_) => ApplicationInfoPanel(application: application),
             ),
           ),
         ),
@@ -157,5 +121,4 @@ Future<_OpenedPanel> _pump(
   );
   await tester.tap(find.text("open"));
   await tester.pumpAndSettle();
-  return _OpenedPanel(result);
 }

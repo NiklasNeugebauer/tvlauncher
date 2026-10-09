@@ -16,16 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import 'package:flauncher/band/band_controller.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/ensure_visible.dart';
 import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Size and motion of the band: the nudge mode, the launch and return choreography with their lengths, focus
-/// glide and idle. Everything here is also in the config file (see [BandController]).
+/// Size and motion of the band: the nudge mode, the launch and return choreography with their lengths, how focus
+/// moves and its tuning, idle and the frame-time readout. Everything here is also in the config file (see
+/// [BandController]).
 class BandSettingsPage extends StatelessWidget {
   static const String routeName = "band_settings";
 
@@ -64,10 +65,10 @@ class BandSettingsPage extends StatelessWidget {
             ),
           ),
           _visible(
-            DurationRow(
+            StepRow(
               key: Key("launch-duration"),
               label: "Launch length",
-              value: band.launchDuration,
+              value: "${band.launchDuration.inMilliseconds} ms",
               onStep: (steps) => band.launchDuration += BandController.durationStep * steps,
             ),
           ),
@@ -79,10 +80,10 @@ class BandSettingsPage extends StatelessWidget {
             ),
           ),
           _visible(
-            DurationRow(
+            StepRow(
               key: Key("return-duration"),
               label: "Return length",
-              value: band.returnDuration,
+              value: "${band.returnDuration.inMilliseconds} ms",
               onStep: (steps) => band.returnDuration += BandController.durationStep * steps,
             ),
           ),
@@ -90,15 +91,66 @@ class BandSettingsPage extends StatelessWidget {
           _visible(
             PanelRow(
               icon: Icons.center_focus_strong,
-              label: "Focus: ${band.focusGlide ? "glide" : "jump"}",
-              onPressed: () => band.focusGlide = !band.focusGlide,
+              label: "Focus: ${band.focusMotion.label}",
+              onPressed: () => band.focusMotion = next(FocusMotion.values, band.focusMotion),
             ),
           ),
+          _visible(
+            PanelRow(
+              icon: Icons.blur_on,
+              label: "Background: ${band.background.label}",
+              onPressed: () => band.background = next(BackgroundMode.values, band.background),
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.light_mode_outlined,
+              label: "Light: ${band.lightMode.label}",
+              onPressed: () => band.lightMode = next(LightMode.values, band.lightMode),
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.circle_outlined,
+              label: "Ring: ${band.ringColor.name}",
+              onPressed: () => band.ringColor = next(RingColor.values, band.ringColor),
+            ),
+          ),
+          for (final param in Tune.all)
+            _visible(
+              StepRow(
+                key: Key("tune-${param.key}"),
+                label: param.label,
+                value: param.format(band.tuning[param]),
+                onStep: (steps) => band.tuning.stepBy(param, steps),
+              ),
+            ),
           _visible(
             PanelRow(
               icon: Icons.bedtime_outlined,
               label: "Idle after ${band.idleAfter.inMinutes} min: ${band.idleMode.label}",
               onPressed: () => band.idleMode = next(IdleMode.values, band.idleMode),
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: band.sound ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+              label: "Sounds: ${band.sound ? "on" : "off"}",
+              onPressed: () => band.sound = !band.sound,
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.motion_photos_paused_outlined,
+              label: "Reduced motion: ${band.reducedMotionSetting ? "on" : "off"}",
+              onPressed: () => band.reducedMotionSetting = !band.reducedMotionSetting,
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.speed,
+              label: "Frame times: ${band.frameTimes ? "shown" : "hidden"}",
+              onPressed: () => band.frameTimes = !band.frameTimes,
             ),
           ),
         ],
@@ -110,14 +162,14 @@ class BandSettingsPage extends StatelessWidget {
   Widget _visible(Widget row) => EnsureVisible(alignment: 0.5, child: row);
 }
 
-/// A length in milliseconds that left and right step down and up. [onStep] gets the direction, not a new value,
-/// so presses faster than a rebuild still add up.
-class DurationRow extends StatelessWidget {
+/// A number that left and right step down and up. [onStep] gets the direction, not a new value, so presses faster
+/// than a rebuild still add up.
+class StepRow extends StatelessWidget {
   final String label;
-  final Duration value;
+  final String value;
   final ValueChanged<int> onStep;
 
-  const DurationRow({super.key, required this.label, required this.value, required this.onStep});
+  const StepRow({super.key, required this.label, required this.value, required this.onStep});
 
   @override
   Widget build(BuildContext context) => Focus(
@@ -137,10 +189,6 @@ class DurationRow extends StatelessWidget {
       }
       return KeyEventResult.ignored;
     },
-    child: PanelRow(
-      icon: Icons.timer_outlined,
-      label: "$label   ‹ ${value.inMilliseconds} ms ›",
-      onPressed: () {},
-    ),
+    child: PanelRow(icon: Icons.tune, label: "$label   ‹ $value ›", onPressed: () {}),
   );
 }

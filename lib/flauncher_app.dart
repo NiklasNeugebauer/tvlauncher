@@ -22,6 +22,7 @@ import 'package:flauncher/band/band_frame.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flutter/material.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flutter/services.dart';
@@ -49,12 +50,11 @@ class FLauncherApp extends StatelessWidget {
         dispose: (_, controller) => controller.dispose(),
       ),
       // Not lazy: created before the navigator, so Back reaches it first (see BandController.didPopRoute).
-      ChangeNotifierProvider(
-        create: (_) => BandController(configFile: BandController.defaultConfigFile),
-        lazy: false,
-      ),
+      ChangeNotifierProvider(create: (_) => BandController(configFile: BandController.defaultConfigFile), lazy: false),
+      Provider<UiSounds>(create: (context) => UiSounds(_fLauncherChannel, context.read<BandController>())),
     ],
-    child: MaterialApp(
+    // A builder, so the actions below get a context that sees the providers.
+    builder: (context, _) => MaterialApp(
       shortcuts: {
         ...WidgetsApp.defaultShortcuts,
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),

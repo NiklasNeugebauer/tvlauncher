@@ -19,6 +19,7 @@
 
 import 'dart:math';
 
+import 'package:flauncher/database.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,44 @@ class HomeFocusController {
   // The grid window on screen, -1 while the hero is.
   int _gridWindow = -1;
 
+  // The hero tile focused last, which up from the grid returns to.
+  FocusNode? _lastHeroTile;
+
+  // A tile that should take focus once it is built, after the hero changed under the focused tile.
+  ({String packageName, bool inHero, bool move})? _pending;
+
+  /// The tile of [packageName] in the hero or the grid takes focus once it is built, and starts moving if [move].
+  void focusWhenBuilt(String packageName, {required bool inHero, bool move = false}) =>
+      _pending = (packageName: packageName, inHero: inHero, move: move);
+
+  /// [app] is leaving the hero: focus stays in the hero on the tile that takes its place, or follows the app into
+  /// the grid when it was the last one.
+  void focusAfterLeavingHero(App app, List<App> hero) {
+    final index = hero.indexWhere((other) => other.packageName == app.packageName);
+    if (index < 0) {
+      return;
+    }
+    if (hero.length == 1) {
+      focusWhenBuilt(app.packageName, inHero: false);
+    } else {
+      final neighbour = index + 1 < hero.length ? hero[index + 1] : hero[index - 1];
+      focusWhenBuilt(neighbour.packageName, inHero: true);
+    }
+  }
+
+  /// Whether a tile is waiting to take focus for [packageName] in that region.
+  bool isPending(String packageName, bool inHero) => _pending?.packageName == packageName && _pending?.inHero == inHero;
+
+  /// Takes the pending focus for [packageName]; null if there is none for it, else whether to start moving.
+  bool? claimFocus(String packageName, bool inHero) {
+    final pending = _pending;
+    if (pending == null || !isPending(packageName, inHero)) {
+      return null;
+    }
+    _pending = null;
+    return pending.move;
+  }
+
   double get heroZoneHeight => layout?.heroZoneHeight ?? 0;
 
   bool get gridHasFocus => gridNode.hasFocus;
@@ -59,8 +98,9 @@ class HomeFocusController {
     (_firstTraversable(heroNode) ?? _firstTraversable(gridNode))?.requestFocus();
   }
 
-  /// Up from the grid's first row goes to the hero, not to whatever happens to be above it on screen (the
-  /// hero is scrolled out of view then, so plain geometry would pick the gear).
+  /// Up from the grid's first row goes to the hero tile focused last, or the one nearest above when there is none,
+  /// not to whatever happens to be above it on screen (the hero is scrolled out of view then, so plain geometry
+  /// would pick the gear).
   KeyEventResult handleGridKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowUp) {
       return KeyEventResult.ignored;
@@ -78,13 +118,33 @@ class HomeFocusController {
     if (heroTiles.isEmpty) {
       return KeyEventResult.ignored;
     }
+    final last = _lastHeroTile;
+    if (last != null && heroTiles.contains(last)) {
+      last.requestFocus();
+      return KeyEventResult.handled;
+    }
     final currentX = current.rect.center.dx;
     heroTiles.sort((a, b) => (a.rect.center.dx - currentX).abs().compareTo((b.rect.center.dx - currentX).abs()));
     heroTiles.first.requestFocus();
     return KeyEventResult.handled;
   }
 
+  /// From the gear, left and down go back to the hero: the tile focused there last (where the light still is), else
+  /// the one nearest the gear (the last).
+  bool focusHeroFromGear() {
+    final heroTiles = heroNode.traversalDescendants.toList();
+    if (heroTiles.isEmpty) {
+      return false;
+    }
+    final last = _lastHeroTile;
+    (last != null && heroTiles.contains(last) ? last : heroTiles.last).requestFocus();
+    return true;
+  }
+
   void revealTile(BuildContext tileContext, {required bool inHero}) {
+    if (inHero) {
+      _lastHeroTile = FocusManager.instance.primaryFocus;
+    }
     if (!scroll.hasClients) {
       return;
     }

@@ -75,9 +75,7 @@ Future<void> _pumpWidgetWithProviders(WidgetTester tester) async {
   when(appsService.applications).thenReturn([]);
   await tester.pumpWidget(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppsService>.value(value: appsService),
-      ],
+      providers: [ChangeNotifierProvider<AppsService>.value(value: appsService)],
       builder: (_, _) => MaterialApp(
         routes: {
           WallpaperPanelPage.routeName: (_) => Container(key: Key("WallpaperPanelPage")),

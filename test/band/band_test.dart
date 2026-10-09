@@ -19,10 +19,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flauncher/background/diamond_background.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/band/band_frame.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/flauncher_channel.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/home_layout.dart';
@@ -120,6 +122,13 @@ void main() {
 
       expect(screen, BandGeometry.release.rect(_frame).size);
       expect(tester.getRect(find.byKey(Key("probe"))), BandGeometry.release.rect(_frame));
+      expect(tester.widget(find.byKey(Key("background"))), isA<DiamondBackground>());
+    });
+
+    testWidgets("paints v3's glow when the background is set to glow", (tester) async {
+      final controller = BandController()..background = BackgroundMode.glow;
+      await _pumpFrame(tester, controller, SizedBox());
+
       expect(tester.widget(find.byKey(Key("background"))), isA<ThemedBackground>());
     });
 
@@ -277,6 +286,32 @@ void main() {
       verify(apps.launchApp(app, LaunchTransition.fade));
     });
 
+    testWidgets("the frame darkens as it grows for an app and brightens as it settles back", (tester) async {
+      final apps = MockAppsService();
+      final controller = BandController()
+        ..launchMode = LaunchMode.growCut
+        ..returnMode = ReturnMode.collapse;
+      await _pumpFrame(tester, controller, SizedBox());
+      double level() => tester
+          .widget<Opacity>(find.descendant(of: find.byType(BandFrame), matching: find.byType(Opacity)).first)
+          .opacity;
+      expect(level(), 1);
+
+      final launching = controller.launch(apps, app, tile);
+      await tester.pump();
+      await tester.pump(controller.launchDuration);
+      await launching;
+      expect(level(), closeTo(1 - Tune.launchDim.defaultValue, 0.01));
+
+      controller.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(level(), closeTo(1 - Tune.launchDim.defaultValue, 0.01));
+      await tester.pumpAndSettle();
+      expect(level(), 1);
+      controller.dispose();
+    });
+
     test("coming back from an app plays the chosen return", () {
       final apps = MockAppsService();
       final controller = BandController()..returnMode = ReturnMode.collapse;
@@ -298,6 +333,35 @@ void main() {
       expect((controller.expanded, controller.contentVisible), (false, true));
     });
 
+    testWidgets("a repeating direction key switches to the hold spring until it is released", (tester) async {
+      final controller = BandController();
+      await tester.pumpWidget(Focus(autofocus: true, child: SizedBox()));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      expect(controller.holding, isFalse);
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowRight);
+      expect(controller.holding, isTrue);
+      expect(controller.focusSpring, controller.tuning.holdSpring);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      expect(controller.holding, isFalse);
+      expect(controller.focusSpring, controller.tuning.focusSpring);
+      controller.dispose();
+    });
+
+    test("reduced motion, from the switch or from Android, drops the overshoot", () {
+      final controller = BandController();
+      expect(controller.focusSpring.overshoot, greaterThan(0));
+
+      controller.reducedMotionSetting = true;
+      expect(controller.reducedMotion, isTrue);
+      expect(controller.focusSpring.overshoot, 0);
+
+      controller.reducedMotionSetting = false;
+      controller.systemReducedMotion = true;
+      expect(controller.reducedMotion, isTrue);
+      controller.dispose();
+    });
+
     test("the config file keeps the choices", () async {
       final dir = await Directory.systemTemp.createTemp("band");
       final file = File("${dir.path}/band_config.json");
@@ -305,7 +369,9 @@ void main() {
       first.geometry = BandGeometry(height: 0.5, position: 0.25, edge: BandEdge.hard);
       first.launchMode = LaunchMode.scaleTile;
       first.returnMode = ReturnMode.collapse;
-      first.focusGlide = false;
+      first.focusMotion = FocusMotion.ease;
+      first.frameTimes = true;
+      first.tuning[Tune.focusResponse] = 420;
       first.idleMode = IdleMode.dim;
       first.launchDuration = Duration(milliseconds: 500);
       first.returnDuration = Duration(milliseconds: 777);
@@ -317,13 +383,45 @@ void main() {
       expect(second.geometry, first.geometry);
       expect(second.launchMode, LaunchMode.scaleTile);
       expect(second.returnMode, ReturnMode.collapse);
-      expect(second.focusGlide, isFalse);
+      expect(second.focusMotion, FocusMotion.ease);
+      expect(second.frameTimes, isTrue);
+      expect(second.tuning[Tune.focusResponse], 420);
       expect(second.idleMode, IdleMode.dim);
       expect(second.launchDuration, Duration(milliseconds: 500));
       expect(second.returnDuration, Duration(milliseconds: 780), reason: "lengths snap to 20 ms");
       expect(jsonDecode(await file.readAsString())["_doc"], contains("edge hard|soft|inset"));
       first.dispose();
       second.dispose();
+      await dir.delete(recursive: true);
+    });
+
+    test("a v4 config without glide means jump", () async {
+      final dir = await Directory.systemTemp.createTemp("band");
+      final file = File("${dir.path}/band_config.json");
+      await file.writeAsString(jsonEncode({"focusGlide": false}));
+      final controller = BandController(configFile: () async => file);
+      await Future.delayed(Duration(milliseconds: 50));
+
+      expect(controller.focusMotion, FocusMotion.jump);
+      controller.dispose();
+      await dir.delete(recursive: true);
+    });
+
+    test("a pushed config applies without a restart", () async {
+      final dir = await Directory.systemTemp.createTemp("band");
+      final file = File("${dir.path}/band_config.json");
+      final controller = BandController(configFile: () async => file);
+      controller.tuning[Tune.focusOvershoot] = 0.1;
+      await Future.delayed(Duration(milliseconds: 50));
+
+      final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      (json["tuning"] as Map<String, dynamic>)[Tune.focusOvershoot.key] = 0.2;
+      await file.writeAsString(jsonEncode(json));
+      await file.setLastModified(DateTime.now().add(Duration(seconds: 1)));
+      await Future.delayed(Duration(milliseconds: 1300));
+
+      expect(controller.tuning[Tune.focusOvershoot], 0.2);
+      controller.dispose();
       await dir.delete(recursive: true);
     });
   });

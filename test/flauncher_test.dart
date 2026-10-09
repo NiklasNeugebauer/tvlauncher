@@ -17,12 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/actions.dart';
+import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher.dart';
 import 'package:flauncher/home_focus.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flutter/gestures.dart';
@@ -137,6 +142,107 @@ void main() {
     expect(_hasFocus(tester, "grid-grid.13"), isTrue);
   });
 
+  testWidgets("Right at the end of the hero nudges the tile and springs it back", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1")], grid: []);
+    await _pumpHome(tester, appsService);
+    final rest = _tileRect(tester, "hero-hero.1");
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+    expect(_tileRect(tester, "hero-hero.1").left, greaterThan(rest.left + 4));
+
+    await tester.pumpAndSettle();
+    expect(_tileRect(tester, "hero-hero.1"), rest);
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
+  });
+
+  testWidgets("Up from the grid returns to the hero tile focused last", (tester) async {
+    final appsService = _appsService(
+      hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")],
+      grid: List.generate(12, (i) => _app("grid.$i")),
+    );
+    await _pumpHome(tester, appsService);
+
+    for (final key in [
+      LogicalKeyboardKey.arrowRight,
+      LogicalKeyboardKey.arrowRight,
+      LogicalKeyboardKey.arrowDown,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowUp,
+    ]) {
+      await tester.sendKeyEvent(key);
+      await tester.pumpAndSettle();
+    }
+
+    expect(_hasFocus(tester, "hero-hero.3"), isTrue);
+  });
+
+  testWidgets("A held select shrinks the focused tile until it is released", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1")], grid: []);
+    await _pumpHome(tester, appsService);
+    final focused = _tileRect(tester, "hero-hero.1");
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(_tileRect(tester, "hero-hero.1").width, closeTo(focused.width * Tune.pressScale.defaultValue, 0.5));
+
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(_tileRect(tester, "hero-hero.1").width, closeTo(focused.width, 0.01));
+  });
+
+  testWidgets("Left from the settings icon returns to the hero tile focused last", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")], grid: []);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    expect(Focus.of(findSettingsIcon(tester)).hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.2"), isTrue);
+  });
+
+  testWidgets("Down from the settings icon returns to the hero tile focused last", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")], grid: []);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.2"), isTrue);
+  });
+
+  testWidgets("Up from the grid into the hero blips", (tester) async {
+    final channel = MockFLauncherChannel();
+    when(channel.playSound(any, rate: anyNamed("rate"), volume: anyNamed("volume"))).thenAnswer((_) async {});
+    final band = BandController();
+    final appsService = _appsService(hero: [_app("hero.1")], grid: [_app("grid.1"), _app("grid.2")]);
+    await _pumpHome(tester, appsService, band: band, sounds: UiSounds(channel, band));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    clearInteractions(channel);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
+    verify(channel.playSound("focus", rate: anyNamed("rate"), volume: anyNamed("volume"))).called(1);
+    await tester.pumpWidget(SizedBox());
+    band.dispose();
+  });
+
   testWidgets("Up from the hero reaches the settings icon", (tester) async {
     final appsService = _appsService(hero: [_app("hero.1")], grid: []);
     await _pumpHome(tester, appsService);
@@ -241,8 +347,124 @@ void main() {
     verifyNever(channel.launchApp(any));
   });
 
-  testWidgets("Home closes an open panel, ends move mode and focuses the first hero tile", (tester) async {
+  testWidgets("Adding a grid app to the main apps focuses its new hero tile in move mode", (tester) async {
+    final appsService = await _realAppsService(hero: ["hero.1"], grid: ["grid.1"]);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byKey(Key("grid-grid.1")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Add to main apps"));
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-grid.1"), isTrue);
+    expect(
+      find.descendant(of: find.byKey(Key("hero-grid.1")), matching: find.byIcon(Icons.keyboard_arrow_left)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets("A very long select on a main app moves it down and focuses its hero neighbour", (tester) async {
+    final appsService = await _realAppsService(hero: ["hero.1", "hero.2", "hero.3"], grid: []);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 1000));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key("grid-hero.2")), findsOneWidget);
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
+    expect(_hasFocus(tester, "hero-hero.3"), isTrue);
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+  });
+
+  testWidgets("With a band, focus stays in a panel opened from a grid tile", (tester) async {
+    final band = BandController();
+    final appsService = _appsService(hero: [_app("hero.1")], grid: [_app("grid.1"), _app("grid.2")]);
+    when(appsService.isDefaultLauncher()).thenAnswer((_) async => true);
+    await _pumpHome(tester, appsService, band: band);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    final tile = FocusManager.instance.primaryFocus;
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    final focused = FocusManager.instance.primaryFocus!.context!;
+    expect(focused.findAncestorWidgetOfExactType<ApplicationInfoPanel>(), isNotNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus, tile);
+    await tester.pumpWidget(SizedBox());
+    band.dispose();
+  });
+
+  testWidgets("Starting move mode shrinks the ring with the tile, and a moved tile takes the light along", (
+    tester,
+  ) async {
+    final band = BandController();
+    final appsService = await _realAppsService(hero: ["hero.1", "hero.2"], grid: []);
+    await _pumpHome(tester, appsService, band: band);
+    await tester.pumpAndSettle();
+    final glide = tester.state<FocusGlideState>(find.byType(FocusGlide));
+    Rect ring() => glide.ringRect!.shift(tester.getTopLeft(find.byType(FocusGlide)));
+    expect(ring(), _tileRect(tester, "hero-hero.1"));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    final moving = _tileRect(tester, "hero-hero.1");
+    expect(moving.width, lessThan(tester.getSize(find.byKey(Key("hero-hero.1"))).width + 0.5));
+    expect(ring(), moving);
+
+    var lightMoves = 0;
+    band.spotlight.addListener(() => lightMoves++);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(lightMoves, greaterThan(0));
+    expect(band.spotlight.tile, isNotNull);
+    expect(ring(), _tileRect(tester, "hero-hero.1"));
+    await tester.pumpWidget(SizedBox());
+    band.dispose();
+  });
+
+  testWidgets("Repeats of a select pressed elsewhere do not start move mode", (tester) async {
     final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: []);
+    await _pumpHome(tester, appsService);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    tester
+        .widget<InkWell>(find.descendant(of: find.byKey(Key("hero-hero.2")), matching: find.byType(InkWell)))
+        .focusNode!
+        .requestFocus();
+    await tester.pump();
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.2"), isTrue);
+    expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
+  });
+
+  testWidgets("Home closes an open panel, ends move mode and focuses the first hero tile", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: [_app("grid.1")]);
     final controller = await _pumpHome(tester, appsService);
     final homePressed =
         verify(
@@ -253,8 +475,9 @@ void main() {
             ).captured.single
             as void Function();
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.longPress(find.byKey(Key("hero-hero.2")));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byKey(Key("grid-grid.1")));
     await tester.pumpAndSettle();
     expect(find.byType(ApplicationInfoPanel), findsOneWidget);
 
@@ -264,9 +487,10 @@ void main() {
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.longPress(find.byKey(Key("hero-hero.2")));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("Move"));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
 
@@ -298,7 +522,7 @@ void main() {
     expect(find.byType(QuickSettingsPage), findsOneWidget);
   });
 
-  testWidgets("Select launches on release; a hold moves a hero tile, a longer hold opens its panel", (tester) async {
+  testWidgets("Select launches on release; a hold moves a hero tile, a longer hold moves it down", (tester) async {
     final hero1 = _app("hero.1");
     final appsService = _appsService(hero: [hero1, _app("hero.2")], grid: []);
     await _pumpHome(tester, appsService);
@@ -321,7 +545,8 @@ void main() {
     await tester.pump(Duration(milliseconds: 1000));
     await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
-    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    verify(appsService.removeFromHero(hero1));
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
     expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
@@ -389,6 +614,39 @@ MockAppsService _appsService({required List<App> hero, required List<App> grid})
   return appsService;
 }
 
+// A real AppsService over a mocked channel and an in-memory hero, so adding and removing rebuild the home screen.
+Future<AppsService> _realAppsService({required List<String> hero, required List<String> grid}) async {
+  final channel = MockFLauncherChannel();
+  final database = MockFLauncherDatabase();
+  final category = fakeCategory(name: "Main");
+  final apps = {
+    for (final name in [...hero, ...grid]) name: _app(name),
+  };
+  final heroApps = [for (final name in hero) apps[name]!];
+  when(channel.getApplications()).thenAnswer((_) => Future.value([]));
+  when(channel.applicationExists(any)).thenAnswer((_) => Future.value(true));
+  when(database.listApplications()).thenAnswer((_) => Future.value(apps.values.toList()));
+  when(database.listCategoriesWithVisibleApps())
+      .thenAnswer((_) => Future.value([CategoryWithApps(category, List.of(heroApps))]));
+  when(database.transaction(any)).thenAnswer((invocation) => invocation.positionalArguments[0]());
+  when(database.nextAppCategoryOrder(any)).thenAnswer((_) => Future.value(heroApps.length));
+  when(database.insertAppsCategories(any)).thenAnswer((invocation) async {
+    for (final row in invocation.positionalArguments[0] as List<AppsCategoriesCompanion>) {
+      heroApps.add(apps[row.appPackageName.value]!);
+    }
+  });
+  when(database.deleteAppCategory(any, any)).thenAnswer((invocation) async {
+    heroApps.removeWhere((app) => app.packageName == invocation.positionalArguments[1]);
+  });
+  final appsService = AppsService(channel, database);
+  await untilCalled(channel.addAppsChangedListener(any));
+  return appsService;
+}
+
+// The tile as drawn, with its lift, scale and nudge.
+Rect _tileRect(WidgetTester tester, String key) =>
+    tester.getRect(find.descendant(of: find.byKey(Key(key)), matching: find.byType(InkWell)));
+
 bool _hasFocus(WidgetTester tester, String key) => tester
     .widget<InkWell>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(InkWell)))
     .focusNode!
@@ -398,6 +656,8 @@ Future<HomeFocusController> _pumpHome(
   WidgetTester tester,
   AppsService appsService, {
   WallpaperService? wallpaperService,
+  BandController? band,
+  UiSounds? sounds,
 }) async {
   if (wallpaperService == null) {
     wallpaperService = MockWallpaperService();
@@ -411,8 +671,13 @@ Future<HomeFocusController> _pumpHome(
         ChangeNotifierProvider<WallpaperService>.value(value: wallpaperService),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         Provider<HomeFocusController>.value(value: controller),
+        if (sounds != null) Provider<UiSounds>.value(value: sounds),
       ],
-      builder: (_, _) => MaterialApp(home: FLauncher()),
+      builder: (context, _) => MaterialApp(
+        actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
+        builder: (context, child) => band == null ? child! : BandScope(controller: band, child: child!),
+        home: FLauncher(),
+      ),
     ),
   );
   await tester.pumpAndSettle();

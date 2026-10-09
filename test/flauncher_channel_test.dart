@@ -59,7 +59,10 @@ void main() {
     await fLauncherChannel.launchApp("me.efesser.flauncher");
     expect(arguments, {"packageName": "me.efesser.flauncher", "transition": "system"});
 
-    await fLauncherChannel.launchApp("me.efesser.flauncher", LaunchTransition.scaleUp(Rect.fromLTWH(10.4, 20, 300, 169)));
+    await fLauncherChannel.launchApp(
+      "me.efesser.flauncher",
+      LaunchTransition.scaleUp(Rect.fromLTWH(10.4, 20, 300, 169)),
+    );
     expect(arguments, {
       "packageName": "me.efesser.flauncher",
       "transition": "scaleUp",

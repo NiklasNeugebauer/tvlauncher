@@ -20,16 +20,20 @@
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
+import 'package:flauncher/widgets/focus_ring.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class FLauncher extends StatefulWidget {
@@ -62,6 +66,7 @@ class _FLauncherState extends State<FLauncher> {
       return;
     }
     BandScope.maybeOf(context)?.wake();
+    UiSounds.maybeOf(context)?.home();
     Navigator.of(context).popUntil((route) => route.isFirst);
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = context.read<HomeFocusController>();
@@ -69,15 +74,17 @@ class _FLauncherState extends State<FLauncher> {
   }
 
   @override
-  Widget build(BuildContext context) => FocusTraversalGroup(
-    policy: RowByRowTraversalPolicy(),
-    // Transparent: the band frame paints the background behind the whole navigator.
-    child: Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: _appBar(context),
-      body: Consumer<AppsService>(
-        builder: (context, appsService, _) =>
-            appsService.initialized ? _home(context, appsService) : _emptyState(context),
+  Widget build(BuildContext context) => _BehindPanel(
+    child: FocusTraversalGroup(
+      policy: RowByRowTraversalPolicy(),
+      // Transparent: the band frame paints the background behind the whole navigator.
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _appBar(context),
+        body: Consumer<AppsService>(
+          builder: (context, appsService, _) =>
+              appsService.initialized ? _home(context, appsService) : _emptyState(context),
+        ),
       ),
     ),
   );
@@ -95,8 +102,13 @@ class _FLauncherState extends State<FLauncher> {
       final heroApps = appsService.heroApps;
       final gridApps = appsService.gridApps;
       WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
+      final band = BandScope.maybeOf(context, listen: true);
+      final focusMotion = band?.focusMotion ?? FocusMotion.jump;
       return FocusGlide(
-        enabled: BandScope.maybeOf(context, listen: true)?.focusGlide ?? false,
+        // Reduced motion: no travelling ring; each tile shows its own.
+        enabled: focusMotion != FocusMotion.jump && !(band?.reducedMotion ?? false),
+        spring: focusMotion == FocusMotion.spring ? () => band!.focusSpring : null,
+        style: band?.ringStyle ?? RingStyle(),
         child: SingleChildScrollView(
           controller: controller.scroll,
           child: Column(
@@ -131,7 +143,14 @@ class _FLauncherState extends State<FLauncher> {
                 focusNode: controller.gridNode,
                 canRequestFocus: false,
                 skipTraversal: true,
-                onKeyEvent: controller.handleGridKey,
+                onKeyEvent: (node, event) {
+                  final result = controller.handleGridKey(node, event);
+                  // Up into the hero moves focus here rather than through the focus action, so it blips here too.
+                  if (result == KeyEventResult.handled) {
+                    UiSounds.maybeOf(context)?.focusMoved();
+                  }
+                  return result;
+                },
                 child: AppsGrid(
                   applications: gridApps,
                   tileWidth: layout.gridTileWidth,
@@ -180,7 +199,16 @@ class _FLauncherState extends State<FLauncher> {
     actions: [
       Padding(
         padding: EdgeInsets.only(right: HomeLayout.sidePadding),
-        child: _SettingsButton(onPressed: () => showPanel(context, (_) => SettingsPanel())),
+        child: _SettingsButton(
+          onPressed: () => showPanel(context, (_) => SettingsPanel()),
+          onBack: () {
+            final moved = context.read<HomeFocusController>().focusHeroFromGear();
+            if (moved) {
+              UiSounds.maybeOf(context)?.focusMoved();
+            }
+            return moved;
+          },
+        ),
       ),
     ],
   );
@@ -201,7 +229,10 @@ class _FLauncherState extends State<FLauncher> {
 class _SettingsButton extends StatefulWidget {
   final VoidCallback onPressed;
 
-  const _SettingsButton({required this.onPressed});
+  /// Left or down from the gear, back to the hero tile the light is still on: true if focus went there.
+  final bool Function() onBack;
+
+  const _SettingsButton({required this.onPressed, required this.onBack});
 
   @override
   State<_SettingsButton> createState() => _SettingsButtonState();
@@ -215,6 +246,12 @@ class _SettingsButtonState extends State<_SettingsButton> {
     canRequestFocus: false,
     skipTraversal: true,
     onFocusChange: (focused) => setState(() => _focused = focused),
+    onKeyEvent: (_, event) =>
+        event is! KeyUpEvent &&
+            (event.logicalKey == LogicalKeyboardKey.arrowLeft || event.logicalKey == LogicalKeyboardKey.arrowDown) &&
+            widget.onBack()
+        ? KeyEventResult.handled
+        : KeyEventResult.ignored,
     child: IconButton(
       key: Key("settings"),
       padding: EdgeInsets.all(2),
@@ -225,4 +262,28 @@ class _SettingsButtonState extends State<_SettingsButton> {
       onPressed: widget.onPressed,
     ),
   );
+}
+
+/// While a side panel is open the home screen shrinks a little, so it reads as paused behind the panel.
+class _BehindPanel extends StatelessWidget {
+  final Widget child;
+
+  const _BehindPanel({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final band = BandScope.maybeOf(context);
+    if (band == null) {
+      return child;
+    }
+    return ValueListenableBuilder<double>(
+      valueListenable: band.panel,
+      // Always wrapped, also at scale 1: switching the tree shape would remount the home screen and lose its focus.
+      builder: (context, open, child) {
+        final scale = 1 - (1 - band.tuning[Tune.panelScale]) * Motion.sheenCurve.transform(open.clamp(0.0, 1.0));
+        return Transform.scale(scale: scale, child: child);
+      },
+      child: child,
+    );
+  }
 }

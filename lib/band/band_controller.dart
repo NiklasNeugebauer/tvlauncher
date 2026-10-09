@@ -20,11 +20,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flauncher/background/spotlight.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
+import 'package:flauncher/motion/spring.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/focus_ring.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
@@ -82,11 +86,63 @@ enum IdleMode {
   const IdleMode(this.label);
 }
 
+/// How focus travels between tiles.
+enum FocusMotion {
+  /// One ring springs from tile to tile and overshoots a little; tiles lift on the same spring.
+  spring("spring"),
+
+  /// One ring eases toward the tile without overshoot (v4).
+  ease("ease"),
+
+  /// Each tile draws its own ring.
+  jump("jump");
+
+  final String label;
+
+  const FocusMotion(this.label);
+}
+
+/// What lights the band's background.
+enum BackgroundMode {
+  /// A grid of squares that grow into diamonds under a spotlight following focus.
+  diamonds("Diamonds"),
+
+  /// v3's gradient with a warm glow from below.
+  glow("Glow");
+
+  final String label;
+
+  const BackgroundMode(this.label);
+}
+
+/// The colour of the diamonds' light.
+enum LightMode {
+  warm("Warm"),
+
+  /// The focused app's hue; grey banners stay warm.
+  app("App colour");
+
+  final String label;
+
+  const LightMode(this.label);
+}
+
+/// The focus ring's colour: brass is the state accent; cream is the primary text colour, brighter on the wall.
+enum RingColor {
+  brass(Palette.brass),
+  cream(Palette.cream);
+
+  final Color color;
+
+  const RingColor(this.color);
+}
+
 /// The band's state: its geometry, the launch and return choreography, the nudge mode and idle.
 ///
 /// The config lives in a JSON file on the app's external storage, where `adb` can read and replace it without root
 /// or a debuggable build. It is read at start and whenever the launcher comes back to the front, and every load and
-/// save is logged with the tag `flutter` as `band config ...`.
+/// save is logged with the tag `flutter` as `band config ...`. While the launcher is in front the file is checked
+/// once a second, so a pushed config applies without a restart.
 ///
 /// [expanded] drives the lit area between the band (false) and the full frame (true); [animateExpansion] says
 /// whether the frame should animate there or jump.
@@ -94,20 +150,47 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   /// Defaults when the config file has no value.
   static const LaunchMode releaseLaunchMode = LaunchMode.growCut;
   static const ReturnMode releaseReturnMode = ReturnMode.collapse;
-  static const bool releaseFocusGlide = true;
+  static const FocusMotion releaseFocusMotion = FocusMotion.spring;
   static const IdleMode releaseIdleMode = IdleMode.off;
 
   /// Where the config is, for logs and docs; the external files directory of the app.
   static const String configPath = "/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json";
 
+  static const Duration _pollInterval = Duration(seconds: 1);
+
   final Future<File> Function()? configFile;
   DateTime? _configModified;
+  Timer? _pollTimer;
+  File? _file;
+  bool _missingLogged = false;
+  bool _loading = false;
+
+  /// The tunable motion numbers, kept in the config under `tuning`.
+  final Tuning tuning = Tuning();
+
+  /// Where the background's light is.
+  final Spotlight spotlight = Spotlight();
+
+  /// How far a side panel is open, 0 to 1, following its slide; what is behind it scales and dims with it.
+  final ValueNotifier<double> panel = ValueNotifier(0);
+
+  /// A side panel is open (set before its first frame, cleared when it is popped), so a tile that loses focus to
+  /// it keeps looking focused.
+  final ValueNotifier<bool> panelOpen = ValueNotifier(false);
   final Duration idleAfter;
 
   BandGeometry _geometry = BandGeometry.release;
   LaunchMode _launchMode = releaseLaunchMode;
   ReturnMode _returnMode = releaseReturnMode;
-  bool _focusGlide = releaseFocusGlide;
+  FocusMotion _focusMotion = releaseFocusMotion;
+  bool _frameTimes = false;
+  RingColor _ringColor = RingColor.brass;
+  BackgroundMode _background = BackgroundMode.diamonds;
+  LightMode _lightMode = LightMode.warm;
+  bool _holding = false;
+  bool _sound = true;
+  bool _reducedMotionSetting = false;
+  bool _systemReducedMotion = false;
   Duration _launchDuration = Motion.launch;
   Duration _returnDuration = Motion.returnHome;
   bool _nudging = false;
@@ -127,7 +210,9 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   BandController({this.configFile, this.idleAfter = const Duration(minutes: 2)}) {
     WidgetsBinding.instance.addObserver(this);
     HardwareKeyboard.instance.addHandler(_onKey);
+    tuning.addListener(_onTuningChanged);
     _restartIdleTimer();
+    _startPolling();
     _load();
   }
 
@@ -137,7 +222,56 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
 
   ReturnMode get returnMode => _returnMode;
 
-  bool get focusGlide => _focusGlide;
+  FocusMotion get focusMotion => _focusMotion;
+
+  BackgroundMode get background => _background;
+
+  set background(BackgroundMode value) => _update(() => _background = value);
+
+  LightMode get lightMode => _lightMode;
+
+  set lightMode(LightMode value) => _update(() => _lightMode = value);
+
+  RingColor get ringColor => _ringColor;
+
+  set ringColor(RingColor value) => _update(() => _ringColor = value);
+
+  RingStyle get ringStyle => RingStyle(
+    color: _ringColor.color,
+    gap: tuning[Tune.ringGap],
+    halo: tuning[Tune.ringHalo],
+    haloWidth: tuning[Tune.ringHaloWidth],
+  );
+
+  /// Whether the UI sounds play.
+  bool get sound => _sound;
+
+  set sound(bool value) => _update(() => _sound = value);
+
+  /// Calm motion: no springs, overshoot, sheen, pulse or shimmer; panels fade. On when the launcher's own switch
+  /// is, or when Android's "Remove animations" is set.
+  bool get reducedMotion => _reducedMotionSetting || _systemReducedMotion;
+
+  bool get reducedMotionSetting => _reducedMotionSetting;
+
+  set reducedMotionSetting(bool value) => _update(() => _reducedMotionSetting = value);
+
+  /// Android's animation setting, reported by the frame.
+  set systemReducedMotion(bool value) {
+    if (value != _systemReducedMotion) {
+      _systemReducedMotion = value;
+      notifyListeners();
+    }
+  }
+
+  /// A direction key is held and repeating: focus runs along the row rather than stepping.
+  bool get holding => _holding;
+
+  /// The spring for a focus move starting now.
+  SpringSpec get focusSpring => _holding || reducedMotion ? tuning.holdSpring : tuning.focusSpring;
+
+  /// Whether the frame shows build and raster times.
+  bool get frameTimes => _frameTimes;
 
   /// How long the band takes to grow before an app, and to settle back after one.
   Duration get launchDuration => _launchDuration;
@@ -174,7 +308,9 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
 
   set returnMode(ReturnMode value) => _update(() => _returnMode = value);
 
-  set focusGlide(bool value) => _update(() => _focusGlide = value);
+  set focusMotion(FocusMotion value) => _update(() => _focusMotion = value);
+
+  set frameTimes(bool value) => _update(() => _frameTimes = value);
 
   set idleMode(IdleMode value) => _update(() {
     _idleMode = value;
@@ -232,12 +368,14 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
       // Behind an app, the screensaver or a sleeping display there is nothing to idle; come back awake. The frame
       // must hear about it, or it keeps showing the picture frame and holding focus with nothing left to wake.
       _idleTimer?.cancel();
+      _pollTimer?.cancel();
       if (_idle) {
         _idle = false;
         notifyListeners();
       }
     } else if (state == AppLifecycleState.resumed) {
       _restartIdleTimer();
+      _startPolling();
       _load();
     }
     if (state == AppLifecycleState.hidden && _launchedApp) {
@@ -275,7 +413,13 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     HardwareKeyboard.instance.removeHandler(_onKey);
+    tuning.removeListener(_onTuningChanged);
+    tuning.dispose();
+    spotlight.dispose();
+    panel.dispose();
+    panelOpen.dispose();
     _idleTimer?.cancel();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
@@ -284,7 +428,35 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     if (!_idle) {
       _restartIdleTimer();
     }
+    if (_directionKeys.contains(event.logicalKey)) {
+      if (event is KeyRepeatEvent) {
+        _holding = true;
+      } else if (event is KeyUpEvent) {
+        _holding = false;
+      }
+    }
     return false;
+  }
+
+  static final Set<LogicalKeyboardKey> _directionKeys = {
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+  };
+
+  void _onTuningChanged() {
+    notifyListeners();
+    if (!_loading) {
+      _save();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    if (configFile != null) {
+      _pollTimer = Timer.periodic(_pollInterval, (_) => _load());
+    }
   }
 
   void _restartIdleTimer() {
@@ -338,15 +510,24 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   Map<String, Object> _toJson() => {
     "_doc":
         "height 0.3-1 and position 0 (top) to 1 (bottom) in steps of 0.05; edge ${_names(BandEdge.values)}; "
-        "launch ${_names(LaunchMode.values)}; launchMs and returnMs in steps of 20; return ${_names(ReturnMode.values)}; idle ${_names(IdleMode.values)}. "
-        "Read again whenever the launcher comes to the front.",
+        "launch ${_names(LaunchMode.values)}; launchMs and returnMs in steps of 20; return ${_names(ReturnMode.values)}; "
+        "focus ${_names(FocusMotion.values)}; ring ${_names(RingColor.values)}; background ${_names(BackgroundMode.values)}; light ${_names(LightMode.values)}; idle ${_names(IdleMode.values)}; frameTimes, sound and reducedMotion true|false; "
+        "tuning: ${Tune.all.map((p) => "${p.key} ${p.min}-${p.max} step ${p.step}").join(", ")}. "
+        "Checked once a second while the launcher is in front.",
     ..._geometry.toJson(),
     "launch": _launchMode.name,
     "return": _returnMode.name,
-    "focusGlide": _focusGlide,
+    "focus": _focusMotion.name,
+    "frameTimes": _frameTimes,
+    "sound": _sound,
+    "reducedMotion": _reducedMotionSetting,
+    "ring": _ringColor.name,
+    "background": _background.name,
+    "light": _lightMode.name,
     "launchMs": _launchDuration.inMilliseconds,
     "returnMs": _returnDuration.inMilliseconds,
     "idle": _idleMode.name,
+    "tuning": tuning.toJson(),
   };
 
   static String _names(List<Enum> values) => values.map((v) => v.name).join("|");
@@ -357,9 +538,12 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     try {
-      final file = await locate();
+      final file = _file ??= await locate();
       if (!await file.exists()) {
-        debugPrint("band config: none at ${file.path}, using defaults");
+        if (!_missingLogged) {
+          debugPrint("band config: none at ${file.path}, using defaults");
+          _missingLogged = true;
+        }
         return;
       }
       final modified = await file.lastModified();
@@ -371,7 +555,23 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
       _geometry = BandGeometry.fromJson(json);
       _launchMode = LaunchMode.values.where((m) => m.name == json["launch"]).firstOrNull ?? _launchMode;
       _returnMode = ReturnMode.values.where((m) => m.name == json["return"]).firstOrNull ?? _returnMode;
-      _focusGlide = json["focusGlide"] as bool? ?? _focusGlide;
+      // v4 kept only glide on or off.
+      final legacyGlide = json["focusGlide"] as bool?;
+      _focusMotion =
+          FocusMotion.values.where((m) => m.name == json["focus"]).firstOrNull ??
+          (legacyGlide == false ? FocusMotion.jump : _focusMotion);
+      _frameTimes = json["frameTimes"] as bool? ?? _frameTimes;
+      _sound = json["sound"] as bool? ?? _sound;
+      _reducedMotionSetting = json["reducedMotion"] as bool? ?? _reducedMotionSetting;
+      _ringColor = RingColor.values.where((c) => c.name == json["ring"]).firstOrNull ?? _ringColor;
+      _background = BackgroundMode.values.where((m) => m.name == json["background"]).firstOrNull ?? _background;
+      _lightMode = LightMode.values.where((m) => m.name == json["light"]).firstOrNull ?? _lightMode;
+      _loading = true;
+      try {
+        tuning.load(json["tuning"] as Map<String, dynamic>?);
+      } finally {
+        _loading = false;
+      }
       final launchMs = json["launchMs"] as num?;
       final returnMs = json["returnMs"] as num?;
       _launchDuration = launchMs == null ? _launchDuration : _durationStep(Duration(milliseconds: launchMs.round()));
@@ -391,7 +591,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     try {
-      final file = await locate();
+      final file = _file ??= await locate();
       await file.writeAsString(JsonEncoder.withIndent("  ").convert(_toJson()));
       _configModified = await file.lastModified();
       debugPrint("band config saved to ${file.path}: ${jsonEncode(_toJson()..remove("_doc"))}");
