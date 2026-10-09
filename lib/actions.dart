@@ -16,11 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/motion/edge_nudge.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+/// Moves focus with the D-pad; when there is nowhere to go, the focused widget's [EdgeNudge] bumps instead.
 class SoundFeedbackDirectionalFocusAction extends DirectionalFocusAction {
   final BuildContext context;
 
@@ -28,8 +30,21 @@ class SoundFeedbackDirectionalFocusAction extends DirectionalFocusAction {
 
   @override
   void invoke(DirectionalFocusIntent intent) {
-    super.invoke(intent);
-    Feedback.forTap(context);
+    final focused = primaryFocus;
+    if (focused == null) {
+      return;
+    }
+    if (focused.focusInDirection(intent.direction)) {
+      Feedback.forTap(context);
+      return;
+    }
+    final nudge = focused.context == null ? null : EdgeNudge.of(focused.context!);
+    nudge?.nudge(switch (intent.direction) {
+      TraversalDirection.left => AxisDirection.left,
+      TraversalDirection.right => AxisDirection.right,
+      TraversalDirection.up => AxisDirection.up,
+      TraversalDirection.down => AxisDirection.down,
+    });
   }
 }
 

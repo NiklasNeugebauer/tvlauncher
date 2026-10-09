@@ -34,12 +34,17 @@ class FocusKeyboardListener extends StatefulWidget {
   final KeyEventResult Function(LogicalKeyboardKey)? onLongPress;
   final KeyEventResult Function(LogicalKeyboardKey)? onVeryLongPress;
 
+  /// True when a select key goes down, false when it comes up: the moment to show the press, before the
+  /// listener knows whether it becomes a press or a hold.
+  final ValueChanged<bool>? onPressChanged;
+
   const FocusKeyboardListener({
     super.key,
     required this.builder,
     this.onPressed,
     this.onLongPress,
     this.onVeryLongPress,
+    this.onPressChanged,
   });
 
   @override
@@ -73,6 +78,7 @@ class _FocusKeyboardListenerState extends State<FocusKeyboardListener> {
       _repeated = false;
       _longPressFired = false;
       _veryLongPressFired = false;
+      widget.onPressChanged?.call(true);
       return KeyEventResult.handled;
     }
     final held = clock.now().difference(downAt);
@@ -98,6 +104,7 @@ class _FocusKeyboardListenerState extends State<FocusKeyboardListener> {
     }
     final fired = _longPressFired;
     _keyDownAt = null;
+    widget.onPressChanged?.call(false);
     _longPressFired = false;
     _veryLongPressFired = false;
     if (fired) {

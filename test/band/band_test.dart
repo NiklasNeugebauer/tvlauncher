@@ -299,6 +299,21 @@ void main() {
       expect((controller.expanded, controller.contentVisible), (false, true));
     });
 
+    testWidgets("a repeating direction key switches to the hold spring until it is released", (tester) async {
+      final controller = BandController();
+      await tester.pumpWidget(Focus(autofocus: true, child: SizedBox()));
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      expect(controller.holding, isFalse);
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowRight);
+      expect(controller.holding, isTrue);
+      expect(controller.focusSpring, controller.tuning.holdSpring);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      expect(controller.holding, isFalse);
+      expect(controller.focusSpring, controller.tuning.focusSpring);
+      controller.dispose();
+    });
+
     test("the config file keeps the choices", () async {
       final dir = await Directory.systemTemp.createTemp("band");
       final file = File("${dir.path}/band_config.json");

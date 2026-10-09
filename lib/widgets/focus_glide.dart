@@ -20,28 +20,38 @@ import 'dart:math';
 
 import 'package:flauncher/motion/spring.dart';
 import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/focus_ring.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-/// One focus ring for the whole home screen that slides from tile to tile instead of jumping.
+/// One focus ring for the whole home screen that travels from tile to tile instead of jumping.
 ///
-/// The focused tile reports its visual box with [FocusGlideScope.track]; while anything may be moving (focus
-/// change, scrolling, a tile's own scale animation, a relayout) a ticker moves the ring toward that box, on
-/// [spring] when there is one and on v4's overshoot-free ease otherwise, then stops so an idle home screen
-/// schedules no frames.
+/// The focused tile reports its visual box with [FocusGlideScope.track]. The ring is glued to that box, so it
+/// follows scrolling, the tile's own lift and scale and an edge nudge exactly; only the jump between two tiles is
+/// animated, as an offset that decays to zero: on [spring] when there is one, on v4's overshoot-free ease
+/// otherwise. While anything may be moving a ticker runs, then it stops so an idle home screen schedules no frames.
 class FocusGlide extends StatefulWidget {
   final bool enabled;
-  final SpringSpec? spring;
+
+  /// Read at every focus change, so a move that starts while a key is held can use a different spring.
+  final ValueGetter<SpringSpec>? spring;
+  final RingStyle style;
   final Widget child;
 
-  const FocusGlide({super.key, required this.enabled, this.spring, required this.child});
+  const FocusGlide({
+    super.key,
+    required this.enabled,
+    this.spring,
+    this.style = const RingStyle(),
+    required this.child,
+  });
 
   @override
   State<FocusGlide> createState() => FocusGlideState();
 }
 
 class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMixin {
-  // Time constant of the ease: the ring covers about 99 % of the way in five of these.
+  // Time constant of the ease: the offset shrinks to about 1 % in five of these.
   static const double _tau = 0.036;
   static const Duration _settle = Duration(milliseconds: 260);
 
@@ -49,21 +59,36 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
   late final Ticker _ticker = createTicker(_tick);
   BuildContext? _tracked;
   Rect? _rect;
-  // Left, top, right and bottom of the ring on the spring.
-  final List<SpringState> _edges = [for (var i = 0; i < 4; i++) SpringState(0)];
+  Rect? _lastTarget;
+  SpringSpec? _spring;
   double _radius = Shapes.tileRadius;
+  // Left, top, right and bottom of the ring relative to the tracked tile, decaying to zero.
+  final List<SpringState> _offsets = [for (var i = 0; i < 4; i++) SpringState(0)];
   Duration _lastTick = Duration.zero;
   Duration _quietSince = Duration.zero;
   Duration _elapsed = Duration.zero;
 
   bool get enabled => widget.enabled;
 
-  /// [tile] gained focus: the ring heads there, or appears there when it was hidden.
+  /// [tile] gained focus: the ring heads there from where it is, or appears there when it was hidden.
   void track(BuildContext tile) {
-    final wasHidden = _tracked == null;
+    final from = _tracked == null ? null : _rect;
     _tracked = tile;
-    if (wasHidden) {
+    _spring = widget.spring?.call();
+    final to = _targetRect();
+    if (from == null || to == null) {
       _rect = null;
+      for (final offset in _offsets) {
+        offset.jumpTo(0);
+      }
+    } else {
+      final deltas = [from.left - to.left, from.top - to.top, from.right - to.right, from.bottom - to.bottom];
+      for (var i = 0; i < 4; i++) {
+        // The velocity stays: a press mid-move redirects the ring instead of restarting it.
+        _offsets[i]
+          ..value = deltas[i]
+          ..target = 0;
+      }
     }
     kick();
   }
@@ -106,34 +131,35 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
       _ticker.stop();
       return;
     }
-    final current = _rect;
-    final spring = widget.spring;
-    final Rect next;
-    if (current == null) {
-      next = target;
-      _setEdges(target);
-    } else if (spring != null) {
-      final targets = [target.left, target.top, target.right, target.bottom];
-      for (var i = 0; i < 4; i++) {
-        _edges[i].target = targets[i];
-        _edges[i].step(dt, spring);
-      }
-      next = Rect.fromLTRB(_edges[0].value, _edges[1].value, _edges[2].value, _edges[3].value);
-    } else {
-      next = Rect.lerp(current, target, 1 - exp(-dt / _tau))!;
-      _setEdges(next);
+    // The tile itself is still moving (scroll, lift, nudge): keep following.
+    if (target != _lastTarget) {
+      _quietSince = elapsed;
+      _lastTarget = target;
     }
-    final settled = _distance(next, target) < 0.5 && _edges.every((e) => e.velocity.abs() < 5);
-    setState(() => _rect = settled ? target : next);
+    final spring = _spring;
+    var settled = true;
+    for (final offset in _offsets) {
+      if (spring != null) {
+        settled &= offset.step(dt, spring);
+      } else if (offset.value != 0) {
+        offset.value *= exp(-dt / _tau);
+        if (offset.value.abs() < 0.5) {
+          offset.jumpTo(0);
+        } else {
+          settled = false;
+        }
+      }
+    }
+    setState(
+      () => _rect = Rect.fromLTRB(
+        target.left + _offsets[0].value,
+        target.top + _offsets[1].value,
+        target.right + _offsets[2].value,
+        target.bottom + _offsets[3].value,
+      ),
+    );
     if (settled && elapsed - _quietSince > _settle) {
       _ticker.stop();
-    }
-  }
-
-  void _setEdges(Rect rect) {
-    final values = [rect.left, rect.top, rect.right, rect.bottom];
-    for (var i = 0; i < 4; i++) {
-      _edges[i].jumpTo(values[i]);
     }
   }
 
@@ -152,11 +178,6 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
     return rect;
   }
 
-  double _distance(Rect a, Rect b) => max(
-    max((a.left - b.left).abs(), (a.top - b.top).abs()),
-    max((a.right - b.right).abs(), (a.bottom - b.bottom).abs()),
-  );
-
   @override
   Widget build(BuildContext context) {
     final rect = _rect;
@@ -171,6 +192,7 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
         },
         child: Stack(
           key: _stackKey,
+          clipBehavior: Clip.none,
           children: [
             widget.child,
             if (widget.enabled && rect != null)
@@ -181,12 +203,9 @@ class FocusGlideState extends State<FocusGlide> with SingleTickerProviderStateMi
                     opacity: _tracked == null ? 0 : 1,
                     duration: Motion.focus,
                     curve: Motion.curve,
-                    child: DecoratedBox(
+                    child: CustomPaint(
                       key: Key("focus-glide"),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Palette.brass, width: Shapes.focusRing),
-                        borderRadius: BorderRadius.circular(_radius),
-                      ),
+                      painter: FocusRingPainter(style: widget.style, radius: _radius),
                     ),
                   ),
                 ),

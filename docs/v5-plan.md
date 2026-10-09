@@ -45,6 +45,28 @@ records the difference.
      1-7 missed vsyncs per 50 frames (the first batch after a start is shader warm-up, about 20).
 2. Tile focus: lift, scale, travelling ring and shadow on springs; dimmed, desaturated unfocused tiles; sheen once
    per focus; edge nudge; press; hold-to-scroll mode; focus memory per region.
+
+   Done 2026-10-09. Each tile runs three springs: raise (lift and scale), light (brightness and saturation) and
+   press. Focus out uses a critically damped 120 ms spring. Dimming is a colour matrix on the banner image
+   itself (no extra layer per tile); icon-only tiles darken under a black overlay. Every value is in `Tune`.
+   Deviations:
+   - The ring now springs only the jump between two tiles, as an offset that decays to zero, and is otherwise
+     glued to the focused tile. Following the tile on a spring made it lag and overshoot behind scrolling, the
+     tile's own lift and the nudge. It is drawn outside the tile with a 4 px gap and an 8 % white halo
+     (`ring: brass|cream`).
+   - The lift moved the focused tile's centre off its row, and the traversal policy grouped rows by exact centre
+     y, so down picked the other hero tile and left/right found nothing. Rows are now centres within half a tile
+     height.
+   - The edge nudge moves the focused tile, not the whole row, and plays wherever a press finds nothing to focus
+     (`EdgeNudge`, also usable in panels). The tap feedback sound now plays only on a real move.
+   - Hold-to-scroll is detected from key repeats in `BandController`; while held, focus moves use a 120 ms spring
+     with no overshoot and no sheen. `adb input` sends no repeats, so this is covered by tests only.
+   - Focus memory covers the hero only: up from the grid returns to the hero tile focused last. Down from the
+     hero keeps going to the nearest grid tile, because returning to a tile deep in the grid would scroll away.
+   - No title rise: tiles have no titles.
+   - Measured on the device: the nudge goes 9 px out and back in about 300 ms; the sheen is visible on dark
+     banners and not on white ones (YouTube, Netflix). Focus moves 0.4 s apart: build p50 5-6 ms (was 1.6, the
+     springing tiles rebuild every frame), 0-3 missed vsyncs per 60 frames.
 3. Diamond background: the light function as a fragment shader with uniforms, spotlight spring, pulse, hue ease,
    Warm or App colour, and strength.
 4. Panel style: quick settings and the app panel slide in with staggered rows over a dimmed launcher, and the

@@ -49,8 +49,41 @@ class TuningParam {
 abstract final class Tune {
   static const focusResponse = TuningParam("focusResponseMs", "Focus spring", 300, 100, 800, 10, unit: " ms");
   static const focusOvershoot = TuningParam("focusOvershoot", "Focus overshoot", 0.06, 0, 0.3, 0.01);
+  static const focusOut = TuningParam("focusOutMs", "Focus out", 120, 40, 400, 10, unit: " ms");
+  static const holdFocus = TuningParam("holdFocusMs", "Focus while held", 120, 40, 400, 10, unit: " ms");
+  static const lift = TuningParam("liftPx", "Lift", 8, 0, 20, 1, unit: " px");
+  static const focusScale = TuningParam("focusScale", "Focus scale", 1.1, 1, 1.3, 0.01);
+  static const dimBrightness = TuningParam("dimBrightness", "Unfocused brightness", 0.72, 0.3, 1, 0.02);
+  static const dimSaturation = TuningParam("dimSaturation", "Unfocused saturation", 0.85, 0, 1, 0.05);
+  static const ringGap = TuningParam("ringGapPx", "Ring gap", 4, 0, 12, 1, unit: " px");
+  static const ringHalo = TuningParam("ringHalo", "Ring halo", 0.08, 0, 0.4, 0.02);
+  static const sheen = TuningParam("sheenOpacity", "Sheen", 0.22, 0, 0.6, 0.02);
+  static const sheenLength = TuningParam("sheenMs", "Sheen length", 900, 300, 2000, 50, unit: " ms");
+  static const pressScale = TuningParam("pressScale", "Press scale", 0.96, 0.85, 1, 0.01);
+  static const pressDown = TuningParam("pressDownMs", "Press down", 80, 20, 300, 10, unit: " ms");
+  static const pressUp = TuningParam("pressUpMs", "Press up", 180, 60, 500, 10, unit: " ms");
+  static const nudge = TuningParam("nudgePx", "Edge nudge", 9, 0, 24, 1, unit: " px");
+  static const nudgeLength = TuningParam("nudgeMs", "Edge nudge length", 280, 120, 600, 20, unit: " ms");
 
-  static const List<TuningParam> all = [focusResponse, focusOvershoot];
+  static const List<TuningParam> all = [
+    focusResponse,
+    focusOvershoot,
+    focusOut,
+    holdFocus,
+    lift,
+    focusScale,
+    dimBrightness,
+    dimSaturation,
+    ringGap,
+    ringHalo,
+    sheen,
+    sheenLength,
+    pressScale,
+    pressDown,
+    pressUp,
+    nudge,
+    nudgeLength,
+  ];
 }
 
 /// Current values of every [TuningParam]; unset ones read as their default.
@@ -71,10 +104,27 @@ class Tuning extends ChangeNotifier {
   void stepBy(TuningParam param, int steps) => this[param] = this[param] + param.step * steps;
 
   /// The focus move: the ring, and the tile's lift and scale.
-  SpringSpec get focusSpring => SpringSpec(
-    response: Duration(milliseconds: this[Tune.focusResponse].round()),
-    overshoot: this[Tune.focusOvershoot],
-  );
+  SpringSpec get focusSpring => SpringSpec(response: _ms(Tune.focusResponse), overshoot: this[Tune.focusOvershoot]);
+
+  /// Leaving focus: quicker than arriving, without overshoot.
+  SpringSpec get focusOutSpring => _critical(Tune.focusOut);
+
+  /// Focus moves while a direction key repeats: short and without overshoot, so the row runs instead of bouncing.
+  SpringSpec get holdSpring => _critical(Tune.holdFocus);
+
+  SpringSpec get pressDownSpring => _critical(Tune.pressDown);
+
+  SpringSpec get pressUpSpring => SpringSpec(response: _ms(Tune.pressUp), overshoot: this[Tune.focusOvershoot]);
+
+  Duration get sheenDuration => _ms(Tune.sheenLength);
+
+  Duration get nudgeDuration => _ms(Tune.nudgeLength);
+
+  // A critically damped spring is within 2 % of its target after about 0.93 of its response, so the param reads
+  // as the length of the move.
+  SpringSpec _critical(TuningParam param) => SpringSpec(response: _ms(param));
+
+  Duration _ms(TuningParam param) => Duration(milliseconds: this[param].round());
 
   Map<String, double> toJson() => {for (final param in Tune.all) param.key: this[param]};
 

@@ -17,9 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/actions.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher.dart';
 import 'package:flauncher/home_focus.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
@@ -135,6 +137,59 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
     expect(_hasFocus(tester, "grid-grid.13"), isTrue);
+  });
+
+  testWidgets("Right at the end of the hero nudges the tile and springs it back", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1")], grid: []);
+    await _pumpHome(tester, appsService);
+    final rest = _tileRect(tester, "hero-hero.1");
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 60));
+    expect(_tileRect(tester, "hero-hero.1").left, greaterThan(rest.left + 4));
+
+    await tester.pumpAndSettle();
+    expect(_tileRect(tester, "hero-hero.1"), rest);
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
+  });
+
+  testWidgets("Up from the grid returns to the hero tile focused last", (tester) async {
+    final appsService = _appsService(
+      hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")],
+      grid: List.generate(12, (i) => _app("grid.$i")),
+    );
+    await _pumpHome(tester, appsService);
+
+    for (final key in [
+      LogicalKeyboardKey.arrowRight,
+      LogicalKeyboardKey.arrowRight,
+      LogicalKeyboardKey.arrowDown,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowUp,
+    ]) {
+      await tester.sendKeyEvent(key);
+      await tester.pumpAndSettle();
+    }
+
+    expect(_hasFocus(tester, "hero-hero.3"), isTrue);
+  });
+
+  testWidgets("A held select shrinks the focused tile until it is released", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1")], grid: []);
+    await _pumpHome(tester, appsService);
+    final focused = _tileRect(tester, "hero-hero.1");
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(_tileRect(tester, "hero-hero.1").width, closeTo(focused.width * Tune.pressScale.defaultValue, 0.5));
+
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(_tileRect(tester, "hero-hero.1").width, closeTo(focused.width, 0.01));
   });
 
   testWidgets("Up from the hero reaches the settings icon", (tester) async {
@@ -389,6 +444,10 @@ MockAppsService _appsService({required List<App> hero, required List<App> grid})
   return appsService;
 }
 
+// The tile as drawn, with its lift, scale and nudge.
+Rect _tileRect(WidgetTester tester, String key) =>
+    tester.getRect(find.descendant(of: find.byKey(Key(key)), matching: find.byType(InkWell)));
+
 bool _hasFocus(WidgetTester tester, String key) => tester
     .widget<InkWell>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(InkWell)))
     .focusNode!
@@ -412,7 +471,10 @@ Future<HomeFocusController> _pumpHome(
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         Provider<HomeFocusController>.value(value: controller),
       ],
-      builder: (_, _) => MaterialApp(home: FLauncher()),
+      builder: (context, _) => MaterialApp(
+        actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
+        home: FLauncher(),
+      ),
     ),
   );
   await tester.pumpAndSettle();

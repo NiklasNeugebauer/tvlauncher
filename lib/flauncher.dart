@@ -24,6 +24,7 @@ import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
+import 'package:flauncher/widgets/focus_ring.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
@@ -99,7 +100,8 @@ class _FLauncherState extends State<FLauncher> {
       final focusMotion = band?.focusMotion ?? FocusMotion.jump;
       return FocusGlide(
         enabled: focusMotion != FocusMotion.jump,
-        spring: focusMotion == FocusMotion.spring ? band!.tuning.focusSpring : null,
+        spring: focusMotion == FocusMotion.spring ? () => band!.focusSpring : null,
+        style: band?.ringStyle ?? RingStyle(),
         child: SingleChildScrollView(
           controller: controller.scroll,
           child: Column(

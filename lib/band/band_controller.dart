@@ -23,9 +23,11 @@ import 'dart:io';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
+import 'package:flauncher/motion/spring.dart';
 import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/focus_ring.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
@@ -99,6 +101,16 @@ enum FocusMotion {
   const FocusMotion(this.label);
 }
 
+/// The focus ring's colour: brass is the state accent; cream is the primary text colour, brighter on the wall.
+enum RingColor {
+  brass(Palette.brass),
+  cream(Palette.cream);
+
+  final Color color;
+
+  const RingColor(this.color);
+}
+
 /// The band's state: its geometry, the launch and return choreography, the nudge mode and idle.
 ///
 /// The config lives in a JSON file on the app's external storage, where `adb` can read and replace it without root
@@ -136,6 +148,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   ReturnMode _returnMode = releaseReturnMode;
   FocusMotion _focusMotion = releaseFocusMotion;
   bool _frameTimes = false;
+  RingColor _ringColor = RingColor.brass;
+  bool _holding = false;
   Duration _launchDuration = Motion.launch;
   Duration _returnDuration = Motion.returnHome;
   bool _nudging = false;
@@ -168,6 +182,18 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   ReturnMode get returnMode => _returnMode;
 
   FocusMotion get focusMotion => _focusMotion;
+
+  RingColor get ringColor => _ringColor;
+
+  set ringColor(RingColor value) => _update(() => _ringColor = value);
+
+  RingStyle get ringStyle => RingStyle(color: _ringColor.color, gap: tuning[Tune.ringGap], halo: tuning[Tune.ringHalo]);
+
+  /// A direction key is held and repeating: focus runs along the row rather than stepping.
+  bool get holding => _holding;
+
+  /// The spring for a focus move starting now.
+  SpringSpec get focusSpring => _holding ? tuning.holdSpring : tuning.focusSpring;
 
   /// Whether the frame shows build and raster times.
   bool get frameTimes => _frameTimes;
@@ -324,8 +350,22 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     if (!_idle) {
       _restartIdleTimer();
     }
+    if (_directionKeys.contains(event.logicalKey)) {
+      if (event is KeyRepeatEvent) {
+        _holding = true;
+      } else if (event is KeyUpEvent) {
+        _holding = false;
+      }
+    }
     return false;
   }
+
+  static final Set<LogicalKeyboardKey> _directionKeys = {
+    LogicalKeyboardKey.arrowLeft,
+    LogicalKeyboardKey.arrowRight,
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.arrowDown,
+  };
 
   void _onTuningChanged() {
     notifyListeners();
@@ -393,7 +433,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     "_doc":
         "height 0.3-1 and position 0 (top) to 1 (bottom) in steps of 0.05; edge ${_names(BandEdge.values)}; "
         "launch ${_names(LaunchMode.values)}; launchMs and returnMs in steps of 20; return ${_names(ReturnMode.values)}; "
-        "focus ${_names(FocusMotion.values)}; idle ${_names(IdleMode.values)}; frameTimes true|false; "
+        "focus ${_names(FocusMotion.values)}; ring ${_names(RingColor.values)}; idle ${_names(IdleMode.values)}; frameTimes true|false; "
         "tuning: ${Tune.all.map((p) => "${p.key} ${p.min}-${p.max} step ${p.step}").join(", ")}. "
         "Checked once a second while the launcher is in front.",
     ..._geometry.toJson(),
@@ -401,6 +441,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     "return": _returnMode.name,
     "focus": _focusMotion.name,
     "frameTimes": _frameTimes,
+    "ring": _ringColor.name,
     "launchMs": _launchDuration.inMilliseconds,
     "returnMs": _returnDuration.inMilliseconds,
     "idle": _idleMode.name,
@@ -438,6 +479,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
           FocusMotion.values.where((m) => m.name == json["focus"]).firstOrNull ??
           (legacyGlide == false ? FocusMotion.jump : _focusMotion);
       _frameTimes = json["frameTimes"] as bool? ?? _frameTimes;
+      _ringColor = RingColor.values.where((c) => c.name == json["ring"]).firstOrNull ?? _ringColor;
       _loading = true;
       try {
         tuning.load(json["tuning"] as Map<String, dynamic>?);

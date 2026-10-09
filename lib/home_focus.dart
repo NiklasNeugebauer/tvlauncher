@@ -44,6 +44,9 @@ class HomeFocusController {
   // The grid window on screen, -1 while the hero is.
   int _gridWindow = -1;
 
+  // The hero tile focused last, which up from the grid returns to.
+  FocusNode? _lastHeroTile;
+
   double get heroZoneHeight => layout?.heroZoneHeight ?? 0;
 
   bool get gridHasFocus => gridNode.hasFocus;
@@ -59,8 +62,9 @@ class HomeFocusController {
     (_firstTraversable(heroNode) ?? _firstTraversable(gridNode))?.requestFocus();
   }
 
-  /// Up from the grid's first row goes to the hero, not to whatever happens to be above it on screen (the
-  /// hero is scrolled out of view then, so plain geometry would pick the gear).
+  /// Up from the grid's first row goes to the hero tile focused last, or the one nearest above when there is none,
+  /// not to whatever happens to be above it on screen (the hero is scrolled out of view then, so plain geometry
+  /// would pick the gear).
   KeyEventResult handleGridKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowUp) {
       return KeyEventResult.ignored;
@@ -78,6 +82,11 @@ class HomeFocusController {
     if (heroTiles.isEmpty) {
       return KeyEventResult.ignored;
     }
+    final last = _lastHeroTile;
+    if (last != null && heroTiles.contains(last)) {
+      last.requestFocus();
+      return KeyEventResult.handled;
+    }
     final currentX = current.rect.center.dx;
     heroTiles.sort((a, b) => (a.rect.center.dx - currentX).abs().compareTo((b.rect.center.dx - currentX).abs()));
     heroTiles.first.requestFocus();
@@ -85,6 +94,9 @@ class HomeFocusController {
   }
 
   void revealTile(BuildContext tileContext, {required bool inHero}) {
+    if (inHero) {
+      _lastHeroTile = FocusManager.instance.primaryFocus;
+    }
     if (!scroll.hasClients) {
       return;
     }

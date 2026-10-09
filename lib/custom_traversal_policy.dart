@@ -94,13 +94,18 @@ List<FocusNode> toFocusNodes(List<CandidateNode> nodes) => nodes.map((e) => e.no
 /// A few extension methods to the [FocusNode] to be able to compare their
 /// respective position easily.
 extension Geometry on FocusNode {
-  bool isBelow(FocusNode other) {
-    return rect.center.dy.round() > other.rect.center.dy.round();
-  }
+  /// Two nodes are on one row when their centres are less than half the smaller height apart: a focused tile is
+  /// lifted and may be nudged, so its centre is a few pixels off its neighbours'.
+  bool isOnTheSameRow(FocusNode other) =>
+      (rect.center.dy - other.rect.center.dy).abs() < min(rect.height, other.rect.height) / 2;
 
-  bool isBelowOrEquals(FocusNode other) {
-    return rect.center.dy.round() >= other.rect.center.dy.round();
-  }
+  bool isBelow(FocusNode other) => !isOnTheSameRow(other) && rect.center.dy > other.rect.center.dy;
+
+  bool isBelowOrEquals(FocusNode other) => isOnTheSameRow(other) || isBelow(other);
+
+  bool isAbove(FocusNode other) => !isOnTheSameRow(other) && rect.center.dy < other.rect.center.dy;
+
+  bool isAboveOrEquals(FocusNode other) => isOnTheSameRow(other) || isAbove(other);
 
   bool isRightTo(FocusNode other) {
     return rect.center.dx.round() > other.rect.center.dx.round();
@@ -116,18 +121,6 @@ extension Geometry on FocusNode {
 
   bool isLeftToOrEquals(FocusNode other) {
     return rect.center.dx.round() <= other.rect.center.dx.round();
-  }
-
-  bool isAbove(FocusNode other) {
-    return rect.center.dy.round() < other.rect.center.dy.round();
-  }
-
-  bool isAboveOrEquals(FocusNode other) {
-    return rect.center.dy.round() <= other.rect.center.dy.round();
-  }
-
-  bool isOnTheSameRow(FocusNode other) {
-    return rect.center.dy.round() == other.rect.center.dy.round();
   }
 
   double distance(FocusNode other) {
