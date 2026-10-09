@@ -81,9 +81,7 @@ void main() {
 Future<void> _pumpPanel(WidgetTester tester, AppsService appsService) async {
   await tester.pumpWidget(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppsService>.value(value: appsService),
-      ],
+      providers: [ChangeNotifierProvider<AppsService>.value(value: appsService)],
       builder: (_, _) => MaterialApp(
         home: Builder(
           builder: (context) => TextButton(

@@ -19,6 +19,7 @@
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/band/nudge_overlay.dart';
+import 'package:flauncher/motion/frame_times.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/time_widget.dart';
@@ -77,7 +78,11 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
     final target = controller.expanded ? 1.0 : 0.0;
     if (_expansion.value != target || _expansion.isAnimating) {
       if (controller.animateExpansion) {
-        _expansion.animateTo(target, duration: target == 1 ? controller.launchDuration : controller.returnDuration, curve: Motion.curve);
+        _expansion.animateTo(
+          target,
+          duration: target == 1 ? controller.launchDuration : controller.returnDuration,
+          curve: Motion.curve,
+        );
       } else {
         _expansion.value = target;
       }
@@ -238,6 +243,7 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
                 child: Center(child: TimeWidget(key: Key("idle-clock"), large: true)),
               ),
             ),
+          if (controller.frameTimes) Positioned(left: frame.left, top: frame.top, child: FrameTimes()),
           if (controller.nudging)
             Positioned.fill(
               child: NudgeOverlay(controller: controller, band: band),

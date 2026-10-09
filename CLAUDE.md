@@ -67,14 +67,15 @@ If the stock launcher or the setup app's `RecoveryActivity` takes HOME back, see
 
 ## Band config (readable and writable over adb)
 
-Band size, position, edge, launch/return variants and lengths, focus glide and idle live in
-`/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json` (pretty JSON; its `_doc` key lists the
-allowed values). The launcher writes it on every change from "Quick settings → Band & motion" and re-reads it
-whenever it comes to the front, so no root or debuggable build is needed:
+Band size, position, edge, launch/return variants and lengths, focus motion, idle, the frame-time readout and the
+motion tuning numbers (`tuning`) live in `/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json`
+(pretty JSON; its `_doc` key lists the allowed values). The launcher writes it on every change from
+"Quick settings → Band & motion" and checks it once a second while in front, so a push applies within a second,
+with no restart, root or debuggable build:
 
 ```
 adb shell cat /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
 adb push band_config.json /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
-adb shell am force-stop dev.neugebauer.tvlauncher && adb shell input keyevent KEYCODE_HOME   # apply
-adb logcat -s flutter | grep "band config"                                                   # loads and saves
+adb logcat -s flutter | grep "band config"     # loads and saves
+adb logcat -s flutter | grep "frame times"     # with frameTimes on: build/raster ms and missed vsyncs per batch
 ```

@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/widgets/settings/band_settings_page.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +27,9 @@ void main() {
     final band = BandController();
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: BandScope(controller: band, child: BandSettingsPage())),
+        home: Scaffold(
+          body: BandScope(controller: band, child: BandSettingsPage()),
+        ),
       ),
     );
     final launchLength = band.launchDuration;

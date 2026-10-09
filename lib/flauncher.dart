@@ -95,8 +95,11 @@ class _FLauncherState extends State<FLauncher> {
       final heroApps = appsService.heroApps;
       final gridApps = appsService.gridApps;
       WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
+      final band = BandScope.maybeOf(context, listen: true);
+      final focusMotion = band?.focusMotion ?? FocusMotion.jump;
       return FocusGlide(
-        enabled: BandScope.maybeOf(context, listen: true)?.focusGlide ?? false,
+        enabled: focusMotion != FocusMotion.jump,
+        spring: focusMotion == FocusMotion.spring ? band!.tuning.focusSpring : null,
         child: SingleChildScrollView(
           controller: controller.scroll,
           child: Column(

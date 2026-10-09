@@ -23,6 +23,7 @@ import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/band/band_frame.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/flauncher_channel.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/home_layout.dart';
@@ -305,7 +306,9 @@ void main() {
       first.geometry = BandGeometry(height: 0.5, position: 0.25, edge: BandEdge.hard);
       first.launchMode = LaunchMode.scaleTile;
       first.returnMode = ReturnMode.collapse;
-      first.focusGlide = false;
+      first.focusMotion = FocusMotion.ease;
+      first.frameTimes = true;
+      first.tuning[Tune.focusResponse] = 420;
       first.idleMode = IdleMode.dim;
       first.launchDuration = Duration(milliseconds: 500);
       first.returnDuration = Duration(milliseconds: 777);
@@ -317,13 +320,45 @@ void main() {
       expect(second.geometry, first.geometry);
       expect(second.launchMode, LaunchMode.scaleTile);
       expect(second.returnMode, ReturnMode.collapse);
-      expect(second.focusGlide, isFalse);
+      expect(second.focusMotion, FocusMotion.ease);
+      expect(second.frameTimes, isTrue);
+      expect(second.tuning[Tune.focusResponse], 420);
       expect(second.idleMode, IdleMode.dim);
       expect(second.launchDuration, Duration(milliseconds: 500));
       expect(second.returnDuration, Duration(milliseconds: 780), reason: "lengths snap to 20 ms");
       expect(jsonDecode(await file.readAsString())["_doc"], contains("edge hard|soft|inset"));
       first.dispose();
       second.dispose();
+      await dir.delete(recursive: true);
+    });
+
+    test("a v4 config without glide means jump", () async {
+      final dir = await Directory.systemTemp.createTemp("band");
+      final file = File("${dir.path}/band_config.json");
+      await file.writeAsString(jsonEncode({"focusGlide": false}));
+      final controller = BandController(configFile: () async => file);
+      await Future.delayed(Duration(milliseconds: 50));
+
+      expect(controller.focusMotion, FocusMotion.jump);
+      controller.dispose();
+      await dir.delete(recursive: true);
+    });
+
+    test("a pushed config applies without a restart", () async {
+      final dir = await Directory.systemTemp.createTemp("band");
+      final file = File("${dir.path}/band_config.json");
+      final controller = BandController(configFile: () async => file);
+      controller.tuning[Tune.focusOvershoot] = 0.1;
+      await Future.delayed(Duration(milliseconds: 50));
+
+      final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      (json["tuning"] as Map<String, dynamic>)[Tune.focusOvershoot.key] = 0.2;
+      await file.writeAsString(jsonEncode(json));
+      await file.setLastModified(DateTime.now().add(Duration(seconds: 1)));
+      await Future.delayed(Duration(milliseconds: 1300));
+
+      expect(controller.tuning[Tune.focusOvershoot], 0.2);
+      controller.dispose();
       await dir.delete(recursive: true);
     });
   });

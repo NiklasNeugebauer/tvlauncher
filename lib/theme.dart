@@ -152,7 +152,10 @@ class ThemedBackground extends StatelessWidget {
             gradient: RadialGradient(
               center: glowCenter,
               radius: radius,
-              colors: [Palette.glow.withValues(alpha: Palette.glowOpacity), Palette.glow.withValues(alpha: 0)],
+              colors: [
+                Palette.glow.withValues(alpha: Palette.glowOpacity),
+                Palette.glow.withValues(alpha: 0),
+              ],
             ),
           ),
         ),

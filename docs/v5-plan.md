@@ -31,6 +31,18 @@ records the difference.
 
 1. Motion engine and tuning: a spring helper, the motion values from the plan in `Motion`, everything in
    `band_config.json` with a file watch, and a frame-time overlay.
+
+   Done 2026-10-09. `SpringSpec` (response and overshoot) and `SpringState`/`SpringBuilder` in `lib/motion/`, the
+   tunable numbers in `Tune`/`Tuning` under `tuning` in the config, and `focus: spring|ease|jump` replacing v4's
+   glide switch (a v4 `focusGlide: false` reads as jump). The focus ring is the first spring user. Deviations:
+   - The config is polled once a second while the launcher is in front instead of watched: a stat a second costs
+     nothing and does not depend on inotify working through Android's shared-storage layer (not tested).
+   - The frame-time readout counts missed vsyncs (gaps between frame starts) rather than frames over 16.7 ms:
+     Impeller's raster time includes the wait for a swapchain image, so it sits near 16 ms even when no frame is
+     late.
+   - Measured on the device: the ring peaks about 200 ms after the press, overshoots 5-8 % and settles by
+     350 ms. Baseline before any v5 drawing, focus moves 0.4 s apart: build p50 1.6 ms, raster p50 11-16 ms,
+     1-7 missed vsyncs per 50 frames (the first batch after a start is shader warm-up, about 20).
 2. Tile focus: lift, scale, travelling ring and shadow on springs; dimmed, desaturated unfocused tiles; sheen once
    per focus; edge nudge; press; hold-to-scroll mode; focus memory per region.
 3. Diamond background: the light function as a fragment shader with uniforms, spotlight spring, pulse, hue ease,
