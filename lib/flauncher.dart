@@ -20,6 +20,7 @@
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
+import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
@@ -70,15 +71,17 @@ class _FLauncherState extends State<FLauncher> {
   }
 
   @override
-  Widget build(BuildContext context) => FocusTraversalGroup(
-    policy: RowByRowTraversalPolicy(),
-    // Transparent: the band frame paints the background behind the whole navigator.
-    child: Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: _appBar(context),
-      body: Consumer<AppsService>(
-        builder: (context, appsService, _) =>
-            appsService.initialized ? _home(context, appsService) : _emptyState(context),
+  Widget build(BuildContext context) => _BehindPanel(
+    child: FocusTraversalGroup(
+      policy: RowByRowTraversalPolicy(),
+      // Transparent: the band frame paints the background behind the whole navigator.
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _appBar(context),
+        body: Consumer<AppsService>(
+          builder: (context, appsService, _) =>
+              appsService.initialized ? _home(context, appsService) : _emptyState(context),
+        ),
       ),
     ),
   );
@@ -230,4 +233,28 @@ class _SettingsButtonState extends State<_SettingsButton> {
       onPressed: widget.onPressed,
     ),
   );
+}
+
+/// While a side panel is open the home screen shrinks a little, so it reads as paused behind the panel.
+class _BehindPanel extends StatelessWidget {
+  final Widget child;
+
+  const _BehindPanel({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final band = BandScope.maybeOf(context);
+    if (band == null) {
+      return child;
+    }
+    return ValueListenableBuilder<double>(
+      valueListenable: band.panel,
+      // Always wrapped, also at scale 1: switching the tree shape would remount the home screen and lose its focus.
+      builder: (context, open, child) {
+        final scale = 1 - (1 - band.tuning[Tune.panelScale]) * Motion.sheenCurve.transform(open.clamp(0.0, 1.0));
+        return Transform.scale(scale: scale, child: child);
+      },
+      child: child,
+    );
+  }
 }

@@ -27,11 +27,12 @@ import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+/// The panel of an app in the grid: add it to the main apps, hide it, its system info, uninstall. Main apps have no
+/// panel; a held select moves them, a longer hold moves them back down to the grid.
 class ApplicationInfoPanel extends StatelessWidget {
   final App application;
-  final bool inHero;
 
-  ApplicationInfoPanel({required this.application, required this.inHero});
+  ApplicationInfoPanel({required this.application});
 
   static const double artworkWidth = 96;
 
@@ -42,27 +43,12 @@ class ApplicationInfoPanel extends StatelessWidget {
       children: [
         _header(context),
         Divider(),
-        if (inHero)
-          _entry(context, Icons.star_outline, "Remove from main apps", () async {
-            final apps = context.read<AppsService>();
-            _focusAfterRemoval(context, apps);
-            await apps.removeFromHero(application);
-            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-          }, autofocus: true)
-        else
-          _entry(context, Icons.star, "Add to main apps", () async {
-            // The new hero tile takes focus, ready to be moved into place.
-            _homeFocus(context)?.focusWhenBuilt(application.packageName, inHero: true, move: true);
-            await context.read<AppsService>().addToHero(application);
-            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
-          }, autofocus: true),
-        if (inHero)
-          _entry(
-            context,
-            Icons.swap_horiz,
-            "Move",
-            () => Navigator.of(context).pop(ApplicationInfoPanelResult.reorderApp),
-          ),
+        _entry(context, Icons.star, "Add to main apps", () async {
+          // The new hero tile takes focus, ready to be moved into place.
+          _homeFocus(context)?.focusWhenBuilt(application.packageName, inHero: true, move: true);
+          await context.read<AppsService>().addToHero(application);
+          Navigator.of(context).pop();
+        }, autofocus: true),
         _entry(
           context,
           application.hidden ? Icons.visibility : Icons.visibility_off_outlined,
@@ -73,38 +59,18 @@ class ApplicationInfoPanel extends StatelessWidget {
             } else {
               await context.read<AppsService>().hideApplication(application);
             }
-            Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+            Navigator.of(context).pop();
           },
         ),
         Divider(),
         _entry(context, Icons.info_outlined, "App info", () => context.read<AppsService>().openAppInfo(application)),
         _entry(context, Icons.delete_outlined, "Uninstall", () async {
           await context.read<AppsService>().uninstallApp(application);
-          Navigator.of(context).pop(ApplicationInfoPanelResult.none);
+          Navigator.of(context).pop();
         }, destructive: true),
       ],
     ),
   );
-
-  // Focus stays in the hero, on the tile that takes the removed one's place; with no hero left, it follows the
-  // app into the grid.
-  void _focusAfterRemoval(BuildContext context, AppsService apps) {
-    final homeFocus = _homeFocus(context);
-    if (homeFocus == null) {
-      return;
-    }
-    final hero = apps.heroApps;
-    final index = hero.indexWhere((app) => app.packageName == application.packageName);
-    if (index < 0) {
-      return;
-    }
-    if (hero.length == 1) {
-      homeFocus.focusWhenBuilt(application.packageName, inHero: false);
-    } else {
-      final neighbour = index + 1 < hero.length ? hero[index + 1] : hero[index - 1];
-      homeFocus.focusWhenBuilt(neighbour.packageName, inHero: true);
-    }
-  }
 
   static HomeFocusController? _homeFocus(BuildContext context) {
     try {
@@ -155,5 +121,3 @@ class ApplicationInfoPanel extends StatelessWidget {
     bool destructive = false,
   }) => PanelRow(icon: icon, label: label, onPressed: onPressed, autofocus: autofocus, destructive: destructive);
 }
-
-enum ApplicationInfoPanelResult { none, reorderApp }

@@ -60,12 +60,12 @@ class AppCard extends StatefulWidget {
 }
 
 class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
-  // Tiles pumped without a band (tests, panels) use the defaults.
-  static final Tuning _defaultTuning = Tuning();
   static const Duration _sheenDelay = Duration(milliseconds: 50);
 
   bool _moving = false;
   bool _pressed = false;
+  bool _held = false;
+  BandController? _holdBand;
   double? _hue;
   bool _hueKnown = false;
   late final AnimationController _sheen = AnimationController(vsync: this);
@@ -118,6 +118,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    _releaseHold();
     final reported = _reportedTile;
     if (reported != null) {
       _glide?.release(reported);
@@ -127,7 +128,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  Tuning get _tuning => BandScope.maybeOf(context)?.tuning ?? _defaultTuning;
+  Tuning get _tuning => BandScope.maybeOf(context)?.tuning ?? Tuning.defaults;
 
   // Losing focus while moving (Home, Back, a hovering pointer) drops the tile where it is, so the order in memory
   // never silently diverges from the one persisted.
@@ -136,6 +137,24 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       _endMove();
     }
     final tile = _tileKey.currentContext;
+    final band = BandScope.maybeOf(context);
+    // Focus going to a side panel: the tile keeps looking focused (and keeps the ring) behind the panel, so closing
+    // the panel does not replay the focus animation.
+    if (!_focusNode.hasFocus && (band?.panelOpen.value ?? false)) {
+      if (!_held) {
+        _held = true;
+        _holdBand = band!..panelOpen.addListener(_onPanelClosed);
+      }
+      return;
+    }
+    if (_focusNode.hasFocus && _held) {
+      _releaseHold();
+      if (tile != null) {
+        _reportedTile = tile;
+        _glide?.track(tile);
+      }
+      return;
+    }
     if (_focusNode.hasFocus) {
       _startSheen();
     } else {
@@ -152,6 +171,31 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       _glide?.release(_reportedTile!);
       _reportedTile = null;
     }
+  }
+
+  void _releaseHold() {
+    _held = false;
+    _holdBand?.panelOpen.removeListener(_onPanelClosed);
+    _holdBand = null;
+  }
+
+  // The panel closed without handing focus back here (it went elsewhere, or the tile moved): let go of the look.
+  void _onPanelClosed() {
+    if (_holdBand?.panelOpen.value ?? true) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_held || _focusNode.hasFocus) {
+        return;
+      }
+      _releaseHold();
+      setState(() {});
+      final reported = _reportedTile;
+      if (reported != null) {
+        _glide?.release(reported);
+        _reportedTile = null;
+      }
+    });
   }
 
   // Puts the background's light on this tile, in the app's colour once it is known.
@@ -206,8 +250,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     onPressChanged: (pressed) => setState(() => _pressed = pressed),
     builder: (context) {
       final band = BandScope.maybeOf(context, listen: true);
-      final tuning = band?.tuning ?? _defaultTuning;
-      final focused = Focus.of(context).hasFocus;
+      final tuning = band?.tuning ?? Tuning.defaults;
+      final focused = Focus.of(context).hasFocus || _held;
       final focusSpring = band?.focusSpring ?? tuning.focusSpring;
       SpringSpec towards(bool on) => on ? focusSpring : tuning.focusOutSpring;
       final raised = focused && !_moving;
@@ -421,38 +465,42 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     widget.onMoveEnd?.call();
   }
 
-  // Held select on a hero tile starts moving it right away; the panel comes after a longer hold (or a pointer
-  // long press, which has no move mode). Grid tiles cannot move, so the hold opens the panel directly.
+  // A held select on a hero tile starts moving it; held longer, the app goes back down to the grid. A pointer has no
+  // move mode, so its long press on a hero tile moves the app down at once. Grid tiles open their panel.
   KeyEventResult _onLongPress(BuildContext context, LogicalKeyboardKey? key) {
     if (_moving) {
       return KeyEventResult.ignored;
     }
-    if (key != null && widget.inHero && widget.onMove != null) {
+    if (!widget.inHero) {
+      _showPanel(context);
+    } else if (key != null && widget.onMove != null) {
       setState(() => _moving = true);
     } else {
-      _showPanel(context);
+      _moveDown(context);
     }
     return KeyEventResult.handled;
   }
 
   KeyEventResult _onVeryLongPress(BuildContext context) {
+    if (!widget.inHero) {
+      return KeyEventResult.handled;
+    }
     if (_moving) {
       // Nothing was moved yet, so there is no order to save.
       setState(() => _moving = false);
     }
-    _showPanel(context);
+    _moveDown(context);
     return KeyEventResult.handled;
   }
 
-  Future<void> _showPanel(BuildContext context) async {
-    final result = await showPanel<ApplicationInfoPanelResult>(
-      context,
-      (context) => ApplicationInfoPanel(application: widget.application, inHero: widget.inHero),
-    );
-    if (result == ApplicationInfoPanelResult.reorderApp && widget.onMove != null && mounted) {
-      setState(() => _moving = true);
-    }
+  void _moveDown(BuildContext context) {
+    final apps = context.read<AppsService>();
+    _homeFocus?.focusAfterLeavingHero(widget.application, apps.heroApps);
+    apps.removeFromHero(widget.application);
   }
+
+  Future<void> _showPanel(BuildContext context) =>
+      showPanel<void>(context, (context) => ApplicationInfoPanel(application: widget.application));
 }
 
 /// One diagonal highlight crossing the tile from top left to bottom right as [progress] runs from 0 to 1.

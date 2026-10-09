@@ -18,6 +18,7 @@
  */
 
 import 'package:flauncher/actions.dart';
+import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher.dart';
 import 'package:flauncher/home_focus.dart';
@@ -314,17 +315,50 @@ void main() {
     );
   });
 
-  testWidgets("Removing a main app focuses its hero neighbour without move mode", (tester) async {
+  testWidgets("A very long select on a main app moves it down and focuses its hero neighbour", (tester) async {
     final appsService = await _realAppsService(hero: ["hero.1", "hero.2", "hero.3"], grid: []);
     await _pumpHome(tester, appsService);
-
-    await tester.longPress(find.byKey(Key("hero-hero.2")));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("Remove from main apps"));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 1000));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key("grid-hero.2")), findsOneWidget);
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
     expect(_hasFocus(tester, "hero-hero.3"), isTrue);
     expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
+  });
+
+  testWidgets("With a band, focus stays in a panel opened from a grid tile", (tester) async {
+    final band = BandController();
+    final appsService = _appsService(hero: [_app("hero.1")], grid: [_app("grid.1"), _app("grid.2")]);
+    when(appsService.isDefaultLauncher()).thenAnswer((_) async => true);
+    await _pumpHome(tester, appsService, band: band);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    final tile = FocusManager.instance.primaryFocus;
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+
+    final focused = FocusManager.instance.primaryFocus!.context!;
+    expect(focused.findAncestorWidgetOfExactType<ApplicationInfoPanel>(), isNotNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus, tile);
+    await tester.pumpWidget(SizedBox());
+    band.dispose();
   });
 
   testWidgets("Repeats of a select pressed elsewhere do not start move mode", (tester) async {
@@ -349,7 +383,7 @@ void main() {
   });
 
   testWidgets("Home closes an open panel, ends move mode and focuses the first hero tile", (tester) async {
-    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: []);
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2")], grid: [_app("grid.1")]);
     final controller = await _pumpHome(tester, appsService);
     final homePressed =
         verify(
@@ -360,8 +394,9 @@ void main() {
             ).captured.single
             as void Function();
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.longPress(find.byKey(Key("hero-hero.2")));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byKey(Key("grid-grid.1")));
     await tester.pumpAndSettle();
     expect(find.byType(ApplicationInfoPanel), findsOneWidget);
 
@@ -371,9 +406,10 @@ void main() {
     expect(_hasFocus(tester, "hero-hero.1"), isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.longPress(find.byKey(Key("hero-hero.2")));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("Move"));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.keyboard_arrow_left), findsOneWidget);
 
@@ -405,7 +441,7 @@ void main() {
     expect(find.byType(QuickSettingsPage), findsOneWidget);
   });
 
-  testWidgets("Select launches on release; a hold moves a hero tile, a longer hold opens its panel", (tester) async {
+  testWidgets("Select launches on release; a hold moves a hero tile, a longer hold moves it down", (tester) async {
     final hero1 = _app("hero.1");
     final appsService = _appsService(hero: [hero1, _app("hero.2")], grid: []);
     await _pumpHome(tester, appsService);
@@ -428,7 +464,8 @@ void main() {
     await tester.pump(Duration(milliseconds: 1000));
     await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
-    expect(find.byType(ApplicationInfoPanel), findsOneWidget);
+    verify(appsService.removeFromHero(hero1));
+    expect(find.byType(ApplicationInfoPanel), findsNothing);
     expect(find.byIcon(Icons.keyboard_arrow_left), findsNothing);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
@@ -538,6 +575,7 @@ Future<HomeFocusController> _pumpHome(
   WidgetTester tester,
   AppsService appsService, {
   WallpaperService? wallpaperService,
+  BandController? band,
 }) async {
   if (wallpaperService == null) {
     wallpaperService = MockWallpaperService();
@@ -554,6 +592,7 @@ Future<HomeFocusController> _pumpHome(
       ],
       builder: (context, _) => MaterialApp(
         actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
+        builder: (context, child) => band == null ? child! : BandScope(controller: band, child: child!),
         home: FLauncher(),
       ),
     ),

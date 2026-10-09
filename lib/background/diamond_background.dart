@@ -92,6 +92,7 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     }, onError: (Object e) => debugPrint("diamonds shader not loaded: $e"));
     widget.band.spotlight.addListener(_onSpotlight);
     widget.band.addListener(_onBand);
+    widget.band.panel.addListener(_repaint.ping);
     _onBand();
     _onSpotlight();
   }
@@ -101,6 +102,7 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     WidgetsBinding.instance.removeObserver(this);
     widget.band.spotlight.removeListener(_onSpotlight);
     widget.band.removeListener(_onBand);
+    widget.band.panel.removeListener(_repaint.ping);
     _ticker.dispose();
     _ambient?.cancel();
     _shader?.dispose();
@@ -122,7 +124,10 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     final spotlight = widget.band.spotlight;
     if (spotlight.landings != _landings) {
       _landings = spotlight.landings;
-      _pulse = 1;
+      // Behind a panel the launcher is paused: the light moves but does not pulse.
+      if (!widget.band.panelOpen.value) {
+        _pulse = 1;
+      }
     }
     _wake();
   }
@@ -263,7 +268,9 @@ class _DiamondPainter extends CustomPainter {
     set(y);
     set(tileW);
     set(state._pulse);
-    set(tuning[Tune.lightStrength]);
+    // Behind an open panel the light dims, following the panel's slide.
+    final panel = Motion.sheenCurve.transform(state.widget.band.panel.value.clamp(0.0, 1.0));
+    set(tuning[Tune.lightStrength] * (1 - (1 - tuning[Tune.panelLight]) * panel));
     set(state._clock.elapsedMicroseconds / 1e6);
     set(tuning[Tune.grid]);
     set(state._scale);

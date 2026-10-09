@@ -51,21 +51,22 @@ class _SettingsPanelState extends State<SettingsPanel> {
     child: Scaffold(
       backgroundColor: Colors.transparent,
       body: RightPanelDialog(
+        rememberFocus: true,
         child: Navigator(
           key: _navigatorKey,
           initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,
           onGenerateRoute: (settings) {
             switch (settings.name) {
               case QuickSettingsPage.routeName:
-                return MaterialPageRoute(builder: (_) => QuickSettingsPage());
+                return MaterialPageRoute(settings: settings, builder: (_) => QuickSettingsPage());
               case SettingsPanelPage.routeName:
-                return MaterialPageRoute(builder: (_) => SettingsPanelPage());
+                return MaterialPageRoute(settings: settings, builder: (_) => SettingsPanelPage());
               case WallpaperPanelPage.routeName:
-                return MaterialPageRoute(builder: (_) => WallpaperPanelPage());
+                return MaterialPageRoute(settings: settings, builder: (_) => WallpaperPanelPage());
               case HiddenAppsPanelPage.routeName:
-                return MaterialPageRoute(builder: (_) => HiddenAppsPanelPage());
+                return MaterialPageRoute(settings: settings, builder: (_) => HiddenAppsPanelPage());
               case BandSettingsPage.routeName:
-                return MaterialPageRoute(builder: (_) => BandSettingsPage());
+                return MaterialPageRoute(settings: settings, builder: (_) => BandSettingsPage());
               default:
                 throw ArgumentError.value(settings.name, "settings.name", "Route not supported.");
             }

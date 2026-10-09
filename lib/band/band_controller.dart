@@ -170,6 +170,13 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Where the background's light is.
   final Spotlight spotlight = Spotlight();
+
+  /// How far a side panel is open, 0 to 1, following its slide; what is behind it scales and dims with it.
+  final ValueNotifier<double> panel = ValueNotifier(0);
+
+  /// A side panel is open (set before its first frame, cleared when it is popped), so a tile that loses focus to
+  /// it keeps looking focused.
+  final ValueNotifier<bool> panelOpen = ValueNotifier(false);
   final Duration idleAfter;
 
   BandGeometry _geometry = BandGeometry.release;
@@ -385,6 +392,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     tuning.removeListener(_onTuningChanged);
     tuning.dispose();
     spotlight.dispose();
+    panel.dispose();
+    panelOpen.dispose();
     _idleTimer?.cancel();
     _pollTimer?.cancel();
     super.dispose();

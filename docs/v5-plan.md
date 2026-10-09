@@ -94,6 +94,23 @@ records the difference.
      30 fps gaps count as missed vsyncs.
 4. Panel style: quick settings and the app panel slide in with staggered rows over a dimmed launcher, and the
    spotlight dims to 40 % while a panel is open.
+
+   Done 2026-10-09. `showPanel` pushes its own route: the panel slides in by 105 % of its width on the plan's
+   ease-out in 380 ms and out in 240 ms, 38 % of the screen wide on the surface at 92 %. The route reports how far it
+   is open to `BandController.panel`, and behind it the home screen scales to 0.97 and the spotlight dims to 40 %
+   without pulsing. Rows and the header rise 10 px and fade in, 40 ms apart (`PanelStagger`); the focused row gets
+   a brass bar and its fill on the focus spring. The settings panel reopens each page on the row used last. Left,
+   toward the launcher, acts as Back. All lengths and amounts are in `Tune`. Deviations:
+   - No backdrop blur by default (`panelBlurPx` 0): the device is the low tier the plan names; the launcher behind
+     is dimmed by the existing scrim instead of a brightness filter.
+   - The tile that had focus keeps its focused look and ring while a panel is open, so closing the panel returns
+     focus without replaying the lift, sheen or pulse.
+   - Found on the TV: the home screen was wrapped in its scale transform only while a panel was open. The change in
+     tree shape remounted the home screen, and the first hero tile's autofocus took focus from behind the panel, so
+     the D-pad moved tiles instead of rows. It is now always wrapped.
+   - Changed on request: only grid apps have a panel, without "Remove from main apps" and "Move". On a main app a
+     held select starts move mode and a very long hold (1.5 s) moves it down to the grid, with focus on its hero
+     neighbour; a pointer long press, which has no move mode, moves it down at once.
 5. Sound, reduced motion and performance: the prototype tones with their repeat rules, reduced-motion variants,
    frame timings on the device, and the order in which things degrade when over budget.
 

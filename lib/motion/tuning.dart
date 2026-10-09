@@ -69,6 +69,12 @@ abstract final class Tune {
   static const grid = TuningParam("gridPx", "Diamond grid", 15, 8, 40, 1, unit: " px");
   static const spotStiffness = TuningParam("spotStiffness", "Spotlight spring", 120, 30, 400, 10);
   static const ambientFps = TuningParam("ambientFps", "Shimmer rate (0 = off)", 30, 0, 60, 5, unit: " fps");
+  static const panelIn = TuningParam("panelInMs", "Panel in", 380, 100, 1000, 20, unit: " ms");
+  static const panelOut = TuningParam("panelOutMs", "Panel out", 240, 80, 800, 20, unit: " ms");
+  static const rowStagger = TuningParam("rowStaggerMs", "Row stagger", 40, 0, 120, 5, unit: " ms");
+  static const panelScale = TuningParam("panelScale", "Launcher behind panel", 0.97, 0.9, 1, 0.01);
+  static const panelLight = TuningParam("panelLight", "Light behind panel", 0.4, 0, 1, 0.05);
+  static const panelBlur = TuningParam("panelBlurPx", "Panel blur (0 = off)", 0, 0, 20, 1, unit: " px");
 
   static const List<TuningParam> all = [
     focusResponse,
@@ -93,11 +99,20 @@ abstract final class Tune {
     grid,
     spotStiffness,
     ambientFps,
+    panelIn,
+    panelOut,
+    rowStagger,
+    panelScale,
+    panelLight,
+    panelBlur,
   ];
 }
 
 /// Current values of every [TuningParam]; unset ones read as their default.
 class Tuning extends ChangeNotifier {
+  /// The defaults, for widgets pumped without a band (tests, a panel on its own).
+  static final Tuning defaults = Tuning();
+
   final Map<String, double> _values = {};
 
   double operator [](TuningParam param) => _values[param.key] ?? param.defaultValue;

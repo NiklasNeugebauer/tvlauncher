@@ -19,6 +19,7 @@
 
 import 'dart:math';
 
+import 'package:flauncher/database.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +54,21 @@ class HomeFocusController {
   /// The tile of [packageName] in the hero or the grid takes focus once it is built, and starts moving if [move].
   void focusWhenBuilt(String packageName, {required bool inHero, bool move = false}) =>
       _pending = (packageName: packageName, inHero: inHero, move: move);
+
+  /// [app] is leaving the hero: focus stays in the hero on the tile that takes its place, or follows the app into
+  /// the grid when it was the last one.
+  void focusAfterLeavingHero(App app, List<App> hero) {
+    final index = hero.indexWhere((other) => other.packageName == app.packageName);
+    if (index < 0) {
+      return;
+    }
+    if (hero.length == 1) {
+      focusWhenBuilt(app.packageName, inHero: false);
+    } else {
+      final neighbour = index + 1 < hero.length ? hero[index + 1] : hero[index - 1];
+      focusWhenBuilt(neighbour.packageName, inHero: true);
+    }
+  }
 
   /// Whether a tile is waiting to take focus for [packageName] in that region.
   bool isPending(String packageName, bool inHero) => _pending?.packageName == packageName && _pending?.inHero == inHero;
