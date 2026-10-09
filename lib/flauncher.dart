@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:typed_data';
+import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/hero_row.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
@@ -48,6 +48,7 @@ class _FLauncherState extends State<FLauncher> {
   }
 
   void _onQuickSettingsPressed() {
+    BandScope.maybeOf(context)?.wake();
     if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) {
       return;
     }
@@ -60,6 +61,7 @@ class _FLauncherState extends State<FLauncher> {
     if (!mounted) {
       return;
     }
+    BandScope.maybeOf(context)?.wake();
     Navigator.of(context).popUntil((route) => route.isFirst);
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = context.read<HomeFocusController>();
@@ -69,20 +71,14 @@ class _FLauncherState extends State<FLauncher> {
   @override
   Widget build(BuildContext context) => FocusTraversalGroup(
     policy: RowByRowTraversalPolicy(),
-    child: Stack(
-      children: [
-        Consumer<WallpaperService>(
-          builder: (_, wallpaper, _) => _wallpaper(wallpaper.wallpaperBytes),
-        ),
-        Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: _appBar(context),
-          body: Consumer<AppsService>(
-            builder: (context, appsService, _) =>
-                appsService.initialized ? _home(context, appsService) : _emptyState(context),
-          ),
-        ),
-      ],
+    // Transparent: the band frame paints the background behind the whole navigator.
+    child: Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: _appBar(context),
+      body: Consumer<AppsService>(
+        builder: (context, appsService, _) =>
+            appsService.initialized ? _home(context, appsService) : _emptyState(context),
+      ),
     ),
   );
 
@@ -95,53 +91,56 @@ class _FLauncherState extends State<FLauncher> {
         headingHeight: _textHeight(context, "Apps", headingStyle),
       );
       final controller = context.read<HomeFocusController>();
-      controller.heroZoneHeight = layout.heroZoneHeight;
+      controller.layout = layout;
       final heroApps = appsService.heroApps;
       final gridApps = appsService.gridApps;
       WidgetsBinding.instance.addPostFrameCallback((_) => _recoverLostFocus(context, controller));
-      return SingleChildScrollView(
-        controller: controller.scroll,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: layout.heroZoneHeight,
-              child: Focus(
-                focusNode: controller.heroNode,
-                canRequestFocus: false,
-                skipTraversal: true,
-                child: Align(
-                  alignment: HomeLayout.heroAlignment,
-                  child: HeroRow(
-                    applications: heroApps,
-                    tileWidth: layout.heroTileWidth(heroApps.length),
-                    tileHeight: layout.heroTileHeight(heroApps.length),
+      return FocusGlide(
+        enabled: BandScope.maybeOf(context, listen: true)?.focusGlide ?? false,
+        child: SingleChildScrollView(
+          controller: controller.scroll,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: layout.heroZoneHeight,
+                child: Focus(
+                  focusNode: controller.heroNode,
+                  canRequestFocus: false,
+                  skipTraversal: true,
+                  child: Align(
+                    alignment: HomeLayout.heroAlignment,
+                    child: HeroRow(
+                      applications: heroApps,
+                      tileWidth: layout.heroTileWidth(heroApps.length),
+                      tileHeight: layout.heroTileHeight(heroApps.length),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                HomeLayout.sidePadding,
-                HomeLayout.headingTop,
-                HomeLayout.sidePadding,
-                HomeLayout.headingBottom,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  HomeLayout.sidePadding,
+                  HomeLayout.headingTop,
+                  HomeLayout.sidePadding,
+                  HomeLayout.headingBottom,
+                ),
+                child: Text("Apps", style: headingStyle),
               ),
-              child: Text("Apps", style: headingStyle),
-            ),
-            Focus(
-              focusNode: controller.gridNode,
-              canRequestFocus: false,
-              skipTraversal: true,
-              onKeyEvent: controller.handleGridKey,
-              child: AppsGrid(
-                applications: gridApps,
-                tileWidth: layout.gridTileWidth,
-                autofocusFirst: heroApps.isEmpty,
+              Focus(
+                focusNode: controller.gridNode,
+                canRequestFocus: false,
+                skipTraversal: true,
+                onKeyEvent: controller.handleGridKey,
+                child: AppsGrid(
+                  applications: gridApps,
+                  tileWidth: layout.gridTileWidth,
+                  autofocusFirst: heroApps.isEmpty,
+                ),
               ),
-            ),
-            SizedBox(height: layout.bottomSpacer(gridApps.length)),
-          ],
+              SizedBox(height: layout.bottomSpacer(gridApps.length)),
+            ],
+          ),
         ),
       );
     },
@@ -184,12 +183,6 @@ class _FLauncherState extends State<FLauncher> {
         child: _SettingsButton(onPressed: () => showPanel(context, (_) => SettingsPanel())),
       ),
     ],
-  );
-
-  Widget _wallpaper(Uint8List? wallpaperImage) => Positioned.fill(
-    child: wallpaperImage != null
-        ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
-        : ThemedBackground(key: Key("background")),
   );
 
   Widget _emptyState(BuildContext context) => Center(

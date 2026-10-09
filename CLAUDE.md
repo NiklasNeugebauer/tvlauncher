@@ -64,3 +64,17 @@ adb shell pm grant dev.neugebauer.tvlauncher android.permission.WRITE_SECURE_SET
 ```
 
 If the stock launcher or the setup app's `RecoveryActivity` takes HOME back, see `SETUP.local.md`.
+
+## Band config (readable and writable over adb)
+
+Band size, position, edge, launch/return variants and lengths, focus glide and idle live in
+`/sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json` (pretty JSON; its `_doc` key lists the
+allowed values). The launcher writes it on every change from "Quick settings → Band & motion" and re-reads it
+whenever it comes to the front, so no root or debuggable build is needed:
+
+```
+adb shell cat /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
+adb push band_config.json /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
+adb shell am force-stop dev.neugebauer.tvlauncher && adb shell input keyevent KEYCODE_HOME   # apply
+adb logcat -s flutter | grep "band config"                                                   # loads and saves
+```

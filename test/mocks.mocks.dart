@@ -184,8 +184,11 @@ class MockFLauncherChannel extends _i1.Mock implements _i7.FLauncherChannel {
       ) as _i6.Future<bool>);
 
   @override
-  _i6.Future<void> launchApp(String? packageName) => (super.noSuchMethod(
-    Invocation.method(#launchApp, [packageName]),
+  _i6.Future<void> launchApp(
+    String? packageName, [
+    _i7.LaunchTransition? transition = _i7.LaunchTransition.system,
+  ]) => (super.noSuchMethod(
+    Invocation.method(#launchApp, [packageName, transition]),
     returnValue: _i6.Future<void>.value(),
     returnValueForMissingStub: _i6.Future<void>.value(),
   ) as _i6.Future<void>);
@@ -344,8 +347,11 @@ class MockAppsService extends _i1.Mock implements _i10.AppsService {
           as bool);
 
   @override
-  _i6.Future<void> launchApp(_i3.App? app) => (super.noSuchMethod(
-    Invocation.method(#launchApp, [app]),
+  _i6.Future<void> launchApp(
+    _i3.App? app, [
+    _i7.LaunchTransition? transition = _i7.LaunchTransition.system,
+  ]) => (super.noSuchMethod(
+    Invocation.method(#launchApp, [app, transition]),
     returnValue: _i6.Future<void>.value(),
     returnValueForMissingStub: _i6.Future<void>.value(),
   ) as _i6.Future<void>);

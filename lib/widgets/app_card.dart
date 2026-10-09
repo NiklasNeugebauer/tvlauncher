@@ -17,10 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/focus_keyboard_listener.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/foundation.dart' hide Category;
@@ -55,6 +57,9 @@ class _AppCardState extends State<AppCard> {
   bool _moving = false;
   MemoryImage? _imageProvider;
   final FocusNode _focusNode = FocusNode();
+  final GlobalKey _tileKey = GlobalKey();
+  FocusGlideState? _glide;
+  BuildContext? _reportedTile;
 
   @override
   void initState() {
@@ -63,8 +68,18 @@ class _AppCardState extends State<AppCard> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _glide = FocusGlideScope.maybeOf(context);
+  }
+
+  @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    final reported = _reportedTile;
+    if (reported != null) {
+      _glide?.release(reported);
+    }
     _focusNode.dispose();
     super.dispose();
   }
@@ -74,6 +89,23 @@ class _AppCardState extends State<AppCard> {
   void _onFocusChange() {
     if (!_focusNode.hasFocus && _moving) {
       _endMove();
+    }
+    final tile = _tileKey.currentContext;
+    if (tile != null && _focusNode.hasFocus) {
+      _reportedTile = tile;
+      _glide?.track(tile);
+    } else if (_reportedTile != null) {
+      _glide?.release(_reportedTile!);
+      _reportedTile = null;
+    }
+  }
+
+  // A focused tile that is rebuilt may have moved (reordered, resized with the band): let the ring follow.
+  @override
+  void didUpdateWidget(AppCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_focusNode.hasFocus) {
+      _glide?.kick();
     }
   }
 
@@ -92,11 +124,12 @@ class _AppCardState extends State<AppCard> {
     builder: (context) => AspectRatio(
       aspectRatio: 16 / 9,
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
+        duration: Motion.focus,
+        curve: Motion.curve,
         transformAlignment: Alignment.center,
         transform: _scaleTransform(context),
         child: Material(
+          key: _tileKey,
           color: Palette.surface,
           borderRadius: BorderRadius.circular(Shapes.tileRadius),
           clipBehavior: Clip.antiAlias,
@@ -119,18 +152,19 @@ class _AppCardState extends State<AppCard> {
               if (_moving) ..._arrows(),
               IgnorePointer(
                 child: AnimatedOpacity(
-                  duration: Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
+                  duration: Motion.focus,
+                  curve: Motion.curve,
                   opacity: Focus.of(context).hasFocus ? 0 : 0.10,
                   child: Container(color: Colors.black),
                 ),
               ),
               IgnorePointer(
                 child: AnimatedContainer(
-                  duration: Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
+                  duration: Motion.focus,
+                  curve: Motion.curve,
                   decoration: BoxDecoration(
-                    border: Focus.of(context).hasFocus
+                    // With a glide, the home screen draws one ring that travels between tiles instead.
+                    border: Focus.of(context).hasFocus && _glide == null
                         ? Border.all(color: Palette.brass, width: Shapes.focusRing)
                         : null,
                     borderRadius: BorderRadius.circular(Shapes.tileRadius),
@@ -202,7 +236,7 @@ class _AppCardState extends State<AppCard> {
       }
       return KeyEventResult.handled;
     } else if (_validationKeys.contains(key)) {
-      context.read<AppsService>().launchApp(widget.application);
+      _launch(context);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -223,8 +257,21 @@ class _AppCardState extends State<AppCard> {
     if (_moving) {
       _endMove();
     } else {
-      context.read<AppsService>().launchApp(widget.application);
+      _launch(context);
     }
+  }
+
+  // Through the band when there is one, so the launch can open out of this tile; on its own, a plain launch.
+  void _launch(BuildContext context) {
+    final apps = context.read<AppsService>();
+    final band = BandScope.maybeOf(context);
+    if (band == null) {
+      apps.launchApp(widget.application);
+      return;
+    }
+    final box = context.findRenderObject() as RenderBox?;
+    final tileRect = box == null || !box.hasSize ? null : box.localToGlobal(Offset.zero) & box.size;
+    band.launch(apps, widget.application, tileRect);
   }
 
   void _endMove() {

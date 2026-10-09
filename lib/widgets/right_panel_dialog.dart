@@ -21,9 +21,25 @@ import 'package:flauncher/actions.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flutter/material.dart';
 
-/// Opens [builder]'s panel over the home screen behind the panel scrim.
-Future<T?> showPanel<T>(BuildContext context, WidgetBuilder builder) =>
-    showDialog<T>(context: context, barrierColor: Palette.scrim, builder: builder);
+/// Opens [builder]'s panel over the home screen behind the panel scrim, sliding in from the right edge.
+Future<T?> showPanel<T>(BuildContext context, WidgetBuilder builder) => showGeneralDialog<T>(
+  context: context,
+  barrierDismissible: true,
+  barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+  barrierColor: Palette.scrim,
+  transitionDuration: Motion.layout,
+  pageBuilder: (context, _, _) => builder(context),
+  transitionBuilder: (context, animation, _, child) {
+    final curved = CurvedAnimation(parent: animation, curve: Motion.curve);
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween(begin: Offset(0.08, 0), end: Offset.zero).animate(curved),
+        child: child,
+      ),
+    );
+  },
+);
 
 /// A panel docked to the right edge, on the surface colour with a hairline toward the home screen.
 class RightPanelDialog extends StatelessWidget {

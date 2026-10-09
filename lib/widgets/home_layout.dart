@@ -22,7 +22,8 @@ import 'dart:math';
 import 'package:flutter/painting.dart';
 
 /// Geometry of the home screen: one row of large "main app" tiles above a grid of every other app, of which the
-/// first row peeks in at the bottom edge of the initial view.
+/// first row peeks in at the bottom edge of the initial view. Once in the grid, the view shows whole rows only: it
+/// moves between "windows" of rows so nothing rests half cut off under the clock.
 class HomeLayout {
   static const double sidePadding = 32;
   static const double gap = 16;
@@ -68,6 +69,40 @@ class HomeLayout {
     return rows == 0 ? 0 : rows * gridTileHeight + (rows - 1) * gap;
   }
 
-  /// Space under the grid so the "Apps" heading can always be scrolled to the top edge, even with few apps.
-  double bottomSpacer(int count) => max(gap, height - headingBlockHeight - gridContentHeight(count));
+  double get rowPitch => gridTileHeight + gap;
+
+  double get gridTop => heroZoneHeight + headingBlockHeight;
+
+  /// Whole grid rows that fit under the "Apps" heading when it sits at the top edge.
+  int get rowsUnderHeading => max(1, ((height - headingBlockHeight) / rowPitch).floor());
+
+  /// Whole grid rows that fit once the heading has scrolled away, with a gap above and below.
+  int get rowsPerWindow => max(1, ((height - gap) / rowPitch).floor());
+
+  /// Scroll offset of grid window [window]: 0 shows the heading and the first rows, window k > 0 starts at row k.
+  double windowOffset(int window) => window == 0 ? heroZoneHeight : gridTop + window * rowPitch - gap;
+
+  /// The window that shows grid row [row] when coming from window [current] (-1 for the hero): the current one
+  /// if the row is already whole in it, otherwise the nearest one that has the row at its leading edge.
+  int windowFor(int row, int current) {
+    if (current >= 0) {
+      final first = current == 0 ? 0 : current;
+      final last = current == 0 ? rowsUnderHeading - 1 : current + rowsPerWindow - 1;
+      if (row >= first && row <= last) {
+        return current;
+      }
+      if (row < first) {
+        return row < rowsUnderHeading ? 0 : row;
+      }
+    }
+    return row < rowsUnderHeading ? 0 : max(1, row - rowsPerWindow + 1);
+  }
+
+  /// Space under the grid so every window can be scrolled to, even with few apps.
+  double bottomSpacer(int count) {
+    final rows = (count / gridColumns).ceil();
+    final lastWindow = windowFor(max(0, rows - 1), -1);
+    final needed = windowOffset(lastWindow) + height - gridTop - gridContentHeight(count);
+    return max(gap, needed);
+  }
 }

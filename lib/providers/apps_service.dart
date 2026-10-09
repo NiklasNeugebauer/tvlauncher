@@ -143,7 +143,8 @@ class AppsService extends ChangeNotifier {
     }
   }
 
-  Future<void> launchApp(App app) => _fLauncherChannel.launchApp(app.packageName);
+  Future<void> launchApp(App app, [LaunchTransition transition = LaunchTransition.system]) =>
+      _fLauncherChannel.launchApp(app.packageName, transition);
 
   Future<void> openAppInfo(App app) => _fLauncherChannel.openAppInfo(app.packageName);
 

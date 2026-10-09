@@ -46,6 +46,20 @@ abstract final class Shapes {
   static const double focusRing = 3;
 }
 
+/// One motion vocabulary for the whole launcher: a short step for focus and scrolling, a longer one for anything that
+/// changes the layout (the band, panels, launch and return), and one curve for both.
+abstract final class Motion {
+  static const Duration focus = Duration(milliseconds: 180);
+  static const Duration layout = Duration(milliseconds: 360);
+
+  /// The band growing to the full frame as an app starts.
+  static const Duration launch = Duration(milliseconds: 480);
+
+  /// The band settling back from the full frame when an app is left: slow, the room is coming back.
+  static const Duration returnHome = Duration(milliseconds: 880);
+  static const Curve curve = Curves.easeInOutCubic;
+}
+
 /// Bundled under fonts/ (SIL Open Font License): the APK has no network, so a Google font must ship with it.
 const String fontFamily = 'SourceSans3';
 

@@ -19,6 +19,7 @@
 
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/widgets/panel_row.dart';
+import 'package:flauncher/widgets/settings/band_settings_page.dart';
 import 'package:flauncher/widgets/settings/settings_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -44,6 +45,12 @@ class QuickSettingsPage extends StatelessWidget {
           Icons.tune,
           "Launcher settings",
           () => Navigator.of(context).pushNamed(SettingsPanelPage.routeName),
+        ),
+        _entry(
+          context,
+          Icons.straighten,
+          "Band & motion",
+          () => Navigator.of(context).pushNamed(BandSettingsPage.routeName),
         ),
       ],
     ),

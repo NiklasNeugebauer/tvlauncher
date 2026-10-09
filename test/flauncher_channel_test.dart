@@ -46,10 +46,10 @@ void main() {
 
   test("launchApp", () async {
     final channel = MethodChannel('me.efesser.flauncher/method');
-    String? packageName;
+    Object? arguments;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "launchApp") {
-        packageName = call.arguments as String;
+        arguments = call.arguments;
         return;
       }
       fail("Unhandled method name");
@@ -57,8 +57,14 @@ void main() {
     final fLauncherChannel = FLauncherChannel();
 
     await fLauncherChannel.launchApp("me.efesser.flauncher");
+    expect(arguments, {"packageName": "me.efesser.flauncher", "transition": "system"});
 
-    expect(packageName, "me.efesser.flauncher");
+    await fLauncherChannel.launchApp("me.efesser.flauncher", LaunchTransition.scaleUp(Rect.fromLTWH(10.4, 20, 300, 169)));
+    expect(arguments, {
+      "packageName": "me.efesser.flauncher",
+      "transition": "scaleUp",
+      "source": [10, 20, 300, 169],
+    });
   });
 
   test("openSystemSettings passes the screen name", () async {
