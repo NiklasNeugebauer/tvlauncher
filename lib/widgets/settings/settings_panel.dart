@@ -51,7 +51,6 @@ class _SettingsPanelState extends State<SettingsPanel> {
     child: Scaffold(
       backgroundColor: Colors.transparent,
       body: RightPanelDialog(
-        rememberFocus: true,
         child: Navigator(
           key: _navigatorKey,
           initialRoute: widget.initialRoute ?? QuickSettingsPage.routeName,

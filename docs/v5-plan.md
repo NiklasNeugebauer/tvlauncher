@@ -99,8 +99,9 @@ records the difference.
    ease-out in 380 ms and out in 240 ms, 38 % of the screen wide on the surface at 92 %. The route reports how far it
    is open to `BandController.panel`, and behind it the home screen scales to 0.97 and the spotlight dims to 40 %
    without pulsing. Rows and the header rise 10 px and fade in, 40 ms apart (`PanelStagger`); the focused row gets
-   a brass bar and its fill on the focus spring. The settings panel reopens each page on the row used last. Left,
-   toward the launcher, acts as Back. All lengths and amounts are in `Tune`. Deviations:
+   a brass bar and its fill on the focus spring (later replaced by a sliding highlight, step 5). The settings panel
+   reopened each page on the row used last (removed later, see below). Left, toward the launcher, acts as Back.
+   All lengths and amounts are in `Tune`. Deviations:
    - No backdrop blur by default (`panelBlurPx` 0): the device is the low tier the plan names; the launcher behind
      is dimmed by the existing scrim instead of a brightness filter.
    - The tile that had focus keeps its focused look and ring while a panel is open, so closing the panel returns
@@ -147,6 +148,10 @@ records the difference.
 - 2026-10-09, on request: launch and return dip toward black. The lit frame darkens as the band grows for an app
   (80 % darker by 70 % of the growth, `launchDim`), so the app cuts in from near black instead of a lit olive
   frame; coming back, the full frame starts dark and brightens as it settles into the band.
+- 2026-10-09, on the wall: going up from the grid into the hero now blips like every other focus move (it moves
+  focus itself, past the focus action). Left or down from the gear returns to the hero tile the light is still on,
+  instead of the geometrically nearest. The settings panel always opens on its top row; the plan's per-page focus
+  memory for panels was removed.
 
 ## v5.1
 

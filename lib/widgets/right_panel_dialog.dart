@@ -107,10 +107,7 @@ class RightPanelDialog extends StatelessWidget {
 
   final Widget child;
 
-  /// Whether the panel reopens on the row used last on each page.
-  final bool rememberFocus;
-
-  const RightPanelDialog({super.key, required this.child, this.rememberFocus = false});
+  const RightPanelDialog({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +139,6 @@ class RightPanelDialog extends StatelessWidget {
           child: PanelStagger(
             stagger: Duration(milliseconds: tuning[Tune.rowStagger].round()),
             rise: reduced ? Duration.zero : Duration(milliseconds: tuning[Tune.panelIn].round()),
-            rememberFocus: rememberFocus,
             // One highlight slides between the rows on the focus spring.
             child: FocusGlide(
               enabled: true,

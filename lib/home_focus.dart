@@ -129,6 +129,18 @@ class HomeFocusController {
     return KeyEventResult.handled;
   }
 
+  /// From the gear, left and down go back to the hero: the tile focused there last (where the light still is), else
+  /// the one nearest the gear (the last).
+  bool focusHeroFromGear() {
+    final heroTiles = heroNode.traversalDescendants.toList();
+    if (heroTiles.isEmpty) {
+      return false;
+    }
+    final last = _lastHeroTile;
+    (last != null && heroTiles.contains(last) ? last : heroTiles.last).requestFocus();
+    return true;
+  }
+
   void revealTile(BuildContext tileContext, {required bool inHero}) {
     if (inHero) {
       _lastHeroTile = FocusManager.instance.primaryFocus;

@@ -25,20 +25,13 @@ import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flutter/material.dart';
 
 /// Hands the rows and headers that mount together (a panel or page opening) their order, so they rise in one after
-/// another, and remembers per page which row had focus last when [rememberFocus] is set.
+/// another.
 class PanelStagger extends StatefulWidget {
   final Duration stagger;
   final Duration rise;
-  final bool rememberFocus;
   final Widget child;
 
-  const PanelStagger({
-    super.key,
-    required this.stagger,
-    required this.rise,
-    this.rememberFocus = false,
-    required this.child,
-  });
+  const PanelStagger({super.key, required this.stagger, required this.rise, required this.child});
 
   static PanelStaggerState? maybeOf(BuildContext context) => context.findAncestorStateOfType<PanelStaggerState>();
 
@@ -47,9 +40,6 @@ class PanelStagger extends StatefulWidget {
 }
 
 class PanelStaggerState extends State<PanelStagger> {
-  // Last focused row per page, for the whole session; a panel opens on it again.
-  static final Map<String, int> _lastFocused = {};
-
   int _count = 0;
   bool _resetScheduled = false;
 
@@ -68,17 +58,6 @@ class PanelStaggerState extends State<PanelStagger> {
     }
     return _count++;
   }
-
-  int? lastFocused(String page) => widget.rememberFocus ? _lastFocused[page] : null;
-
-  void focused(String page, int index) {
-    if (widget.rememberFocus) {
-      _lastFocused[page] = index;
-    }
-  }
-
-  @visibleForTesting
-  static void forgetFocus() => _lastFocused.clear();
 
   @override
   Widget build(BuildContext context) => widget.child;
@@ -179,7 +158,6 @@ class _PanelRowState extends State<PanelRow> {
   final FocusNode _focusNode = FocusNode();
   bool _focused = false;
   int? _index;
-  String? _page;
   final GlobalKey _rowKey = GlobalKey();
   FocusGlideState? _glide;
   BuildContext? _reportedRow;
@@ -191,23 +169,10 @@ class _PanelRowState extends State<PanelRow> {
     _index = PanelStagger.maybeOf(context)?.next();
   }
 
-  // Back on the page it was used last, the row used last takes focus again (after the first row's autofocus).
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _glide = FocusGlideScope.maybeOf(context);
-    if (_page != null) {
-      return;
-    }
-    _page = ModalRoute.of(context)?.settings.name ?? "";
-    final stagger = PanelStagger.maybeOf(context);
-    if (_index != null && stagger?.lastFocused(_page!) == _index) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _focusNode.requestFocus();
-        }
-      });
-    }
   }
 
   @override
@@ -231,10 +196,6 @@ class _PanelRowState extends State<PanelRow> {
     } else if (_reportedRow != null) {
       _glide?.release(_reportedRow!);
       _reportedRow = null;
-    }
-    final index = _index;
-    if (_focused && index != null) {
-      PanelStagger.maybeOf(context)?.focused(_page ?? "", index);
     }
   }
 

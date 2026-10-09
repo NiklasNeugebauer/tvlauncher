@@ -25,8 +25,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  tearDown(PanelStaggerState.forgetFocus);
-
   testWidgets("the band follows the panel open and closed", (tester) async {
     final band = BandController();
     await _pumpOpener(tester, band);
@@ -57,7 +55,7 @@ void main() {
     band.dispose();
   });
 
-  testWidgets("a remembering panel reopens on the row used last", (tester) async {
+  testWidgets("a panel always reopens on its top row", (tester) async {
     final band = BandController();
     await _pumpOpener(tester, band);
     await tester.tap(find.text("open"));
@@ -66,13 +64,12 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
     expect(_rowHasFocus(tester, "Row 2"), isTrue);
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pumpAndSettle();
+    await _close(tester);
 
     await tester.tap(find.text("open"));
     await tester.pumpAndSettle();
 
-    expect(_rowHasFocus(tester, "Row 2"), isTrue);
+    expect(_rowHasFocus(tester, "Row 0"), isTrue);
     await _close(tester);
     band.dispose();
   });
@@ -132,7 +129,6 @@ Future<void> _pumpOpener(WidgetTester tester, BandController band) async {
             onPressed: () => showPanel(
               context,
               (_) => RightPanelDialog(
-                rememberFocus: true,
                 child: Column(
                   children: [
                     for (var i = 0; i < 4; i++)

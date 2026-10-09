@@ -25,6 +25,7 @@ import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/home_layout.dart';
@@ -192,6 +193,54 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     await tester.pumpAndSettle();
     expect(_tileRect(tester, "hero-hero.1").width, closeTo(focused.width, 0.01));
+  });
+
+  testWidgets("Left from the settings icon returns to the hero tile focused last", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")], grid: []);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    expect(Focus.of(findSettingsIcon(tester)).hasFocus, isTrue);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.2"), isTrue);
+  });
+
+  testWidgets("Down from the settings icon returns to the hero tile focused last", (tester) async {
+    final appsService = _appsService(hero: [_app("hero.1"), _app("hero.2"), _app("hero.3")], grid: []);
+    await _pumpHome(tester, appsService);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.2"), isTrue);
+  });
+
+  testWidgets("Up from the grid into the hero blips", (tester) async {
+    final channel = MockFLauncherChannel();
+    when(channel.playSound(any, rate: anyNamed("rate"), volume: anyNamed("volume"))).thenAnswer((_) async {});
+    final band = BandController();
+    final appsService = _appsService(hero: [_app("hero.1")], grid: [_app("grid.1"), _app("grid.2")]);
+    await _pumpHome(tester, appsService, band: band, sounds: UiSounds(channel, band));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    clearInteractions(channel);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    expect(_hasFocus(tester, "hero-hero.1"), isTrue);
+    verify(channel.playSound("focus", rate: anyNamed("rate"), volume: anyNamed("volume"))).called(1);
+    await tester.pumpWidget(SizedBox());
+    band.dispose();
   });
 
   testWidgets("Up from the hero reaches the settings icon", (tester) async {
@@ -608,6 +657,7 @@ Future<HomeFocusController> _pumpHome(
   AppsService appsService, {
   WallpaperService? wallpaperService,
   BandController? band,
+  UiSounds? sounds,
 }) async {
   if (wallpaperService == null) {
     wallpaperService = MockWallpaperService();
@@ -621,6 +671,7 @@ Future<HomeFocusController> _pumpHome(
         ChangeNotifierProvider<WallpaperService>.value(value: wallpaperService),
         ChangeNotifierProvider<AppsService>.value(value: appsService),
         Provider<HomeFocusController>.value(value: controller),
+        if (sounds != null) Provider<UiSounds>.value(value: sounds),
       ],
       builder: (context, _) => MaterialApp(
         actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},

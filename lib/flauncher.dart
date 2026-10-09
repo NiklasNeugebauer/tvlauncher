@@ -33,6 +33,7 @@ import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flauncher/widgets/settings/settings_panel.dart';
 import 'package:flauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class FLauncher extends StatefulWidget {
@@ -142,7 +143,14 @@ class _FLauncherState extends State<FLauncher> {
                 focusNode: controller.gridNode,
                 canRequestFocus: false,
                 skipTraversal: true,
-                onKeyEvent: controller.handleGridKey,
+                onKeyEvent: (node, event) {
+                  final result = controller.handleGridKey(node, event);
+                  // Up into the hero moves focus here rather than through the focus action, so it blips here too.
+                  if (result == KeyEventResult.handled) {
+                    UiSounds.maybeOf(context)?.focusMoved();
+                  }
+                  return result;
+                },
                 child: AppsGrid(
                   applications: gridApps,
                   tileWidth: layout.gridTileWidth,
@@ -191,7 +199,16 @@ class _FLauncherState extends State<FLauncher> {
     actions: [
       Padding(
         padding: EdgeInsets.only(right: HomeLayout.sidePadding),
-        child: _SettingsButton(onPressed: () => showPanel(context, (_) => SettingsPanel())),
+        child: _SettingsButton(
+          onPressed: () => showPanel(context, (_) => SettingsPanel()),
+          onBack: () {
+            final moved = context.read<HomeFocusController>().focusHeroFromGear();
+            if (moved) {
+              UiSounds.maybeOf(context)?.focusMoved();
+            }
+            return moved;
+          },
+        ),
       ),
     ],
   );
@@ -212,7 +229,10 @@ class _FLauncherState extends State<FLauncher> {
 class _SettingsButton extends StatefulWidget {
   final VoidCallback onPressed;
 
-  const _SettingsButton({required this.onPressed});
+  /// Left or down from the gear, back to the hero tile the light is still on: true if focus went there.
+  final bool Function() onBack;
+
+  const _SettingsButton({required this.onPressed, required this.onBack});
 
   @override
   State<_SettingsButton> createState() => _SettingsButtonState();
@@ -226,6 +246,12 @@ class _SettingsButtonState extends State<_SettingsButton> {
     canRequestFocus: false,
     skipTraversal: true,
     onFocusChange: (focused) => setState(() => _focused = focused),
+    onKeyEvent: (_, event) =>
+        event is! KeyUpEvent &&
+            (event.logicalKey == LogicalKeyboardKey.arrowLeft || event.logicalKey == LogicalKeyboardKey.arrowDown) &&
+            widget.onBack()
+        ? KeyEventResult.handled
+        : KeyEventResult.ignored,
     child: IconButton(
       key: Key("settings"),
       padding: EdgeInsets.all(2),
