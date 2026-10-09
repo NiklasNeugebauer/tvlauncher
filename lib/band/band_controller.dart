@@ -20,6 +20,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flauncher/background/spotlight.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/flauncher_channel.dart';
@@ -101,6 +102,31 @@ enum FocusMotion {
   const FocusMotion(this.label);
 }
 
+/// What lights the band's background.
+enum BackgroundMode {
+  /// A grid of squares that grow into diamonds under a spotlight following focus.
+  diamonds("Diamonds"),
+
+  /// v3's gradient with a warm glow from below.
+  glow("Glow");
+
+  final String label;
+
+  const BackgroundMode(this.label);
+}
+
+/// The colour of the diamonds' light.
+enum LightMode {
+  warm("Warm"),
+
+  /// The focused app's hue; grey banners stay warm.
+  app("App colour");
+
+  final String label;
+
+  const LightMode(this.label);
+}
+
 /// The focus ring's colour: brass is the state accent; cream is the primary text colour, brighter on the wall.
 enum RingColor {
   brass(Palette.brass),
@@ -141,6 +167,9 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The tunable motion numbers, kept in the config under `tuning`.
   final Tuning tuning = Tuning();
+
+  /// Where the background's light is.
+  final Spotlight spotlight = Spotlight();
   final Duration idleAfter;
 
   BandGeometry _geometry = BandGeometry.release;
@@ -149,6 +178,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   FocusMotion _focusMotion = releaseFocusMotion;
   bool _frameTimes = false;
   RingColor _ringColor = RingColor.brass;
+  BackgroundMode _background = BackgroundMode.diamonds;
+  LightMode _lightMode = LightMode.warm;
   bool _holding = false;
   Duration _launchDuration = Motion.launch;
   Duration _returnDuration = Motion.returnHome;
@@ -182,6 +213,14 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   ReturnMode get returnMode => _returnMode;
 
   FocusMotion get focusMotion => _focusMotion;
+
+  BackgroundMode get background => _background;
+
+  set background(BackgroundMode value) => _update(() => _background = value);
+
+  LightMode get lightMode => _lightMode;
+
+  set lightMode(LightMode value) => _update(() => _lightMode = value);
 
   RingColor get ringColor => _ringColor;
 
@@ -345,6 +384,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     HardwareKeyboard.instance.removeHandler(_onKey);
     tuning.removeListener(_onTuningChanged);
     tuning.dispose();
+    spotlight.dispose();
     _idleTimer?.cancel();
     _pollTimer?.cancel();
     super.dispose();
@@ -438,7 +478,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     "_doc":
         "height 0.3-1 and position 0 (top) to 1 (bottom) in steps of 0.05; edge ${_names(BandEdge.values)}; "
         "launch ${_names(LaunchMode.values)}; launchMs and returnMs in steps of 20; return ${_names(ReturnMode.values)}; "
-        "focus ${_names(FocusMotion.values)}; ring ${_names(RingColor.values)}; idle ${_names(IdleMode.values)}; frameTimes true|false; "
+        "focus ${_names(FocusMotion.values)}; ring ${_names(RingColor.values)}; background ${_names(BackgroundMode.values)}; light ${_names(LightMode.values)}; idle ${_names(IdleMode.values)}; frameTimes true|false; "
         "tuning: ${Tune.all.map((p) => "${p.key} ${p.min}-${p.max} step ${p.step}").join(", ")}. "
         "Checked once a second while the launcher is in front.",
     ..._geometry.toJson(),
@@ -447,6 +487,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     "focus": _focusMotion.name,
     "frameTimes": _frameTimes,
     "ring": _ringColor.name,
+    "background": _background.name,
+    "light": _lightMode.name,
     "launchMs": _launchDuration.inMilliseconds,
     "returnMs": _returnDuration.inMilliseconds,
     "idle": _idleMode.name,
@@ -485,6 +527,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
           (legacyGlide == false ? FocusMotion.jump : _focusMotion);
       _frameTimes = json["frameTimes"] as bool? ?? _frameTimes;
       _ringColor = RingColor.values.where((c) => c.name == json["ring"]).firstOrNull ?? _ringColor;
+      _background = BackgroundMode.values.where((m) => m.name == json["background"]).firstOrNull ?? _background;
+      _lightMode = LightMode.values.where((m) => m.name == json["light"]).firstOrNull ?? _lightMode;
       _loading = true;
       try {
         tuning.load(json["tuning"] as Map<String, dynamic>?);

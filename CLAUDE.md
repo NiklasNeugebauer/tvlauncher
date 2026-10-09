@@ -77,5 +77,5 @@ with no restart, root or debuggable build:
 adb shell cat /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
 adb push band_config.json /sdcard/Android/data/dev.neugebauer.tvlauncher/files/band_config.json
 adb logcat -s flutter | grep "band config"     # loads and saves
-adb logcat -s flutter | grep "frame times"     # with frameTimes on: build/raster ms and missed vsyncs per batch
+adb logcat -s flutter | grep "frame times"     # with frameTimes on: fps, build/raster ms, missed vsyncs per batch
 ```

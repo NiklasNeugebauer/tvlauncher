@@ -19,6 +19,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flauncher/background/diamond_background.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/band/band_frame.dart';
 import 'package:flauncher/band/band_geometry.dart';
@@ -121,6 +122,13 @@ void main() {
 
       expect(screen, BandGeometry.release.rect(_frame).size);
       expect(tester.getRect(find.byKey(Key("probe"))), BandGeometry.release.rect(_frame));
+      expect(tester.widget(find.byKey(Key("background"))), isA<DiamondBackground>());
+    });
+
+    testWidgets("paints v3's glow when the background is set to glow", (tester) async {
+      final controller = BandController()..background = BackgroundMode.glow;
+      await _pumpFrame(tester, controller, SizedBox());
+
       expect(tester.widget(find.byKey(Key("background"))), isA<ThemedBackground>());
     });
 

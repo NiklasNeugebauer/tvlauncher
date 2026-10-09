@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/background/diamond_background.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/band/band_geometry.dart';
 import 'package:flauncher/band/nudge_overlay.dart';
@@ -255,6 +256,8 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
 
   Widget _background(Uint8List? wallpaperImage) => wallpaperImage != null
       ? Image.memory(wallpaperImage, key: Key("background"), fit: BoxFit.cover)
+      : widget.controller.background == BackgroundMode.diamonds
+      ? DiamondBackground(key: Key("background"), band: widget.controller)
       : ThemedBackground(key: Key("background"));
 }
 

@@ -71,8 +71,15 @@ class _FrameTimesState extends State<FrameTimes> {
     }
     String stats(List<double> sorted) =>
         "p50 ${sorted[sorted.length ~/ 2].toStringAsFixed(1)} max ${sorted.last.toStringAsFixed(1)}";
+    final span =
+        (timings.last.timestampInMicroseconds(FramePhase.vsyncStart) -
+            timings.first.timestampInMicroseconds(FramePhase.vsyncStart)) /
+        1e6;
+    final fps = span <= 0 ? 0 : (timings.length - 1) / span;
+    // At rest the background's shimmer draws below 60 fps on purpose; its gaps count as missed vsyncs here.
     final text =
-        "${timings.length} frames · build ${stats(build)} · raster ${stats(raster)} ms · missed vsyncs $missed";
+        "${timings.length} frames, ${fps.toStringAsFixed(0)} fps · build ${stats(build)} · raster ${stats(raster)} ms · "
+        "missed vsyncs $missed";
     debugPrint("frame times $text");
     setState(() => _text = text);
   }

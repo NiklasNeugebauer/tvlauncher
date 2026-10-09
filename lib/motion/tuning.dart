@@ -65,6 +65,10 @@ abstract final class Tune {
   static const pressUp = TuningParam("pressUpMs", "Press up", 180, 60, 500, 10, unit: " ms");
   static const nudge = TuningParam("nudgePx", "Edge nudge", 9, 0, 24, 1, unit: " px");
   static const nudgeLength = TuningParam("nudgeMs", "Edge nudge length", 280, 120, 600, 20, unit: " ms");
+  static const lightStrength = TuningParam("lightStrength", "Light strength", 1, 0.4, 2, 0.05);
+  static const grid = TuningParam("gridPx", "Diamond grid", 15, 8, 40, 1, unit: " px");
+  static const spotStiffness = TuningParam("spotStiffness", "Spotlight spring", 120, 30, 400, 10);
+  static const ambientFps = TuningParam("ambientFps", "Shimmer rate (0 = off)", 30, 0, 60, 5, unit: " fps");
 
   static const List<TuningParam> all = [
     focusResponse,
@@ -85,6 +89,10 @@ abstract final class Tune {
     pressUp,
     nudge,
     nudgeLength,
+    lightStrength,
+    grid,
+    spotStiffness,
+    ambientFps,
   ];
 }
 

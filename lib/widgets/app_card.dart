@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'package:flauncher/background/banner_hue.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/database.dart';
 import 'package:flauncher/motion/edge_nudge.dart';
@@ -64,6 +65,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
 
   bool _moving = false;
   bool _pressed = false;
+  double? _hue;
+  bool _hueKnown = false;
   late final AnimationController _sheen = AnimationController(vsync: this);
   MemoryImage? _imageProvider;
   final FocusNode _focusNode = FocusNode();
@@ -115,9 +118,27 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     if (tile != null && _focusNode.hasFocus) {
       _reportedTile = tile;
       _glide?.track(tile);
+      _lightUp(tile);
     } else if (_reportedTile != null) {
       _glide?.release(_reportedTile!);
       _reportedTile = null;
+    }
+  }
+
+  // Puts the background's light on this tile, in the app's colour once it is known.
+  void _lightUp(BuildContext tile) {
+    final spotlight = BandScope.maybeOf(context)?.spotlight;
+    if (spotlight == null) {
+      return;
+    }
+    spotlight.focus(tile, _hue);
+    final banner = widget.application.banner;
+    if (!_hueKnown && banner != null) {
+      BannerHue.of(banner).then((hue) {
+        _hue = hue;
+        _hueKnown = true;
+        spotlight.updateHue(tile, hue);
+      });
     }
   }
 

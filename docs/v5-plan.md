@@ -73,6 +73,25 @@ records the difference.
      (`ringHaloPx`), so it overlaps the neighbours less.
 3. Diamond background: the light function as a fragment shader with uniforms, spotlight spring, pulse, hue ease,
    Warm or App colour, and strength.
+
+   Done 2026-10-09. `shaders/diamonds.frag` is the plan's light function and diamond, per pixel in device pixels
+   (grid 15 px); `DiamondBackground` feeds it the spotlight. Tiles report focus to `BandController.spotlight`, and
+   the background measures the focused tile itself while it animates, so the light follows scrolling and the lift.
+   Spring, pulse and hue ease are the plan's numbers; strength, grid, spotlight stiffness and shimmer rate are in
+   `Tune`, and `background: diamonds|glow` and `light: warm|app` in the config. Warm is the default, so the
+   plan's open question stays open for the wall. Deviations:
+   - The ground is flat `Palette.bgBottom`, with unlit diamonds 18 % lighter and the warm light in brass; v3's
+     gradient and glow remain as `background: glow`.
+   - The colour step is eased in RGB rather than by hue; switching between warm and an app colour, or to a grey
+     app (which stays warm), needs no special case.
+   - An app's hue is the circular mean of its banner's hues weighted by saturation and value, computed once per
+     banner from a 32 px wide decode (`BannerHue`).
+   - The shimmer is redrawn by a timer at 30 fps instead of every vsync, and the timer stops while the launcher is
+     hidden. A ticker runs only while the spotlight moves, pulses or changes colour.
+   - Measured on the device: focus moves 0.4 s apart keep 0-2 missed vsyncs per 60 frames (build p50 5 ms). At
+     rest the band redraws at 30 fps with about 7 ms raster per frame for the whole scene; the shader's own GPU
+     time is not separable this way. The frame-time readout now shows fps, since the shimmer's intentional
+     30 fps gaps count as missed vsyncs.
 4. Panel style: quick settings and the app panel slide in with staggered rows over a dimmed launcher, and the
    spotlight dims to 40 % while a panel is open.
 5. Sound, reduced motion and performance: the prototype tones with their repeat rules, reduced-motion variants,

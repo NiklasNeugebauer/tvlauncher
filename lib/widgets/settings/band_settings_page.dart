@@ -95,6 +95,27 @@ class BandSettingsPage extends StatelessWidget {
               onPressed: () => band.focusMotion = next(FocusMotion.values, band.focusMotion),
             ),
           ),
+          _visible(
+            PanelRow(
+              icon: Icons.blur_on,
+              label: "Background: ${band.background.label}",
+              onPressed: () => band.background = next(BackgroundMode.values, band.background),
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.light_mode_outlined,
+              label: "Light: ${band.lightMode.label}",
+              onPressed: () => band.lightMode = next(LightMode.values, band.lightMode),
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.circle_outlined,
+              label: "Ring: ${band.ringColor.name}",
+              onPressed: () => band.ringColor = next(RingColor.values, band.ringColor),
+            ),
+          ),
           for (final param in Tune.all)
             _visible(
               StepRow(
