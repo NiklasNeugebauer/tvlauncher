@@ -201,7 +201,7 @@ class MockFLauncherChannel extends _i1.Mock implements _i7.FLauncherChannel {
 
   @override
   void setPlatformHandlers({
-    required void Function()? onHomePressed,
+    required void Function(bool)? onHomePressed,
     required void Function()? onQuickSettingsPressed,
   }) => super.noSuchMethod(
     Invocation.method(#setPlatformHandlers, [], {
@@ -325,7 +325,7 @@ class MockAppsService extends _i1.Mock implements _i10.AppsService {
 
   @override
   void setPlatformHandlers({
-    required void Function()? onHomePressed,
+    required void Function(bool)? onHomePressed,
     required void Function()? onQuickSettingsPressed,
   }) => super.noSuchMethod(
     Invocation.method(#setPlatformHandlers, [], {

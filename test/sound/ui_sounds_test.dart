@@ -53,8 +53,20 @@ void main() {
     }
 
     final rates = played().map((p) => p.$2 * UiSounds.focusHz).toList();
-    expect(rates, everyElement(closeTo(UiSounds.focusHz, UiSounds.spreadHz)));
+    expect(rates, everyElement(closeTo(Tune.focusSoundPitch.defaultValue, UiSounds.spreadHz)));
     expect(rates.toSet().length, greaterThan(1));
+  });
+
+  test("focus blips follow the tuned pitch and level", () {
+    band.tuning[Tune.focusSoundPitch] = 800;
+    band.tuning[Tune.focusSoundLevel] = 0.5;
+    sounds.focusMoved();
+
+    final captured = verify(
+      channel.playSound("focus", rate: captureAnyNamed("rate"), volume: captureAnyNamed("volume")),
+    ).captured;
+    expect((captured[0] as double) * UiSounds.focusHz, closeTo(800, UiSounds.spreadHz));
+    expect(captured[1], closeTo(0.5 * Tune.soundVolume.defaultValue, 1e-9));
   });
 
   testWidgets("while a key is held, every fourth move ticks and edges stay quiet", (tester) async {

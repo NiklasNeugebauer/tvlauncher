@@ -62,11 +62,26 @@ class MainActivity : FlutterActivity() {
         .build()
     private val sounds = HashMap<String, Int>()
 
+    // Stopped while an app (or the screensaver) is in front. A Home intent arrives after onStart but before
+    // onResume, so this still tells a Home press from inside an app from one on the launcher itself; both arrive
+    // paused.
+    private var stopped = false
+
+    override fun onResume() {
+        super.onResume()
+        stopped = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        stopped = true
+    }
+
     // singleTask: a Home press while the launcher exists arrives here instead of starting a new activity.
     override fun onNewIntent(@NonNull intent: Intent) {
         super.onNewIntent(intent)
         if (intent.action == ACTION_MAIN && intent.hasCategory(CATEGORY_HOME)) {
-            methodChannel?.invokeMethod("homePressed", null)
+            methodChannel?.invokeMethod("homePressed", mapOf("fromApp" to stopped))
         }
     }
 

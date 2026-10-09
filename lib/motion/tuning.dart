@@ -71,6 +71,8 @@ abstract final class Tune {
   static const ambientFps = TuningParam("ambientFps", "Shimmer rate (0 = off)", 30, 0, 60, 5, unit: " fps");
   static const launchDim = TuningParam("launchDim", "Dim at launch and return", 0.8, 0, 1, 0.05);
   static const soundVolume = TuningParam("soundVolume", "Sound volume", 0.5, 0, 1, 0.05);
+  static const focusSoundPitch = TuningParam("focusSoundHz", "Focus sound pitch", 560, 300, 1100, 10, unit: " Hz");
+  static const focusSoundLevel = TuningParam("focusSoundLevel", "Focus sound level", 0.8, 0, 1, 0.05);
   static const panelIn = TuningParam("panelInMs", "Panel in", 380, 100, 1000, 20, unit: " ms");
   static const panelOut = TuningParam("panelOutMs", "Panel out", 240, 80, 800, 20, unit: " ms");
   static const rowStagger = TuningParam("rowStaggerMs", "Row stagger", 40, 0, 120, 5, unit: " ms");
@@ -103,6 +105,8 @@ abstract final class Tune {
     ambientFps,
     launchDim,
     soundVolume,
+    focusSoundPitch,
+    focusSoundLevel,
     panelIn,
     panelOut,
     rowStagger,

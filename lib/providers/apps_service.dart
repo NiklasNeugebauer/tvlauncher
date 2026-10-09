@@ -156,11 +156,13 @@ class AppsService extends ChangeNotifier {
 
   Future<void> startAmbientMode() => _fLauncherChannel.startAmbientMode();
 
-  void setPlatformHandlers({required void Function() onHomePressed, required void Function() onQuickSettingsPressed}) =>
-      _fLauncherChannel.setPlatformHandlers(
-        onHomePressed: onHomePressed,
-        onQuickSettingsPressed: onQuickSettingsPressed,
-      );
+  void setPlatformHandlers({
+    required void Function(bool fromApp) onHomePressed,
+    required void Function() onQuickSettingsPressed,
+  }) => _fLauncherChannel.setPlatformHandlers(
+    onHomePressed: onHomePressed,
+    onQuickSettingsPressed: onQuickSettingsPressed,
+  );
 
   Future<void> addToHero(App app) => addToCategory(app, heroCategory!);
 

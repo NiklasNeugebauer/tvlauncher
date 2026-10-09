@@ -59,15 +59,19 @@ class _FLauncherState extends State<FLauncher> {
     showPanel(context, (_) => SettingsPanel());
   }
 
-  // Home always lands on the first main app: close whatever panel is open, drop a tile being moved (it ends its
-  // move on focus loss), then focus and scroll to the top once that has settled.
-  void _onHomePressed() {
+  // Home from inside an app comes back to the tile that launched it. Home on the launcher lands on the first main
+  // app: close whatever panel is open, drop a tile being moved (it ends its move on focus loss), then focus and
+  // scroll to the top once that has settled.
+  void _onHomePressed(bool fromApp) {
     if (!mounted) {
       return;
     }
     BandScope.maybeOf(context)?.wake();
     UiSounds.maybeOf(context)?.home();
     Navigator.of(context).popUntil((route) => route.isFirst);
+    if (fromApp) {
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = context.read<HomeFocusController>();
     WidgetsBinding.instance.addPostFrameCallback((_) => controller.focusFirstTile());
@@ -167,8 +171,13 @@ class _FLauncherState extends State<FLauncher> {
 
   // After a tile disappears (hidden, uninstalled, moved between hero and grid) focus falls back to the scope and
   // the remote stops working. Only the home route itself recovers; an open panel keeps its own focus.
+  // Behind an app, Flutter parks focus on the scope and puts it back on resume, so it only counts as lost then.
   void _recoverLostFocus(BuildContext context, HomeFocusController controller) {
     if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
+      return;
+    }
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    if (lifecycle != null && lifecycle != AppLifecycleState.resumed) {
       return;
     }
     final primary = FocusManager.instance.primaryFocus;

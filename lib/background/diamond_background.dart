@@ -124,6 +124,14 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     super.dispose();
   }
 
+  // Rebuilt with the band's frame, which moves and resizes this widget under the tile while it grows toward an app
+  // or shrinks back into the band, so the light is measured again.
+  @override
+  void didUpdateWidget(DiamondBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _wake();
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -189,8 +197,10 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     final dt = elapsed == Duration.zero ? 1 / 60 : (elapsed - _lastTick).inMicroseconds / 1e6;
     _lastTick = elapsed;
     final target = _measureTile();
+    var settled = true;
     if (target != null) {
       final tx = target.center.dx;
+      settled = (target.center.dy - _y).abs() < 0.5 && (target.width - _tileW).abs() < 0.5;
       _y = target.center.dy;
       _tileW = target.width;
       // Reduced motion: the light jumps to the tile and is drawn once.
@@ -209,7 +219,7 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     _scale += (_targetScale - _scale) * ease;
     _repaint.ping();
     final still =
-        (target == null || ((target.center.dx - _x!).abs() < 0.5 && _vx.abs() < 1)) &&
+        (target == null || (settled && (target.center.dx - _x!).abs() < 0.5 && _vx.abs() < 1)) &&
         _pulse < 0.02 &&
         _colourDistance(_light, _targetLight) < 0.004 &&
         (_scale - _targetScale).abs() < 0.002;

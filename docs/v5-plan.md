@@ -183,3 +183,16 @@ during scripted navigation, a Settings launch and the HOME return, and the kerne
 - Up from the grid's first row goes to the hero tile nearest the focused column instead of always the one focused
   last. Down from the hero and straight back up still returns to the tile it started on, even where two hero tiles
   are about equally near the grid tile.
+
+## v5.2.2: focus after Home, focus sound knobs, light on return (2026-10-09)
+
+- Home from inside an app comes back to the tile that launched it; Home on the launcher still goes to the first
+  main app. `MainActivity` tells the two apart (stopped since the last resume) and passes `fromApp`. While the
+  launcher is behind an app, Flutter parks focus on the scope and restores it on resume, so lost-focus recovery
+  waits for the resume instead of sending focus to the first tile.
+- "Focus sound pitch" (`focusSoundHz`, default 560 Hz, the rendered pitch, reached through the playback rate) and
+  "Focus sound level" (`focusSoundLevel`, relative to the sound volume, default 0.8: slightly quieter than before)
+  in Band & motion.
+- The light kept the tile's height from the full-frame pose after a return and slid down with the shrinking
+  background until the next focus move. The background now re-measures the tile on every rebuild of the band
+  frame and keeps ticking until the tile's height and width have settled too.
