@@ -84,6 +84,10 @@ class FLauncherChannel {
 
   Future<void> startAmbientMode() async => await _methodChannel.invokeMethod("startAmbientMode");
 
+  /// Plays one of the UI sounds rendered by tool/sounds.py; [rate] 0.5 to 2 shifts its pitch, [volume] is 0 to 1.
+  Future<void> playSound(String name, {double rate = 1, double volume = 1}) async =>
+      await _methodChannel.invokeMethod("playSound", {"name": name, "rate": rate, "volume": volume});
+
   void addAppsChangedListener(void Function(Map<dynamic, dynamic>) listener) =>
       _eventChannel.receiveBroadcastStream().listen((event) => listener(event));
 

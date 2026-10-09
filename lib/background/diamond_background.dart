@@ -124,8 +124,8 @@ class _DiamondBackgroundState extends State<DiamondBackground>
     final spotlight = widget.band.spotlight;
     if (spotlight.landings != _landings) {
       _landings = spotlight.landings;
-      // Behind a panel the launcher is paused: the light moves but does not pulse.
-      if (!widget.band.panelOpen.value) {
+      // Behind a panel the launcher is paused: the light moves but does not pulse; reduced motion never pulses.
+      if (!widget.band.panelOpen.value && !widget.band.reducedMotion) {
         _pulse = 1;
       }
     }
@@ -133,7 +133,7 @@ class _DiamondBackgroundState extends State<DiamondBackground>
   }
 
   void _onBand() {
-    final fps = widget.band.tuning[Tune.ambientFps];
+    final fps = widget.band.reducedMotion ? 0.0 : widget.band.tuning[Tune.ambientFps];
     if (fps != _ambientFps) {
       _ambientFps = fps;
       _restartAmbient();
@@ -179,8 +179,10 @@ class _DiamondBackgroundState extends State<DiamondBackground>
       final tx = target.center.dx;
       _y = target.center.dy;
       _tileW = target.width;
-      if (_x == null) {
+      // Reduced motion: the light jumps to the tile and is drawn once.
+      if (_x == null || widget.band.reducedMotion) {
         _x = tx;
+        _vx = 0;
       } else {
         _vx += (tx - _x!) * widget.band.tuning[Tune.spotStiffness] * dt;
         _vx *= pow(_spotDrag, dt);
@@ -274,7 +276,7 @@ class _DiamondPainter extends CustomPainter {
     set(state._clock.elapsedMicroseconds / 1e6);
     set(tuning[Tune.grid]);
     set(state._scale);
-    set(tuning[Tune.ambientFps] > 0 ? 1 : 0);
+    set(state._ambientFps > 0 ? 1 : 0);
     colour(DiamondBackground.ground);
     colour(DiamondBackground.base);
     colour(state._light);

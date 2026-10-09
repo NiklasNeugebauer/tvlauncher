@@ -189,6 +189,13 @@ class MockFLauncherChannel extends _i1.Mock implements _i7.FLauncherChannel {
   ) as _i6.Future<void>);
 
   @override
+  _i6.Future<void> playSound(String? name, {double? rate = 1.0, double? volume = 1.0}) => (super.noSuchMethod(
+    Invocation.method(#playSound, [name], {#rate: rate, #volume: volume}),
+    returnValue: _i6.Future<void>.value(),
+    returnValueForMissingStub: _i6.Future<void>.value(),
+  ) as _i6.Future<void>);
+
+  @override
   void addAppsChangedListener(void Function(Map<dynamic, dynamic>)? listener) =>
       super.noSuchMethod(Invocation.method(#addAppsChangedListener, [listener]), returnValueForMissingStub: null);
 

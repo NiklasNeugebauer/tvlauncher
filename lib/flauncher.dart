@@ -22,6 +22,7 @@ import 'package:flauncher/custom_traversal_policy.dart';
 import 'package:flauncher/home_focus.dart';
 import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/apps_grid.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
@@ -64,6 +65,7 @@ class _FLauncherState extends State<FLauncher> {
       return;
     }
     BandScope.maybeOf(context)?.wake();
+    UiSounds.maybeOf(context)?.home();
     Navigator.of(context).popUntil((route) => route.isFirst);
     FocusManager.instance.primaryFocus?.unfocus();
     final controller = context.read<HomeFocusController>();
@@ -102,7 +104,8 @@ class _FLauncherState extends State<FLauncher> {
       final band = BandScope.maybeOf(context, listen: true);
       final focusMotion = band?.focusMotion ?? FocusMotion.jump;
       return FocusGlide(
-        enabled: focusMotion != FocusMotion.jump,
+        // Reduced motion: no travelling ring; each tile shows its own.
+        enabled: focusMotion != FocusMotion.jump && !(band?.reducedMotion ?? false),
         spring: focusMotion == FocusMotion.spring ? () => band!.focusSpring : null,
         style: band?.ringStyle ?? RingStyle(),
         child: SingleChildScrollView(

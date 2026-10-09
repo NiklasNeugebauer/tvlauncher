@@ -91,21 +91,31 @@ class SpringState {
 }
 
 /// Animates [value] on a spring whenever it changes, like an implicit animation; a change mid-flight retargets
-/// from the current value and velocity. With [spec] null the value jumps.
+/// from the current value and velocity. With [spec] null the value jumps. [onTick] runs on every animated step,
+/// for whatever draws around the child and has to follow it.
 class SpringBuilder extends StatefulWidget {
   final double value;
   final SpringSpec? spec;
   final Widget Function(BuildContext context, double value, Widget? child) builder;
+  final VoidCallback? onTick;
   final Widget? child;
 
-  const SpringBuilder({super.key, required this.value, required this.spec, required this.builder, this.child});
+  const SpringBuilder({
+    super.key,
+    required this.value,
+    required this.spec,
+    required this.builder,
+    this.onTick,
+    this.child,
+  });
 
   @override
   State<SpringBuilder> createState() => _SpringBuilderState();
 }
 
 class _SpringBuilderState extends State<SpringBuilder> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController.unbounded(vsync: this, value: widget.value);
+  late final AnimationController _controller = AnimationController.unbounded(vsync: this, value: widget.value)
+    ..addListener(() => widget.onTick?.call());
 
   @override
   void didUpdateWidget(SpringBuilder oldWidget) {

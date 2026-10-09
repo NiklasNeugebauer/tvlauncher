@@ -19,7 +19,9 @@
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/motion/spring.dart';
 import 'package:flauncher/motion/tuning.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flutter/material.dart';
 
 /// Hands the rows and headers that mount together (a panel or page opening) their order, so they rise in one after
@@ -178,6 +180,9 @@ class _PanelRowState extends State<PanelRow> {
   bool _focused = false;
   int? _index;
   String? _page;
+  final GlobalKey _rowKey = GlobalKey();
+  FocusGlideState? _glide;
+  BuildContext? _reportedRow;
 
   @override
   void initState() {
@@ -190,6 +195,7 @@ class _PanelRowState extends State<PanelRow> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _glide = FocusGlideScope.maybeOf(context);
     if (_page != null) {
       return;
     }
@@ -207,12 +213,25 @@ class _PanelRowState extends State<PanelRow> {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    final reported = _reportedRow;
+    if (reported != null) {
+      _glide?.release(reported);
+    }
     _focusNode.dispose();
     super.dispose();
   }
 
   void _onFocusChange() {
     setState(() => _focused = _focusNode.hasFocus);
+    // With a panel highlight, one highlight slides from row to row instead of each row lighting up.
+    final row = _rowKey.currentContext;
+    if (_focused && row != null) {
+      _reportedRow = row;
+      _glide?.track(row);
+    } else if (_reportedRow != null) {
+      _glide?.release(_reportedRow!);
+      _reportedRow = null;
+    }
     final index = _index;
     if (_focused && index != null) {
       PanelStagger.maybeOf(context)?.focused(_page ?? "", index);
@@ -228,9 +247,11 @@ class _PanelRowState extends State<PanelRow> {
     return _Rise(
       index: _index,
       child: SizedBox(
+        key: _rowKey,
         height: PanelRow.height,
+        // Lights up on its own only without a panel highlight (a row pumped on its own).
         child: SpringBuilder(
-          value: _focused ? 1 : 0,
+          value: _focused && _glide == null ? 1 : 0,
           spec: _focused ? (band?.focusSpring ?? tuning.focusSpring) : tuning.focusOutSpring,
           builder: (context, lit, child) {
             // Snapped at the ends, where the spring settles within its tolerance.
@@ -270,7 +291,10 @@ class _PanelRowState extends State<PanelRow> {
             hoverColor: Colors.transparent,
             highlightColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
-            onTap: widget.onPressed,
+            onTap: () {
+              UiSounds.maybeOf(context)?.select();
+              widget.onPressed();
+            },
             onHover: (hovering) {
               if (hovering && !_focusNode.hasFocus) {
                 _focusNode.requestFocus();

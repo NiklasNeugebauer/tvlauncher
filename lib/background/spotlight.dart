@@ -41,6 +41,13 @@ class Spotlight extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The lit tile moved (reordered): the light follows it, without a new landing.
+  void follow(BuildContext tile) {
+    if (_tile == tile) {
+      notifyListeners();
+    }
+  }
+
   /// The hue of [tile]'s app became known after it was focused.
   void updateHue(BuildContext tile, double? hue) {
     if (_tile == tile && _hue != hue) {

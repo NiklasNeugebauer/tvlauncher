@@ -25,6 +25,7 @@ import 'package:flauncher/motion/edge_nudge.dart';
 import 'package:flauncher/motion/spring.dart';
 import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/theme.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
 import 'package:flauncher/widgets/focus_glide.dart';
@@ -218,20 +219,32 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
   // Once per focus, never while a held key runs along the row.
   void _startSheen() {
     final tuning = _tuning;
-    if (tuning[Tune.sheen] <= 0 || (BandScope.maybeOf(context)?.holding ?? false)) {
+    final band = BandScope.maybeOf(context);
+    if (tuning[Tune.sheen] <= 0 || (band?.holding ?? false) || (band?.reducedMotion ?? false)) {
       return;
     }
     _sheen.duration = tuning.sheenDuration + _sheenDelay;
     _sheen.forward(from: 0);
   }
 
-  // A focused tile that is rebuilt may have moved (reordered, resized with the band): let the ring follow.
+  void _followTile() {
+    if (_focusNode.hasFocus || _held) {
+      _glide?.kick();
+    }
+  }
+
+  // A focused tile that is rebuilt may have moved (reordered, resized with the band): let the ring and the light
+  // follow.
   @override
   void didUpdateWidget(AppCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     _claimPendingFocus();
     if (_focusNode.hasFocus) {
       _glide?.kick();
+      final tile = _tileKey.currentContext;
+      if (tile != null) {
+        BandScope.maybeOf(context)?.spotlight.follow(tile);
+      }
     }
   }
 
@@ -247,7 +260,12 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
     onPressed: (key) => _onPressed(context, key),
     onLongPress: (key) => _onLongPress(context, key),
     onVeryLongPress: (key) => _onVeryLongPress(context),
-    onPressChanged: (pressed) => setState(() => _pressed = pressed),
+    onPressChanged: (pressed) {
+      if (pressed) {
+        UiSounds.maybeOf(context)?.select();
+      }
+      setState(() => _pressed = pressed);
+    },
     builder: (context) {
       final band = BandScope.maybeOf(context, listen: true);
       final tuning = band?.tuning ?? Tuning.defaults;
@@ -258,17 +276,22 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
       return AspectRatio(
         aspectRatio: 16 / 9,
         child: EdgeNudge(
-          distance: tuning[Tune.nudge],
+          distance: (band?.reducedMotion ?? false) ? 0 : tuning[Tune.nudge],
           duration: tuning.nudgeDuration,
           // The ring's ticker stops once it settles; restart it so the ring moves with the tile.
           onNudge: () => _glide?.kick(),
+          // The springs rebuild only what they move: the transform here, the banner's colour filter inside. The
+          // tile itself is built once per focus change and handed down as a child.
+          // The ring's ticker stops once it settles; every step of these springs restarts it.
           child: SpringBuilder(
             value: raised ? 1 : 0,
             spec: towards(raised),
-            builder: (context, raise, _) => SpringBuilder(
+            onTick: _followTile,
+            builder: (context, raise, tile) => SpringBuilder(
               value: _pressed ? tuning[Tune.pressScale] : 1,
               spec: _pressed ? tuning.pressDownSpring : tuning.pressUpSpring,
-              builder: (context, press, _) => Transform(
+              onTick: _followTile,
+              builder: (context, press, tile) => Transform(
                 alignment: Alignment.center,
                 transform: Matrix4.translationValues(0, -tuning[Tune.lift] * raise, 0)
                   ..scaleByDouble(
@@ -277,78 +300,89 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
                     1,
                     1,
                   ),
-                child: SpringBuilder(
-                  value: focused ? 1 : 0,
-                  spec: towards(focused),
-                  builder: (context, light, _) => _tile(context, band, tuning, focused, light.clamp(0.0, 1.0)),
-                ),
+                child: tile,
               ),
+              child: tile,
             ),
+            child: _tile(context, band, tuning, focused, towards(focused)),
           ),
         ),
       );
     },
   );
 
-  // [light] runs from 0 (unfocused: dimmed and desaturated) to 1 (focused: full colour).
-  Widget _tile(BuildContext context, BandController? band, Tuning tuning, bool focused, double light) => CustomPaint(
-    // With a glide, the home screen draws one ring that travels between tiles instead.
-    foregroundPainter: focused && _glide == null
-        ? FocusRingPainter(style: band?.ringStyle ?? RingStyle(), radius: Shapes.tileRadius)
-        : null,
-    child: Material(
-      key: _tileKey,
-      color: Palette.surface,
-      borderRadius: BorderRadius.circular(Shapes.tileRadius),
-      clipBehavior: Clip.antiAlias,
-      elevation: focused ? 16 : 0,
-      shadowColor: Palette.shadow,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          InkWell(
-            autofocus: widget.autofocus,
-            focusNode: _focusNode,
-            focusColor: Colors.transparent,
-            onTap: () => _onTap(context),
-            onHover: _onHover,
-            onLongPress: () => _onLongPress(context, null),
-            child: widget.application.banner != null
-                ? Ink.image(
-                    image: _cachedMemoryImage(widget.application.banner!),
-                    fit: BoxFit.cover,
-                    colorFilter: _dimFilter(tuning, light),
-                  )
-                : _iconWithName(context),
-          ),
-          if (_moving) ..._arrows(),
-          // Icon tiles have no image to filter; they only darken.
-          if (widget.application.banner == null && light < 1)
-            IgnorePointer(
-              child: ColoredBox(color: Colors.black.withValues(alpha: (1 - tuning[Tune.dimBrightness]) * (1 - light))),
-            ),
-          IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _sheen,
-              builder: (context, _) => _sheen.value == 0 || _sheen.value == 1
-                  ? SizedBox()
-                  : CustomPaint(
-                      key: Key("sheen"),
-                      painter: _SheenPainter(
-                        progress: Interval(
-                          _sheenDelay.inMicroseconds / _sheen.duration!.inMicroseconds,
-                          1,
-                          curve: Motion.sheenCurve,
-                        ).transform(_sheen.value),
-                        opacity: tuning[Tune.sheen],
+  // The light of the tile runs on [spring] from 0 (unfocused: dimmed and desaturated) to 1 (focused: full colour).
+  Widget _tile(BuildContext context, BandController? band, Tuning tuning, bool focused, SpringSpec spring) =>
+      CustomPaint(
+        // With a glide, the home screen draws one ring that travels between tiles instead.
+        foregroundPainter: focused && _glide == null
+            ? FocusRingPainter(style: band?.ringStyle ?? RingStyle(), radius: Shapes.tileRadius)
+            : null,
+        child: Material(
+          key: _tileKey,
+          color: Palette.surface,
+          borderRadius: BorderRadius.circular(Shapes.tileRadius),
+          clipBehavior: Clip.antiAlias,
+          elevation: focused ? 16 : 0,
+          shadowColor: Palette.shadow,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              InkWell(
+                autofocus: widget.autofocus,
+                focusNode: _focusNode,
+                focusColor: Colors.transparent,
+                onTap: () => _onTap(context),
+                onHover: _onHover,
+                onLongPress: () => _onLongPress(context, null),
+                child: widget.application.banner != null
+                    ? SpringBuilder(
+                        value: focused ? 1 : 0,
+                        spec: spring,
+                        builder: (context, light, _) => Ink.image(
+                          image: _cachedMemoryImage(widget.application.banner!),
+                          fit: BoxFit.cover,
+                          colorFilter: _dimFilter(tuning, light.clamp(0.0, 1.0)),
+                        ),
+                      )
+                    : _iconWithName(context),
+              ),
+              if (_moving) ..._arrows(),
+              // Icon tiles have no image to filter; they only darken.
+              if (widget.application.banner == null)
+                IgnorePointer(
+                  child: SpringBuilder(
+                    value: focused ? 1 : 0,
+                    spec: spring,
+                    builder: (context, light, _) => ColoredBox(
+                      color: Colors.black.withValues(
+                        alpha: (1 - tuning[Tune.dimBrightness]) * (1 - light.clamp(0.0, 1.0)),
                       ),
                     ),
-            ),
+                  ),
+                ),
+              IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _sheen,
+                  builder: (context, _) => _sheen.value == 0 || _sheen.value == 1
+                      ? SizedBox()
+                      : CustomPaint(
+                          key: Key("sheen"),
+                          painter: _SheenPainter(
+                            progress: Interval(
+                              _sheenDelay.inMicroseconds / _sheen.duration!.inMicroseconds,
+                              1,
+                              curve: Motion.sheenCurve,
+                            ).transform(_sheen.value),
+                            opacity: tuning[Tune.sheen],
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   /// Brightness and saturation lowered by [1 - light]; none at full light, so a focused tile is drawn unfiltered.
   static ColorFilter? _dimFilter(Tuning tuning, double light) {

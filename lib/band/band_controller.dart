@@ -188,6 +188,9 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
   BackgroundMode _background = BackgroundMode.diamonds;
   LightMode _lightMode = LightMode.warm;
   bool _holding = false;
+  bool _sound = true;
+  bool _reducedMotionSetting = false;
+  bool _systemReducedMotion = false;
   Duration _launchDuration = Motion.launch;
   Duration _returnDuration = Motion.returnHome;
   bool _nudging = false;
@@ -240,11 +243,32 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     haloWidth: tuning[Tune.ringHaloWidth],
   );
 
+  /// Whether the UI sounds play.
+  bool get sound => _sound;
+
+  set sound(bool value) => _update(() => _sound = value);
+
+  /// Calm motion: no springs, overshoot, sheen, pulse or shimmer; panels fade. On when the launcher's own switch
+  /// is, or when Android's "Remove animations" is set.
+  bool get reducedMotion => _reducedMotionSetting || _systemReducedMotion;
+
+  bool get reducedMotionSetting => _reducedMotionSetting;
+
+  set reducedMotionSetting(bool value) => _update(() => _reducedMotionSetting = value);
+
+  /// Android's animation setting, reported by the frame.
+  set systemReducedMotion(bool value) {
+    if (value != _systemReducedMotion) {
+      _systemReducedMotion = value;
+      notifyListeners();
+    }
+  }
+
   /// A direction key is held and repeating: focus runs along the row rather than stepping.
   bool get holding => _holding;
 
   /// The spring for a focus move starting now.
-  SpringSpec get focusSpring => _holding ? tuning.holdSpring : tuning.focusSpring;
+  SpringSpec get focusSpring => _holding || reducedMotion ? tuning.holdSpring : tuning.focusSpring;
 
   /// Whether the frame shows build and raster times.
   bool get frameTimes => _frameTimes;
@@ -487,7 +511,7 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     "_doc":
         "height 0.3-1 and position 0 (top) to 1 (bottom) in steps of 0.05; edge ${_names(BandEdge.values)}; "
         "launch ${_names(LaunchMode.values)}; launchMs and returnMs in steps of 20; return ${_names(ReturnMode.values)}; "
-        "focus ${_names(FocusMotion.values)}; ring ${_names(RingColor.values)}; background ${_names(BackgroundMode.values)}; light ${_names(LightMode.values)}; idle ${_names(IdleMode.values)}; frameTimes true|false; "
+        "focus ${_names(FocusMotion.values)}; ring ${_names(RingColor.values)}; background ${_names(BackgroundMode.values)}; light ${_names(LightMode.values)}; idle ${_names(IdleMode.values)}; frameTimes, sound and reducedMotion true|false; "
         "tuning: ${Tune.all.map((p) => "${p.key} ${p.min}-${p.max} step ${p.step}").join(", ")}. "
         "Checked once a second while the launcher is in front.",
     ..._geometry.toJson(),
@@ -495,6 +519,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
     "return": _returnMode.name,
     "focus": _focusMotion.name,
     "frameTimes": _frameTimes,
+    "sound": _sound,
+    "reducedMotion": _reducedMotionSetting,
     "ring": _ringColor.name,
     "background": _background.name,
     "light": _lightMode.name,
@@ -535,6 +561,8 @@ class BandController extends ChangeNotifier with WidgetsBindingObserver {
           FocusMotion.values.where((m) => m.name == json["focus"]).firstOrNull ??
           (legacyGlide == false ? FocusMotion.jump : _focusMotion);
       _frameTimes = json["frameTimes"] as bool? ?? _frameTimes;
+      _sound = json["sound"] as bool? ?? _sound;
+      _reducedMotionSetting = json["reducedMotion"] as bool? ?? _reducedMotionSetting;
       _ringColor = RingColor.values.where((c) => c.name == json["ring"]).firstOrNull ?? _ringColor;
       _background = BackgroundMode.values.where((m) => m.name == json["background"]).firstOrNull ?? _background;
       _lightMode = LightMode.values.where((m) => m.name == json["light"]).firstOrNull ?? _lightMode;

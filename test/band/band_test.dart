@@ -348,6 +348,20 @@ void main() {
       controller.dispose();
     });
 
+    test("reduced motion, from the switch or from Android, drops the overshoot", () {
+      final controller = BandController();
+      expect(controller.focusSpring.overshoot, greaterThan(0));
+
+      controller.reducedMotionSetting = true;
+      expect(controller.reducedMotion, isTrue);
+      expect(controller.focusSpring.overshoot, 0);
+
+      controller.reducedMotionSetting = false;
+      controller.systemReducedMotion = true;
+      expect(controller.reducedMotion, isTrue);
+      controller.dispose();
+    });
+
     test("the config file keeps the choices", () async {
       final dir = await Directory.systemTemp.createTemp("band");
       final file = File("${dir.path}/band_config.json");

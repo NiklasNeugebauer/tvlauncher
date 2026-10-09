@@ -30,7 +30,8 @@ Versions are pinned in three places that must stay in sync: `mise.toml`, `pubspe
 or with mise activated. Device renders at 1920×1080, density 320 → 960×540 logical px.
 
 `compileSdk`, `targetSdk` (36) and `minSdk` (24) follow the Flutter Gradle plugin defaults (`flutter.*SdkVersion` in
-`android/app/build.gradle.kts`); bump them by upgrading Flutter. SQLite comes from `package:sqlite3` 3.x via Dart build
+`android/app/build.gradle.kts`); bump them by upgrading Flutter. UI sounds are WAV files in `android/app/src/main/res/raw`, rendered by `uv run tool/sounds.py`; run it again after
+changing a tone. SQLite comes from `package:sqlite3` 3.x via Dart build
 hooks, so there is no `sqlite3_flutter_libs` any more. Code generation: `dart run build_runner build` (drift, mockito);
 after a schema change also `dart run drift_dev schema generate --data-classes --companions drift_schemas/ test/generated_migrations/`.
 

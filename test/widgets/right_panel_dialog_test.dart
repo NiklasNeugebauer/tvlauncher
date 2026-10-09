@@ -17,6 +17,7 @@
  */
 
 import 'package:flauncher/band/band_controller.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_rowHasFocus(tester, "Row 2"), isTrue);
+    await _close(tester);
+    band.dispose();
+  });
+
+  testWidgets("one highlight slides behind the focused row", (tester) async {
+    final band = BandController();
+    await _pumpOpener(tester, band);
+    await tester.tap(find.text("open"));
+    await tester.pumpAndSettle();
+    final glide = tester.state<FocusGlideState>(find.byType(FocusGlide));
+    Rect highlight() => glide.ringRect!.shift(tester.getTopLeft(find.byType(FocusGlide)));
+    Rect row(String label) =>
+        tester.getRect(find.ancestor(of: find.text(label), matching: find.byType(SizedBox)).first);
+
+    expect(highlight(), row("Row 0"));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.pump(Duration(milliseconds: 50));
+    expect(highlight().top, inExclusiveRange(row("Row 0").top, row("Row 1").top));
+    await tester.pumpAndSettle();
+    expect(highlight(), row("Row 1"));
     await _close(tester);
     band.dispose();
   });

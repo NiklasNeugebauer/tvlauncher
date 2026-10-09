@@ -25,6 +25,8 @@ import android.content.pm.*
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.net.Uri
 import android.os.Build
 import android.os.UserHandle
@@ -47,6 +49,18 @@ private const val EVENT_CHANNEL = "me.efesser.flauncher/event"
 class MainActivity : FlutterActivity() {
     val launcherAppsCallbacks = ArrayList<LauncherApps.Callback>()
     private var methodChannel: MethodChannel? = null
+
+    // UI sounds (res/raw, rendered by tool/sounds.py), loaded once; a few may overlap while focus runs along a row.
+    private val soundPool: SoundPool = SoundPool.Builder()
+        .setMaxStreams(4)
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+        )
+        .build()
+    private val sounds = HashMap<String, Int>()
 
     // singleTask: a Home press while the launcher exists arrives here instead of starting a new activity.
     override fun onNewIntent(@NonNull intent: Intent) {
@@ -89,8 +103,10 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL)
         methodChannel = channel
+        loadSounds()
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "playSound" -> result.success(playSound(call.arguments as Map<*, *>))
                 "getApplications" -> result.success(getApplications())
                 "applicationExists" -> result.success(applicationExists(call.arguments as String))
                 "launchApp" -> result.success(launchApp(call.arguments as Map<*, *>))
@@ -144,7 +160,32 @@ class MainActivity : FlutterActivity() {
         })
     }
 
+    private fun loadSounds() {
+        if (sounds.isNotEmpty()) {
+            return
+        }
+        // Referenced through R so resource shrinking keeps them.
+        mapOf(
+            "focus" to R.raw.ui_focus,
+            "thud" to R.raw.ui_thud,
+            "select" to R.raw.ui_select,
+            "panelOpen" to R.raw.ui_panel_open,
+            "panelClose" to R.raw.ui_panel_close,
+            "tick" to R.raw.ui_tick,
+            "home" to R.raw.ui_home,
+        ).forEach { (name, resource) -> sounds[name] = soundPool.load(this, resource, 1) }
+    }
+
+    // [rate] shifts the pitch (0.5 to 2); [volume] is 0 to 1.
+    private fun playSound(arguments: Map<*, *>): Boolean {
+        val id = sounds[arguments["name"] as String] ?: return false
+        val volume = (arguments["volume"] as Number).toFloat()
+        val rate = (arguments["rate"] as Number).toFloat().coerceIn(0.5f, 2f)
+        return soundPool.play(id, volume, volume, 1, 0, rate) != 0
+    }
+
     override fun onDestroy() {
+        soundPool.release()
         val launcherApps = getSystemService(LAUNCHER_APPS_SERVICE) as LauncherApps
         launcherAppsCallbacks.forEach(launcherApps::unregisterCallback)
         super.onDestroy()

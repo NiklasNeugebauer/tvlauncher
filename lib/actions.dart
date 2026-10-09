@@ -18,11 +18,13 @@
 
 import 'package:flauncher/motion/edge_nudge.dart';
 import 'package:flauncher/providers/apps_service.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-/// Moves focus with the D-pad; when there is nowhere to go, the focused widget's [EdgeNudge] bumps instead.
+/// Moves focus with the D-pad, with a blip; when there is nowhere to go, the focused widget's [EdgeNudge] bumps
+/// instead, with a thud.
 class SoundFeedbackDirectionalFocusAction extends DirectionalFocusAction {
   final BuildContext context;
 
@@ -34,10 +36,12 @@ class SoundFeedbackDirectionalFocusAction extends DirectionalFocusAction {
     if (focused == null) {
       return;
     }
+    final sounds = UiSounds.maybeOf(context);
     if (focused.focusInDirection(intent.direction)) {
-      Feedback.forTap(context);
+      sounds?.focusMoved();
       return;
     }
+    sounds?.edge();
     final nudge = focused.context == null ? null : EdgeNudge.of(focused.context!);
     nudge?.nudge(switch (intent.direction) {
       TraversalDirection.left => AxisDirection.left,

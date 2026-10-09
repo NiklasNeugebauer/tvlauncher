@@ -23,7 +23,9 @@ import 'dart:ui';
 import 'package:flauncher/actions.dart';
 import 'package:flauncher/band/band_controller.dart';
 import 'package:flauncher/motion/tuning.dart';
+import 'package:flauncher/sound/ui_sounds.dart';
 import 'package:flauncher/theme.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +36,7 @@ Future<T?> showPanel<T>(BuildContext context, WidgetBuilder builder) async {
   final band = BandScope.maybeOf(context);
   final tuning = band?.tuning ?? Tuning.defaults;
   band?.panelOpen.value = true;
+  final sounds = UiSounds.maybeOf(context)?..panel(open: true);
   try {
     return await Navigator.of(context).push(
       _PanelRoute<T>(
@@ -46,6 +49,7 @@ Future<T?> showPanel<T>(BuildContext context, WidgetBuilder builder) async {
     );
   } finally {
     band?.panelOpen.value = false;
+    sounds?.panel(open: false);
   }
 }
 
@@ -110,7 +114,9 @@ class RightPanelDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tuning = BandScope.maybeOf(context)?.tuning ?? Tuning.defaults;
+    final band = BandScope.maybeOf(context);
+    final tuning = band?.tuning ?? Tuning.defaults;
+    final reduced = band?.reducedMotion ?? false;
     final animation = ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
     final blur = tuning[Tune.panelBlur];
     final width = max(minWidth, MediaQuery.sizeOf(context).width * widthFraction);
@@ -135,9 +141,16 @@ class RightPanelDialog extends StatelessWidget {
           },
           child: PanelStagger(
             stagger: Duration(milliseconds: tuning[Tune.rowStagger].round()),
-            rise: Duration(milliseconds: tuning[Tune.panelIn].round()),
+            rise: reduced ? Duration.zero : Duration(milliseconds: tuning[Tune.panelIn].round()),
             rememberFocus: rememberFocus,
-            child: child,
+            // One highlight slides between the rows on the focus spring.
+            child: FocusGlide(
+              enabled: true,
+              highlight: true,
+              radius: Shapes.rowRadius,
+              spring: () => band?.focusSpring ?? tuning.focusSpring,
+              child: child,
+            ),
           ),
         ),
       ),
@@ -155,12 +168,15 @@ class RightPanelDialog extends StatelessWidget {
       insetPadding: EdgeInsets.zero,
       child: Align(
         alignment: Alignment.centerRight,
-        child: SlideTransition(
-          position: Tween(begin: Offset(1.05, 0), end: Offset.zero).animate(
-            CurvedAnimation(parent: animation, curve: Motion.sheenCurve, reverseCurve: Motion.sheenCurve.flipped),
-          ),
-          child: panel,
-        ),
+        // Reduced motion: the panel fades in place instead of sliding.
+        child: reduced
+            ? FadeTransition(opacity: animation, child: panel)
+            : SlideTransition(
+                position: Tween(begin: Offset(1.05, 0), end: Offset.zero).animate(
+                  CurvedAnimation(parent: animation, curve: Motion.sheenCurve, reverseCurve: Motion.sheenCurve.flipped),
+                ),
+                child: panel,
+              ),
       ),
     );
   }

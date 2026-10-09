@@ -26,6 +26,7 @@ import 'package:flauncher/motion/tuning.dart';
 import 'package:flauncher/providers/apps_service.dart';
 import 'package:flauncher/providers/wallpaper_service.dart';
 import 'package:flauncher/widgets/application_info_panel.dart';
+import 'package:flauncher/widgets/focus_glide.dart';
 import 'package:flauncher/widgets/home_layout.dart';
 import 'package:flauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flutter/gestures.dart';
@@ -357,6 +358,37 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(FocusManager.instance.primaryFocus, tile);
+    await tester.pumpWidget(SizedBox());
+    band.dispose();
+  });
+
+  testWidgets("Starting move mode shrinks the ring with the tile, and a moved tile takes the light along", (
+    tester,
+  ) async {
+    final band = BandController();
+    final appsService = await _realAppsService(hero: ["hero.1", "hero.2"], grid: []);
+    await _pumpHome(tester, appsService, band: band);
+    await tester.pumpAndSettle();
+    final glide = tester.state<FocusGlideState>(find.byType(FocusGlide));
+    Rect ring() => glide.ringRect!.shift(tester.getTopLeft(find.byType(FocusGlide)));
+    expect(ring(), _tileRect(tester, "hero-hero.1"));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(Duration(milliseconds: 600));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    final moving = _tileRect(tester, "hero-hero.1");
+    expect(moving.width, lessThan(tester.getSize(find.byKey(Key("hero-hero.1"))).width + 0.5));
+    expect(ring(), moving);
+
+    var lightMoves = 0;
+    band.spotlight.addListener(() => lightMoves++);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(lightMoves, greaterThan(0));
+    expect(band.spotlight.tile, isNotNull);
+    expect(ring(), _tileRect(tester, "hero-hero.1"));
     await tester.pumpWidget(SizedBox());
     band.dispose();
   });

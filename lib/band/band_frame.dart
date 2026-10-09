@@ -166,6 +166,9 @@ class _BandFrameState extends State<BandFrame> with TickerProviderStateMixin {
       final geometry = controller.geometry;
       final rest = geometry.rect(frame.size);
       controller.devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+      // Android's "Remove animations"; reported after the frame, since it makes the controller notify.
+      final disableAnimations = MediaQuery.disableAnimationsOf(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) => controller.systemReducedMotion = disableAnimations);
       return Focus(
         focusNode: _captureFocus,
         onKeyEvent: _onCapturedKey,

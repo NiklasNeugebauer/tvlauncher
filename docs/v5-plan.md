@@ -114,6 +114,28 @@ records the difference.
 5. Sound, reduced motion and performance: the prototype tones with their repeat rules, reduced-motion variants,
    frame timings on the device, and the order in which things degrade when over budget.
 
+   Done 2026-10-09. `tool/sounds.py` renders the plan's tones to `res/raw` (focus blip, thud, select click, panel
+   open and close, hold tick, and a soft Home tone added on request); `MainActivity` plays them with `SoundPool`
+   (`USAGE_ASSISTANCE_SONIFICATION`), and `UiSounds` applies the rules: select on key down, the thud once per
+   press, during a held key one tick per four moves instead of a blip each, panels at 60 % level. `sound` and
+   `soundVolume` (0.5) are in the config. Reduced motion (`reducedMotion`, or Android's "Remove animations") turns
+   off the travelling ring, overshoot, sheen, nudge, pulse and shimmer, makes focus moves 120 ms without
+   overshoot, jumps the light to the tile, and fades panels in place without the row rise. Deviations:
+   - On the wall: the focus blip keeps the ±12 Hz random spread but not the plan's pitch rising per tile.
+   - On request: panels got a sliding row highlight (the glide's second mode: a fill with the brass bar, drawn
+     behind the rows) instead of each row fading its own fill, which flashed from dark to light.
+   - Found on the TV: entering move mode or pressing a tile left the ring at its old size until the next move,
+     and a reordered tile left the light behind. The tile's springs now restart the ring on every step, and a
+     moved tile tells the spotlight to follow.
+   - Performance, focus moves 0.4 s apart: 60 fps, 0-2 missed vsyncs per batch, build p50 about 5 ms (the tiles
+     now rebuild only their transform and colour filter per spring step, and the ring and content sit in separate
+     layers; neither lowered the UI time measurably), raster within a frame. The shimmer forced to 60 fps holds
+     60 fps at about 11 ms raster per frame for the whole scene, so the background fits and the plan's automatic
+     degrade order is not built; the shimmer rate and blur stay tunable.
+   - Once during the round the device ran focus moves at a steady 45 fps on every build, including step 3's
+     background off; a fresh launcher start cleared it. It began after Netflix and Apple TV had run; the cause is
+     not known.
+
 ## Fixes and changes after TV checks
 
 - 2026-10-09: moving an app into or out of the main apps from its panel left focus on the first tile, and a select
@@ -128,5 +150,5 @@ records the difference.
 
 ## v5.1
 
-- Sound test on the device: levels against the projector's fan and the room, pitch spread, and whether designed
-  samples replace the tones.
+- Sound test on the device: levels against the projector's fan and the room, the spread, and whether designed
+  samples replace the tones (`tool/sounds.py` renders them; `soundVolume` sets the level).

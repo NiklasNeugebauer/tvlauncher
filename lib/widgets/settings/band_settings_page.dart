@@ -134,6 +134,20 @@ class BandSettingsPage extends StatelessWidget {
           ),
           _visible(
             PanelRow(
+              icon: band.sound ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+              label: "Sounds: ${band.sound ? "on" : "off"}",
+              onPressed: () => band.sound = !band.sound,
+            ),
+          ),
+          _visible(
+            PanelRow(
+              icon: Icons.motion_photos_paused_outlined,
+              label: "Reduced motion: ${band.reducedMotionSetting ? "on" : "off"}",
+              onPressed: () => band.reducedMotionSetting = !band.reducedMotionSetting,
+            ),
+          ),
+          _visible(
+            PanelRow(
               icon: Icons.speed,
               label: "Frame times: ${band.frameTimes ? "shown" : "hidden"}",
               onPressed: () => band.frameTimes = !band.frameTimes,
