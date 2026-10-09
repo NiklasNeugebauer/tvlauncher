@@ -157,3 +157,23 @@ records the difference.
 
 - Sound test on the device: levels against the projector's fan and the room, the spread, and whether designed
   samples replace the tones (`tool/sounds.py` renders them; `soundVolume` sets the level).
+
+## v5.2: frame pacing on the TV (2026-10-09)
+
+Measured on the Chromecast (Mali-G31 MP2, 1080p at 59.94 Hz) with SurfaceFlinger's per-layer present intervals
+during scripted navigation, a Settings launch and the HOME return, and the kernel's per-app GPU time
+(`power/gpu_work_period` in a perfetto trace). Missed vsyncs over the whole run went from 207 to about 110
+(return from ~33 to ~12 per return; navigation under 1 % of frames).
+
+- The diamond background was most of the GPU budget: its light (two `exp`, two `sin`) ran in every pixel. It is
+  now evaluated once per grid cell into a small image (`shaders/diamond_light.frag`) that `diamonds.frag` samples;
+  the diamond's size factor comes from there too and its rotation uses polynomials. Same picture; GPU time per
+  launch/return frame −33 %, and the 30 fps shimmer at rest costs about a fifth less.
+- The frame's dim is drawn in the background shader while the content is faded out, instead of through an
+  Opacity over the whole frame, and the content's two fades share one Opacity.
+- Impeller stays: with the old background it stalled on the Vulkan swapchain (207 vs ~145 missed for Skia); now
+  the two are within noise (Impeller ~110, Skia ~104), and Flutter has deprecated the Skia opt-out.
+- Launch keeps ~11 dropped frames: Android deprioritises the launcher as soon as the app is started, 350 ms
+  before the growth ends. Starting the app after the growth gets it to ~3 but delays the app; kept as is by
+  decision.
+- Not done: a lower shimmer rate (15 fps would roughly halve the idle GPU work) is left to the settings.
