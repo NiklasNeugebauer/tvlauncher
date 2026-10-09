@@ -29,7 +29,8 @@ import 'package:provider/provider.dart';
 /// click on select (on key down), a quieter two-note blip for panels, and while a direction key is held one soft
 /// tick per four moves instead of a blip per move.
 class UiSounds {
-  /// Pitch of the rendered focus blip (tool/sounds.py); the spread plays it slightly faster or slower.
+  /// Pitch the focus blip is rendered at (tool/sounds.py); playing it faster or slower moves it to the tuned
+  /// [Tune.focusSoundPitch], and the spread varies that a little.
   static const double focusHz = 560;
   static const double spreadHz = 12;
   static const int ticksEvery = 4;
@@ -59,7 +60,8 @@ class UiSounds {
       return;
     }
     _heldMoves = 0;
-    _play("focus", rate: (focusHz + (_random.nextDouble() * 2 - 1) * spreadHz) / focusHz);
+    final hz = _band.tuning[Tune.focusSoundPitch] + (_random.nextDouble() * 2 - 1) * spreadHz;
+    _play("focus", rate: hz / focusHz, level: _band.tuning[Tune.focusSoundLevel]);
   }
 
   /// A press found nothing to focus.
