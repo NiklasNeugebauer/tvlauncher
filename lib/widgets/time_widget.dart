@@ -18,6 +18,7 @@
 
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:tvlauncher/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -39,7 +40,7 @@ class _TimeWidgetState extends State<TimeWidget> {
   @override
   void initState() {
     super.initState();
-    _now = DateTime.now();
+    _now = clock.now();
     _timer = Timer.periodic(Duration(seconds: 1), (_) => _refreshTime());
   }
 
@@ -61,7 +62,7 @@ class _TimeWidgetState extends State<TimeWidget> {
 
   void _refreshTime() {
     setState(() {
-      _now = DateTime.now();
+      _now = clock.now();
     });
   }
 }
