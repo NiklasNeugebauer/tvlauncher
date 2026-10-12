@@ -96,8 +96,12 @@ tool/bench/run.sh                                                              #
 
 Files (database, `band_config.json`) go to `build/desktop_data`. The bench plays a D-pad walk, a launch and return,
 the quick settings panel and idle with the TV's band config (`tool/bench/band_config.json`), injecting remote keys
-in-process and ignoring the real keyboard, and reports frames plus UI/raster time per phase (median of 3 passes after
-a warmup). Run to run, totals vary by about 2%. It runs on the normal binding: integration_test's live bindings
+in-process and ignoring the real keyboard, and reports per phase frames, UI/raster time (fastest of 5 passes after a
+warmup; runs still vary by ~5% while the desktop is in use) and counted work that repeats exactly: pictures recorded
+and the scene the raster thread draws (layers, picture KB, clip and effect layers). `BENCH_PROFILE=phases|widgets`
+adds a self-time profile, `BENCH_CONFIG=<file>` swaps the band config, `BENCH_SHOTS=<dir>` saves settled screenshots
+for `tool/bench/diff.py`. Linux always enables semantics (about a fifth of UI time), which the TV likely does not.
+It runs on the normal binding: integration_test's live bindings
 schedule a frame after every frame, so they count 60 fps where the app would idle. The desktop numbers rank changes;
 frame times on the TV still come from the `frameTimes` readout. A Hyprland rule in `~/.config/hypr/hyprland.lua`
 opens the window on workspace 9 without focus.

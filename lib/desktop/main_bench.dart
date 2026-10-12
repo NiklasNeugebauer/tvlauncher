@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
@@ -27,7 +28,9 @@ Future<void> main() =>
 Future<void> _main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final data = Directory.systemTemp.createTempSync("tvlauncher-bench");
-  final config = jsonDecode(File("tool/bench/band_config.json").readAsStringSync()) as Map<String, dynamic>;
+  final config = jsonDecode(
+    File(Platform.environment["BENCH_CONFIG"] ?? "tool/bench/band_config.json").readAsStringSync(),
+  ) as Map<String, dynamic>;
   // Screenshots compare settled frames, so the shimmer, which never settles, is off for them.
   if (Platform.environment["BENCH_SHOTS"] != null) (config["tuning"] as Map<String, dynamic>)["ambientFps"] = 0;
   File("${data.path}/band_config.json").writeAsStringSync(jsonEncode(config));
@@ -44,10 +47,11 @@ Future<void> _main() async {
 
   final timings = <FrameTiming>[];
   SchedulerBinding.instance.addTimingsCallback(timings.addAll);
+  final scenes = _Scenes()..start();
   runApp(LauncherApp(ImagePicker(), channel, database));
   await _wait(3000);
 
-  final passes = int.tryParse(Platform.environment["BENCH_PASSES"] ?? "") ?? 3;
+  final passes = (int.tryParse(Platform.environment["BENCH_PASSES"] ?? "") ?? 5).clamp(1, 100);
   // BENCH_PROFILE=phases: the framework's own timeline blocks (build, layout, paint, compositing, semantics), summed
   // by self time, cheap enough to keep the frame numbers. BENCH_PROFILE=widgets adds a block for every widget build,
   // layout and paint, which slows the UI thread down several times over, so only its ranking means anything.
@@ -100,17 +104,23 @@ Future<void> _main() async {
 
   final report = <String, Object>{};
   spans.forEach((name, list) {
-    report[name] = _median([
+    report[name] = _combine([
       for (final (start, end) in list.skip(1))
-        _summarize(timings.where((t) => _inSpan(t, start, end)).toList(), (end - start) / 1000),
+        {
+          ..._summarize(timings.where((t) => _inSpan(t, start, end)).toList(), (end - start) / 1000),
+          ...scenes.summarize((t) => t >= start && t < end),
+        },
     ]);
   });
-  report["total"] = _median([
+  report["total"] = _combine([
     for (var i = 1; i <= passes; i++)
-      _summarize(
-        timings.where((t) => spans.values.any((list) => _inSpan(t, list[i].$1, list[i].$2))).toList(),
-        spans.values.fold(0.0, (sum, list) => sum + (list[i].$2 - list[i].$1) / 1000),
-      ),
+      {
+        ..._summarize(
+          timings.where((t) => spans.values.any((list) => _inSpan(t, list[i].$1, list[i].$2))).toList(),
+          spans.values.fold(0.0, (sum, list) => sum + (list[i].$2 - list[i].$1) / 1000),
+        ),
+        ...scenes.summarize((t) => spans.values.any((list) => t >= list[i].$1 && t < list[i].$2)),
+      },
   ]);
   if (profile != null) report["profile"] = _selfTimes(FlutterTimeline.debugCollect());
   final json = jsonEncode(report);
@@ -196,9 +206,71 @@ Map<String, num> _summarize(List<FrameTiming> frames, double phaseMs) {
   };
 }
 
-Map<String, num> _median(List<Map<String, num>> passes) => {
+/// Work counted rather than timed, so it does not depend on what else the machine is doing: per frame, the pictures
+/// recorded (what was repainted) and the scene handed to the raster thread, which Impeller draws in full every frame
+/// (layers, picture bytes, clip and effect layers).
+class _Scenes {
+  final _frames = <(int, int, int, int, int, int, int)>[];
+  int _pictures = 0, _pictureBytes = 0;
+
+  void start() {
+    final previous = Picture.onCreate;
+    Picture.onCreate = (picture) {
+      previous?.call(picture);
+      _pictures++;
+      _pictureBytes += picture.approximateBytesUsed;
+    };
+    SchedulerBinding.instance.addPersistentFrameCallback((_) {
+      var layers = 0, bytes = 0, clips = 0, effects = 0;
+      void walk(Layer? layer) {
+        for (; layer != null; layer = layer.nextSibling) {
+          layers++;
+          switch (layer) {
+            case PictureLayer(:final picture):
+              bytes += picture?.approximateBytesUsed ?? 0;
+            case ClipRectLayer() || ClipRRectLayer() || ClipRSuperellipseLayer() || ClipPathLayer():
+              clips++;
+            case OpacityLayer() ||
+                ColorFilterLayer() ||
+                ImageFilterLayer() ||
+                BackdropFilterLayer() ||
+                ShaderMaskLayer():
+              effects++;
+          }
+          if (layer is ContainerLayer) walk(layer.firstChild);
+        }
+      }
+
+      // ignore: invalid_use_of_protected_member
+      walk(RendererBinding.instance.renderViews.first.layer);
+      _frames.add((Timeline.now, _pictures, _pictureBytes, layers, bytes, clips, effects));
+      _pictures = 0;
+      _pictureBytes = 0;
+    });
+  }
+
+  Map<String, num> summarize(bool Function(int timestamp) inSpan) {
+    final frames = _frames.where((f) => inSpan(f.$1)).toList();
+    num sum(int Function((int, int, int, int, int, int, int)) field) => frames.fold(0, (a, f) => a + field(f));
+    final n = frames.isEmpty ? 1 : frames.length;
+    return {
+      "pictures": sum((f) => f.$2),
+      "picture_kb": (sum((f) => f.$3) / 1024).round(),
+      "scene_layers": sum((f) => f.$4) / n,
+      "scene_kb": (sum((f) => f.$5) / 1024 / n).round(),
+      "scene_clips": sum((f) => f.$6) / n,
+      "scene_effects": sum((f) => f.$7) / n,
+    };
+  }
+}
+
+/// Frame counts are the median of the passes, times the minimum: whatever else runs on the machine only ever adds
+/// time, so the fastest pass is the closest to the app's own cost.
+Map<String, num> _combine(List<Map<String, num>> passes) => {
   for (final key in passes.first.keys)
-    key: (passes.map((p) => p[key]!.toDouble()).toList()..sort())[passes.length ~/ 2],
+    key: !(key.endsWith("_ms") || key.contains("_p90") || key.endsWith("_max"))
+        ? (passes.map((p) => p[key]!.toDouble()).toList()..sort())[passes.length ~/ 2]
+        : passes.map((p) => p[key]!.toDouble()).reduce((a, b) => a < b ? a : b),
 };
 
 /// Milliseconds spent in each timeline block's own code, without the blocks nested in it, and how many blocks,
