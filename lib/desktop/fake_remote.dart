@@ -14,12 +14,14 @@ class FakeRemote {
 
   static ui.KeyDataCallback? _onKeyData;
 
-  /// From now on only these presses reach the app; the desktop keyboard is ignored. The bench window takes focus
-  /// when it appears, and whatever is typed meanwhile would otherwise land in the measurement.
+  /// From now on only these presses reach the app; the desktop keyboard and mouse are ignored. Whatever is typed
+  /// into the bench window, or a pointer resting on it (hover focuses a tile), would otherwise land in the
+  /// measurement.
   static void exclusive() {
     _onKeyData = ui.PlatformDispatcher.instance.onKeyData;
     ui.PlatformDispatcher.instance.onKeyData = (_) => false;
     SystemChannels.keyEvent.setMessageHandler((_) async => {"handled": false});
+    ui.PlatformDispatcher.instance.onPointerDataPacket = (_) {};
   }
 
   static Future<void> press(RemoteKey key, {Duration hold = const Duration(milliseconds: 60)}) async {

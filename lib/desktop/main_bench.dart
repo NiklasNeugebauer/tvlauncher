@@ -65,9 +65,14 @@ Future<void> _main() async {
   }
   debugPrint("semantics enabled: ${SemanticsBinding.instance.semanticsEnabled}");
   final spans = <String, List<(int, int)>>{};
+  Map<String, List<num>>? profiled;
   Future<void> phase(String name, Future<void> Function() body) async {
     final start = Timeline.now;
+    // BENCH_PROFILE_PHASE=<name>: the profile covers only that phase of the first measured pass.
+    final only = profile != null && Platform.environment["BENCH_PROFILE_PHASE"] == name && spans[name]?.length == 1;
+    if (only) FlutterTimeline.debugReset();
     await body();
+    if (only) profiled = _selfTimes(FlutterTimeline.debugCollect());
     (spans[name] ??= []).add((start, Timeline.now));
   }
 
@@ -122,7 +127,7 @@ Future<void> _main() async {
         ...scenes.summarize((t) => spans.values.any((list) => t >= list[i].$1 && t < list[i].$2)),
       },
   ]);
-  if (profile != null) report["profile"] = _selfTimes(FlutterTimeline.debugCollect());
+  if (profile != null) report["profile"] = profiled ?? _selfTimes(FlutterTimeline.debugCollect());
   final json = jsonEncode(report);
   stdout.writeln("BENCH $json");
   final out = Platform.environment["BENCH_OUT"];
