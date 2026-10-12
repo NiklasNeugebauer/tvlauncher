@@ -4,6 +4,10 @@ Scope: new home layout (hero row + alphabetical apps grid), reduced long-press p
 trimmed launcher settings, own `applicationId`/keystore. Pinned toolchain stays as in `CLAUDE.md`
 (Flutter 3.7.5 / Dart 2.19, JDK 11, AGP 7.1.1, targetSdk 33). No new permissions, never `INTERNET`.
 
+Renamed 2026-10-12: the Dart package is now `tvlauncher`, `FLauncher*` classes and `flauncher_*.dart` files are
+`Launcher*` / `launcher_*.dart`, and the Kotlin package, namespace and channels are `dev.neugebauer.tvlauncher`.
+The names and line references below are the ones from before.
+
 ## Versions
 
 - **v1** (this plan): new home layout, long-press panel variants, quick settings, settings trim, own `applicationId`.

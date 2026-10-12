@@ -1193,9 +1193,9 @@ class AppsCategoriesCompanion extends UpdateCompanion<AppCategory> {
   }
 }
 
-abstract class _$FLauncherDatabase extends GeneratedDatabase {
-  _$FLauncherDatabase(QueryExecutor e) : super(e);
-  $FLauncherDatabaseManager get managers => $FLauncherDatabaseManager(this);
+abstract class _$LauncherDatabase extends GeneratedDatabase {
+  _$LauncherDatabase(QueryExecutor e) : super(e);
+  $LauncherDatabaseManager get managers => $LauncherDatabaseManager(this);
   late final $AppsTable apps = $AppsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $AppsCategoriesTable appsCategories = $AppsCategoriesTable(this);
@@ -1249,11 +1249,11 @@ typedef $$AppsTableUpdateCompanionBuilder = AppsCompanion Function({
 });
 
 final class $$AppsTableReferences
-    extends BaseReferences<_$FLauncherDatabase, $AppsTable, App> {
+    extends BaseReferences<_$LauncherDatabase, $AppsTable, App> {
   $$AppsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static MultiTypedResultKey<$AppsCategoriesTable, List<AppCategory>>
-  _appsCategoriesRefsTable(_$FLauncherDatabase db) =>
+  _appsCategoriesRefsTable(_$LauncherDatabase db) =>
       MultiTypedResultKey.fromTable(
         db.appsCategories,
         aliasName: 'apps__package_name__apps_categories__app_package_name',
@@ -1275,7 +1275,7 @@ final class $$AppsTableReferences
 }
 
 class $$AppsTableFilterComposer
-    extends Composer<_$FLauncherDatabase, $AppsTable> {
+    extends Composer<_$LauncherDatabase, $AppsTable> {
   $$AppsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -1345,7 +1345,7 @@ class $$AppsTableFilterComposer
 }
 
 class $$AppsTableOrderingComposer
-    extends Composer<_$FLauncherDatabase, $AppsTable> {
+    extends Composer<_$LauncherDatabase, $AppsTable> {
   $$AppsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -1390,7 +1390,7 @@ class $$AppsTableOrderingComposer
 }
 
 class $$AppsTableAnnotationComposer
-    extends Composer<_$FLauncherDatabase, $AppsTable> {
+    extends Composer<_$LauncherDatabase, $AppsTable> {
   $$AppsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -1452,7 +1452,7 @@ class $$AppsTableAnnotationComposer
 class $$AppsTableTableManager
     extends
         RootTableManager<
-          _$FLauncherDatabase,
+          _$LauncherDatabase,
           $AppsTable,
           App,
           $$AppsTableFilterComposer,
@@ -1464,7 +1464,7 @@ class $$AppsTableTableManager
           App,
           PrefetchHooks Function({bool appsCategoriesRefs})
         > {
-  $$AppsTableTableManager(_$FLauncherDatabase db, $AppsTable table)
+  $$AppsTableTableManager(_$LauncherDatabase db, $AppsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -1558,7 +1558,7 @@ class $$AppsTableTableManager
 
 typedef $$AppsTableProcessedTableManager =
     ProcessedTableManager<
-      _$FLauncherDatabase,
+      _$LauncherDatabase,
       $AppsTable,
       App,
       $$AppsTableFilterComposer,
@@ -1590,11 +1590,11 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
 });
 
 final class $$CategoriesTableReferences
-    extends BaseReferences<_$FLauncherDatabase, $CategoriesTable, Category> {
+    extends BaseReferences<_$LauncherDatabase, $CategoriesTable, Category> {
   $$CategoriesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static MultiTypedResultKey<$AppsCategoriesTable, List<AppCategory>>
-  _appsCategoriesRefsTable(_$FLauncherDatabase db) =>
+  _appsCategoriesRefsTable(_$LauncherDatabase db) =>
       MultiTypedResultKey.fromTable(
         db.appsCategories,
         aliasName: 'categories__id__apps_categories__category_id',
@@ -1614,7 +1614,7 @@ final class $$CategoriesTableReferences
 }
 
 class $$CategoriesTableFilterComposer
-    extends Composer<_$FLauncherDatabase, $CategoriesTable> {
+    extends Composer<_$LauncherDatabase, $CategoriesTable> {
   $$CategoriesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -1686,7 +1686,7 @@ class $$CategoriesTableFilterComposer
 }
 
 class $$CategoriesTableOrderingComposer
-    extends Composer<_$FLauncherDatabase, $CategoriesTable> {
+    extends Composer<_$LauncherDatabase, $CategoriesTable> {
   $$CategoriesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -1731,7 +1731,7 @@ class $$CategoriesTableOrderingComposer
 }
 
 class $$CategoriesTableAnnotationComposer
-    extends Composer<_$FLauncherDatabase, $CategoriesTable> {
+    extends Composer<_$LauncherDatabase, $CategoriesTable> {
   $$CategoriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -1791,7 +1791,7 @@ class $$CategoriesTableAnnotationComposer
 class $$CategoriesTableTableManager
     extends
         RootTableManager<
-          _$FLauncherDatabase,
+          _$LauncherDatabase,
           $CategoriesTable,
           Category,
           $$CategoriesTableFilterComposer,
@@ -1803,7 +1803,7 @@ class $$CategoriesTableTableManager
           Category,
           PrefetchHooks Function({bool appsCategoriesRefs})
         > {
-  $$CategoriesTableTableManager(_$FLauncherDatabase db, $CategoriesTable table)
+  $$CategoriesTableTableManager(_$LauncherDatabase db, $CategoriesTable table)
     : super(
         TableManagerState(
           db: db,
@@ -1896,7 +1896,7 @@ class $$CategoriesTableTableManager
 
 typedef $$CategoriesTableProcessedTableManager =
     ProcessedTableManager<
-      _$FLauncherDatabase,
+      _$LauncherDatabase,
       $CategoriesTable,
       Category,
       $$CategoriesTableFilterComposer,
@@ -1925,14 +1925,14 @@ typedef $$AppsCategoriesTableUpdateCompanionBuilder =
 
 final class $$AppsCategoriesTableReferences
     extends
-        BaseReferences<_$FLauncherDatabase, $AppsCategoriesTable, AppCategory> {
+        BaseReferences<_$LauncherDatabase, $AppsCategoriesTable, AppCategory> {
   $$AppsCategoriesTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
   );
 
-  static $CategoriesTable _categoryIdTable(_$FLauncherDatabase db) =>
+  static $CategoriesTable _categoryIdTable(_$LauncherDatabase db) =>
       db.categories.createAlias('apps_categories__category_id__categories__id');
 
   $$CategoriesTableProcessedTableManager get categoryId {
@@ -1949,7 +1949,7 @@ final class $$AppsCategoriesTableReferences
     );
   }
 
-  static $AppsTable _appPackageNameTable(_$FLauncherDatabase db) => db.apps
+  static $AppsTable _appPackageNameTable(_$LauncherDatabase db) => db.apps
       .createAlias('apps_categories__app_package_name__apps__package_name');
 
   $$AppsTableProcessedTableManager get appPackageName {
@@ -1968,7 +1968,7 @@ final class $$AppsCategoriesTableReferences
 }
 
 class $$AppsCategoriesTableFilterComposer
-    extends Composer<_$FLauncherDatabase, $AppsCategoriesTable> {
+    extends Composer<_$LauncherDatabase, $AppsCategoriesTable> {
   $$AppsCategoriesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -2029,7 +2029,7 @@ class $$AppsCategoriesTableFilterComposer
 }
 
 class $$AppsCategoriesTableOrderingComposer
-    extends Composer<_$FLauncherDatabase, $AppsCategoriesTable> {
+    extends Composer<_$LauncherDatabase, $AppsCategoriesTable> {
   $$AppsCategoriesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -2090,7 +2090,7 @@ class $$AppsCategoriesTableOrderingComposer
 }
 
 class $$AppsCategoriesTableAnnotationComposer
-    extends Composer<_$FLauncherDatabase, $AppsCategoriesTable> {
+    extends Composer<_$LauncherDatabase, $AppsCategoriesTable> {
   $$AppsCategoriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -2151,7 +2151,7 @@ class $$AppsCategoriesTableAnnotationComposer
 class $$AppsCategoriesTableTableManager
     extends
         RootTableManager<
-          _$FLauncherDatabase,
+          _$LauncherDatabase,
           $AppsCategoriesTable,
           AppCategory,
           $$AppsCategoriesTableFilterComposer,
@@ -2164,7 +2164,7 @@ class $$AppsCategoriesTableTableManager
           PrefetchHooks Function({bool categoryId, bool appPackageName})
         > {
   $$AppsCategoriesTableTableManager(
-    _$FLauncherDatabase db,
+    _$LauncherDatabase db,
     $AppsCategoriesTable table,
   ) : super(
         TableManagerState(
@@ -2265,7 +2265,7 @@ class $$AppsCategoriesTableTableManager
 
 typedef $$AppsCategoriesTableProcessedTableManager =
     ProcessedTableManager<
-      _$FLauncherDatabase,
+      _$LauncherDatabase,
       $AppsCategoriesTable,
       AppCategory,
       $$AppsCategoriesTableFilterComposer,
@@ -2278,9 +2278,9 @@ typedef $$AppsCategoriesTableProcessedTableManager =
       PrefetchHooks Function({bool categoryId, bool appPackageName})
     >;
 
-class $FLauncherDatabaseManager {
-  final _$FLauncherDatabase _db;
-  $FLauncherDatabaseManager(this._db);
+class $LauncherDatabaseManager {
+  final _$LauncherDatabase _db;
+  $LauncherDatabaseManager(this._db);
   $$AppsTableTableManager get apps => $$AppsTableTableManager(_db, _db.apps);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);

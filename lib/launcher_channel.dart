@@ -57,9 +57,9 @@ class LaunchTransition {
   String toString() => "LaunchTransition($kind, $source)";
 }
 
-class FLauncherChannel {
-  static const _methodChannel = MethodChannel('me.efesser.flauncher/method');
-  static const _eventChannel = EventChannel('me.efesser.flauncher/event');
+class LauncherChannel {
+  static const _methodChannel = MethodChannel('dev.neugebauer.tvlauncher/method');
+  static const _eventChannel = EventChannel('dev.neugebauer.tvlauncher/event');
 
   Future<List<dynamic>> getApplications() async => (await _methodChannel.invokeListMethod('getApplications'))!;
 

@@ -17,7 +17,7 @@
  */
 
 import 'package:drift/drift.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mockito/mockito.dart';
@@ -39,10 +39,10 @@ void main() {
       final pickedFile = _MockXFile();
       when(pickedFile.readAsBytes()).thenAnswer((_) => Future.value(Uint8List.fromList([0x01])));
       final imagePicker = _MockImagePicker();
-      final fLauncherChannel = MockFLauncherChannel();
+      final launcherChannel = MockLauncherChannel();
       when(imagePicker.pickImage(source: ImageSource.gallery)).thenAnswer((_) => Future.value(pickedFile));
-      when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
-      final wallpaperService = WallpaperService(imagePicker, fLauncherChannel);
+      when(launcherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
+      final wallpaperService = WallpaperService(imagePicker, launcherChannel);
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
       await wallpaperService.pickWallpaper();
@@ -52,9 +52,9 @@ void main() {
     });
 
     test("throws error when no file explorer installed", () async {
-      final fLauncherChannel = MockFLauncherChannel();
-      when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(false));
-      final wallpaperService = WallpaperService(_MockImagePicker(), fLauncherChannel);
+      final launcherChannel = MockLauncherChannel();
+      when(launcherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(false));
+      final wallpaperService = WallpaperService(_MockImagePicker(), launcherChannel);
       await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
 
       expect(() async => await wallpaperService.pickWallpaper(), throwsA(isInstanceOf<NoFileExplorerException>()));
@@ -65,10 +65,10 @@ void main() {
     final pickedFile = _MockXFile();
     when(pickedFile.readAsBytes()).thenAnswer((_) => Future.value(Uint8List.fromList([0x01])));
     final imagePicker = _MockImagePicker();
-    final fLauncherChannel = MockFLauncherChannel();
+    final launcherChannel = MockLauncherChannel();
     when(imagePicker.pickImage(source: ImageSource.gallery)).thenAnswer((_) => Future.value(pickedFile));
-    when(fLauncherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
-    final wallpaperService = WallpaperService(imagePicker, fLauncherChannel);
+    when(launcherChannel.checkForGetContentAvailability()).thenAnswer((_) => Future.value(true));
+    final wallpaperService = WallpaperService(imagePicker, launcherChannel);
     await untilCalled(pathProviderPlatform.getApplicationDocumentsPath());
     await wallpaperService.pickWallpaper();
 

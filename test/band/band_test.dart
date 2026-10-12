@@ -19,15 +19,15 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flauncher/background/diamond_background.dart';
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/band/band_frame.dart';
-import 'package:flauncher/band/band_geometry.dart';
-import 'package:flauncher/flauncher_channel.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/home_layout.dart';
+import 'package:tvlauncher/background/diamond_background.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/band/band_frame.dart';
+import 'package:tvlauncher/band/band_geometry.dart';
+import 'package:tvlauncher/launcher_channel.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

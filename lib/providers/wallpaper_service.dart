@@ -18,20 +18,20 @@
 
 import 'dart:io';
 
-import 'package:flauncher/flauncher_channel.dart';
+import 'package:tvlauncher/launcher_channel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 class WallpaperService extends ChangeNotifier {
   final ImagePicker _imagePicker;
-  final FLauncherChannel _fLauncherChannel;
+  final LauncherChannel _launcherChannel;
   late final File _wallpaperFile;
   Uint8List? _wallpaper;
 
   Uint8List? get wallpaperBytes => _wallpaper;
 
-  WallpaperService(this._imagePicker, this._fLauncherChannel) {
+  WallpaperService(this._imagePicker, this._launcherChannel) {
     _init();
   }
 
@@ -45,7 +45,7 @@ class WallpaperService extends ChangeNotifier {
   }
 
   Future<void> pickWallpaper() async {
-    if (!await _fLauncherChannel.checkForGetContentAvailability()) {
+    if (!await _launcherChannel.checkForGetContentAvailability()) {
       throw NoFileExplorerException();
     }
     final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);

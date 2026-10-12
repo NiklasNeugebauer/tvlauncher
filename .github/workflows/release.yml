@@ -8,7 +8,7 @@ name: Release APK
 #                          (safe way to exercise the pipeline without cutting
 #                           a release)
 #
-# Versioning (Zomp convention: derive from git, never hardcode):
+# Versioning (derive from git, never hardcode):
 #   versionName = the tag without its leading "v"  (0.0.0-dev off a tag-less run)
 #   versionCode = git commit height (rev-list --count)
 #
@@ -79,7 +79,7 @@ jobs:
             keytool -genkeypair -keystore android/app/upload-keystore.jks -alias ci-dev \
               -keyalg RSA -keysize 2048 -validity 3650 \
               -storepass ci-dev-pass -keypass ci-dev-pass \
-              -dname "CN=FLauncher CI Dev, O=Zomp, C=US"
+              -dname "CN=TV launcher CI Dev"
           fi
 
       - name: flutter pub get
@@ -96,7 +96,7 @@ jobs:
           flutter build apk --release \
             --build-name="${{ steps.version.outputs.name }}" \
             --build-number="${{ steps.version.outputs.code }}"
-          OUT="flauncher-${GITHUB_REF_NAME}.apk"
+          OUT="tvlauncher-${GITHUB_REF_NAME}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$OUT"
           SHA="$(sha256sum "$OUT" | cut -d' ' -f1)"
           echo "apk=$OUT" >> "$GITHUB_OUTPUT"
@@ -106,7 +106,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: flauncher-apk
+          name: tvlauncher-apk
           path: ${{ steps.build.outputs.apk }}
           retention-days: 5
 
@@ -114,8 +114,7 @@ jobs:
         if: ${{ !env.ACT && github.ref_type == 'tag' }}
         run: |
           cat > release-notes.md <<EOF
-          Zomp fork of FLauncher — an Android TV home launcher with pointer/mouse
-          support and Firebase removed.
+          TV launcher — an offline Android TV home launcher, forked from FLauncher.
 
           | | |
           |---|---|

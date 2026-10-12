@@ -55,3 +55,6 @@ android/app/secret.properties
 
 # Private device/network notes
 *.local.md
+
+# Local benchmark tooling and known-good APK
+/.auto/

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/widgets/panel_row.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

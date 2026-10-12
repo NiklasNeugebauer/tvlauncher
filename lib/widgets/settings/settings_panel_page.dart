@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/widgets/ensure_visible.dart';
-import 'package:flauncher/widgets/panel_row.dart';
-import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
-import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
-import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
+import 'package:tvlauncher/widgets/ensure_visible.dart';
+import 'package:tvlauncher/widgets/panel_row.dart';
+import 'package:tvlauncher/widgets/settings/launcher_about_dialog.dart';
+import 'package:tvlauncher/widgets/settings/hidden_apps_panel_page.dart';
+import 'package:tvlauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -62,7 +62,7 @@ class SettingsPanelPage extends StatelessWidget {
             builder: (_) => FutureBuilder<PackageInfo>(
               future: PackageInfo.fromPlatform(),
               builder: (context, snapshot) => snapshot.connectionState == ConnectionState.done
-                  ? FLauncherAboutDialog(packageInfo: snapshot.data!)
+                  ? LauncherAboutDialog(packageInfo: snapshot.data!)
                   : Container(),
             ),
           ),

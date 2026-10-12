@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package me.efesser.flauncher
+package dev.neugebauer.tvlauncher
 
 import android.app.ActivityOptions
 import android.content.Intent
@@ -43,8 +43,8 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.Serializable
 
-private const val METHOD_CHANNEL = "me.efesser.flauncher/method"
-private const val EVENT_CHANNEL = "me.efesser.flauncher/event"
+private const val METHOD_CHANNEL = "dev.neugebauer.tvlauncher/method"
+private const val EVENT_CHANNEL = "dev.neugebauer.tvlauncher/event"
 
 class MainActivity : FlutterActivity() {
     val launcherAppsCallbacks = ArrayList<LauncherApps.Callback>()
@@ -272,7 +272,7 @@ class MainActivity : FlutterActivity() {
         startActivity(intent, options?.toBundle())
         true
     } catch (e: Exception) {
-        Log.w("FLauncher", "launch failed: $e")
+        Log.w("Launcher", "launch failed: $e")
         false
     }
 
@@ -294,7 +294,7 @@ class MainActivity : FlutterActivity() {
                 startActivity(intent)
                 return true
             } catch (e: Exception) {
-                Log.w("FLauncher", "settings intent ${intent.action} failed: $e")
+                Log.w("Launcher", "settings intent ${intent.action} failed: $e")
             }
         }
         return false

@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/widgets/right_panel_dialog.dart';
-import 'package:flauncher/widgets/settings/band_settings_page.dart';
-import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
-import 'package:flauncher/widgets/settings/quick_settings_page.dart';
-import 'package:flauncher/widgets/settings/settings_panel_page.dart';
-import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
+import 'package:tvlauncher/widgets/right_panel_dialog.dart';
+import 'package:tvlauncher/widgets/settings/band_settings_page.dart';
+import 'package:tvlauncher/widgets/settings/hidden_apps_panel_page.dart';
+import 'package:tvlauncher/widgets/settings/quick_settings_page.dart';
+import 'package:tvlauncher/widgets/settings/settings_panel_page.dart';
+import 'package:tvlauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPanel extends StatefulWidget {

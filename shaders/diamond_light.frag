@@ -1,4 +1,4 @@
-// FLauncher: the light value of every cell of the diamond grid, one pixel per cell, for diamonds.frag.
+// Launcher: the light value of every cell of the diamond grid, one pixel per cell, for diamonds.frag.
 //
 // A round spotlight just above the focused tile, plus a faint ambient shimmer, gives every grid cell a light value
 // v at its centre. Evaluated here once per cell instead of in every pixel of the cell; v goes out as two 8-bit

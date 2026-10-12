@@ -16,15 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/background/diamond_background.dart';
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/band/band_geometry.dart';
-import 'package:flauncher/band/nudge_overlay.dart';
-import 'package:flauncher/motion/frame_times.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/time_widget.dart';
+import 'package:tvlauncher/background/diamond_background.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/band/band_geometry.dart';
+import 'package:tvlauncher/band/nudge_overlay.dart';
+import 'package:tvlauncher/motion/frame_times.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';

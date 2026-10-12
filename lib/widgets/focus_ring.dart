@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/theme.dart';
+import 'package:tvlauncher/theme.dart';
 import 'package:flutter/material.dart';
 
 /// How the focus ring looks: a stroke [gap] outside the tile, with a faint white [halo] stroke of [haloWidth]

@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/widgets/settings/band_settings_page.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/widgets/settings/band_settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

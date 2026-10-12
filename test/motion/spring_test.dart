@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/motion/spring.dart';
-import 'package:flauncher/motion/tuning.dart';
+import 'package:tvlauncher/motion/spring.dart';
+import 'package:tvlauncher/motion/tuning.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

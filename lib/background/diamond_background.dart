@@ -20,9 +20,9 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/theme.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 

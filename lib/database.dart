@@ -86,12 +86,12 @@ enum CategorySort { manual, alphabetical }
 enum CategoryType { row, grid }
 
 @DriftDatabase(tables: [Apps, Categories, AppsCategories])
-class FLauncherDatabase extends _$FLauncherDatabase {
+class LauncherDatabase extends _$LauncherDatabase {
   late final bool wasCreated;
 
-  FLauncherDatabase(DatabaseConnection super.databaseConnection);
+  LauncherDatabase(DatabaseConnection super.databaseConnection);
 
-  FLauncherDatabase.inMemory() : super(LazyDatabase(() => NativeDatabase.memory()));
+  LauncherDatabase.inMemory() : super(LazyDatabase(() => NativeDatabase.memory()));
 
   @override
   int get schemaVersion => 5;

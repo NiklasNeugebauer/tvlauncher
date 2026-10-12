@@ -1,9 +1,9 @@
-# FLauncher fork
+# TV launcher (FLauncher fork)
 
 Personal fork of FLauncher, an Android TV home launcher written in Flutter. History: upstream
 [flauncher/flauncher](https://gitlab.com/flauncher/flauncher) 0.18.0 (last release 2023-03, unmaintained),
 then the [zompinc/flauncher](https://github.com/zompinc/flauncher) fork (Firebase removed, pointer support),
-which this repo is cloned from. Remotes: `upstream` (GitLab), `zomp` (GitHub). No own remote yet.
+which this repo is cloned from. Remotes: `upstream` (GitLab), `zomp` (GitHub). Own remote: `origin` (private GitHub repo `tvlauncher`).
 
 `SETUP.local.md` (git-ignored) describes the target device and home network. Read it before deploying.
 
@@ -43,9 +43,10 @@ after a schema change also `dart run drift_dev schema generate --data-classes --
 
 ## Package name and signing
 
-`applicationId` is `dev.neugebauer.tvlauncher`; the Kotlin package and manifest namespace stay `me.efesser.flauncher`,
-so the HOME component is `dev.neugebauer.tvlauncher/me.efesser.flauncher.MainActivity`. The Zomp build
-(`me.efesser.flauncher`) was uninstalled from the device on 2026-10-08.
+`applicationId`, manifest namespace, Kotlin package and method/event channel names are all `dev.neugebauer.tvlauncher`
+(Dart package `tvlauncher`), so the HOME component is `dev.neugebauer.tvlauncher/.MainActivity`. Until 2026-10-12 the
+namespace was still `me.efesser.flauncher`; the first install after that rename needs `set-home-activity` again.
+The Zomp build (`me.efesser.flauncher`) was uninstalled from the device on 2026-10-08.
 
 Signing: `android/app/upload-keystore.jks` (alias `tvlauncher`, PKCS12) with its passwords in `android/key.properties`.
 Both are git-ignored; the keystore password is in the password manager. Losing the keystore means every future
@@ -60,7 +61,7 @@ adb pair <ip>:<pair-port> <code>
 adb mdns services                      # shows the current _adb-tls-connect port
 adb connect <ip>:<connect-port>
 adb install -r build/app/outputs/flutter-apk/app-release.apk
-adb shell cmd package set-home-activity --user 0 dev.neugebauer.tvlauncher/me.efesser.flauncher.MainActivity
+adb shell cmd package set-home-activity --user 0 dev.neugebauer.tvlauncher/.MainActivity
 adb shell pm grant dev.neugebauer.tvlauncher android.permission.WRITE_SECURE_SETTINGS   # once, survives updates
 ```
 

@@ -18,7 +18,7 @@
 
 import 'dart:ui';
 
-import 'package:flauncher/theme.dart';
+import 'package:tvlauncher/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 

@@ -18,7 +18,7 @@
 
 import 'dart:typed_data';
 
-import 'package:flauncher/background/banner_hue.dart';
+import 'package:tvlauncher/background/banner_hue.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

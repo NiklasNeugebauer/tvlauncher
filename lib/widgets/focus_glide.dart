@@ -18,9 +18,9 @@
 
 import 'dart:math';
 
-import 'package:flauncher/motion/spring.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/focus_ring.dart';
+import 'package:tvlauncher/motion/spring.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/focus_ring.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 

@@ -20,8 +20,8 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:drift/drift.dart';
-import 'package:flauncher/database.dart';
-import 'package:flauncher/flauncher_channel.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/launcher_channel.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
@@ -30,8 +30,8 @@ import 'package:flutter/material.dart';
 enum SystemSettingsScreen { bluetooth, wifi, displaySound, all }
 
 class AppsService extends ChangeNotifier {
-  final FLauncherChannel _fLauncherChannel;
-  final FLauncherDatabase _database;
+  final LauncherChannel _launcherChannel;
+  final LauncherDatabase _database;
   bool _initialized = false;
 
   List<App> _applications = [];
@@ -55,14 +55,14 @@ class AppsService extends ChangeNotifier {
   /// Every visible app that is not in the hero, alphabetically. Derived, never stored.
   List<App> get gridApps => UnmodifiableListView(_gridApps);
 
-  AppsService(this._fLauncherChannel, this._database) {
+  AppsService(this._launcherChannel, this._database) {
     _init();
   }
 
   Future<void> _init() async {
     await _refreshState(shouldNotifyListeners: false);
     await _ensureHeroCategory();
-    _fLauncherChannel.addAppsChangedListener((event) async {
+    _launcherChannel.addAppsChangedListener((event) async {
       switch (event["action"]) {
         case "PACKAGE_ADDED":
         case "PACKAGE_CHANGED":
@@ -117,7 +117,7 @@ class AppsService extends ChangeNotifier {
 
   Future<void> _refreshState({bool shouldNotifyListeners = true}) async {
     await _database.transaction(() async {
-      final appsFromSystem = (await _fLauncherChannel.getApplications()).map(_buildAppCompanion).toList();
+      final appsFromSystem = (await _launcherChannel.getApplications()).map(_buildAppCompanion).toList();
 
       final appsRemovedFromSystem = (await _database.listApplications())
           .where((app) => !appsFromSystem.any((systemApp) => systemApp.packageName.value == app.packageName))
@@ -126,7 +126,7 @@ class AppsService extends ChangeNotifier {
 
       final List<String> uninstalledApplications = [];
       await Future.forEach(appsRemovedFromSystem, (String packageName) async {
-        if (!(await _fLauncherChannel.applicationExists(packageName))) {
+        if (!(await _launcherChannel.applicationExists(packageName))) {
           uninstalledApplications.add(packageName);
         }
       });
@@ -144,22 +144,22 @@ class AppsService extends ChangeNotifier {
   }
 
   Future<void> launchApp(App app, [LaunchTransition transition = LaunchTransition.system]) =>
-      _fLauncherChannel.launchApp(app.packageName, transition);
+      _launcherChannel.launchApp(app.packageName, transition);
 
-  Future<void> openAppInfo(App app) => _fLauncherChannel.openAppInfo(app.packageName);
+  Future<void> openAppInfo(App app) => _launcherChannel.openAppInfo(app.packageName);
 
-  Future<void> uninstallApp(App app) => _fLauncherChannel.uninstallApp(app.packageName);
+  Future<void> uninstallApp(App app) => _launcherChannel.uninstallApp(app.packageName);
 
-  Future<bool> openSystemSettings(SystemSettingsScreen screen) => _fLauncherChannel.openSystemSettings(screen.name);
+  Future<bool> openSystemSettings(SystemSettingsScreen screen) => _launcherChannel.openSystemSettings(screen.name);
 
-  Future<bool> isDefaultLauncher() => _fLauncherChannel.isDefaultLauncher();
+  Future<bool> isDefaultLauncher() => _launcherChannel.isDefaultLauncher();
 
-  Future<void> startAmbientMode() => _fLauncherChannel.startAmbientMode();
+  Future<void> startAmbientMode() => _launcherChannel.startAmbientMode();
 
   void setPlatformHandlers({
     required void Function(bool fromApp) onHomePressed,
     required void Function() onQuickSettingsPressed,
-  }) => _fLauncherChannel.setPlatformHandlers(
+  }) => _launcherChannel.setPlatformHandlers(
     onHomePressed: onHomePressed,
     onQuickSettingsPressed: onQuickSettingsPressed,
   );
