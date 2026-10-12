@@ -23,10 +23,20 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 
 /// The dominant hue of a banner, for the App colour light: the circular mean of the pixels' hues, weighted by
-/// saturation and value, so the logo's colour wins over grey and black. Null when the banner is nearly grey.
+/// saturation and value, so the logo's colour wins over a white, grey or black ground. Null when hardly any pixel is
+/// clearly coloured, or when the coloured pixels disagree (a multicolour logo would average to mud).
 abstract final class BannerHue {
   static const int _sampleWidth = 32;
-  static const double _minChroma = 0.12;
+
+  /// Saturation × value from which a pixel counts as clearly coloured.
+  static const double _strongColour = 0.35;
+
+  /// Share of clearly coloured pixels below which the banner counts as grey. Small, so that a small logo on a plain
+  /// ground still lends its colour.
+  static const double _minColouredShare = 0.03;
+
+  /// Length of the weighted mean hue vector: 1 when all coloured pixels share one hue, near 0 when they cancel out.
+  static const double _minAgreement = 0.5;
 
   static final Map<int, Future<double?>> _cache = {};
 
@@ -50,6 +60,7 @@ abstract final class BannerHue {
   /// [rgba] is 4 bytes per pixel.
   static double? hueOfPixels(Uint8List rgba) {
     var x = 0.0, y = 0.0, weight = 0.0;
+    var coloured = 0;
     for (var i = 0; i + 3 < rgba.length; i += 4) {
       final hsv = HSVColor.fromColor(Color.fromARGB(255, rgba[i], rgba[i + 1], rgba[i + 2]));
       final w = hsv.saturation * hsv.value;
@@ -57,9 +68,12 @@ abstract final class BannerHue {
       x += cos(angle) * w;
       y += sin(angle) * w;
       weight += w;
+      if (w >= _strongColour) {
+        coloured++;
+      }
     }
     final pixels = rgba.length ~/ 4;
-    if (pixels == 0 || sqrt(x * x + y * y) / pixels < _minChroma || weight == 0) {
+    if (pixels == 0 || coloured / pixels < _minColouredShare || sqrt(x * x + y * y) / weight < _minAgreement) {
       return null;
     }
     return (atan2(y, x) * 180 / pi + 360) % 360;
