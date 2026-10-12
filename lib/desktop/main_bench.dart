@@ -31,35 +31,43 @@ import 'package:image_picker/image_picker.dart';
 import 'package:tvlauncher/database.dart';
 import 'package:tvlauncher/desktop/fake_launcher_channel.dart';
 import 'package:tvlauncher/desktop/fake_remote.dart';
-import 'package:tvlauncher/launcher_app.dart';
 import 'package:tvlauncher/desktop/main_desktop.dart';
+import 'package:tvlauncher/launcher_app.dart';
 
 /// Frame cost of the home screen on a desktop, with the fake apps and the TV's band config (`tool/bench/`): the D-pad
-/// path the on-device benchmark used, an app launch and return, the quick settings panel, and idle. Run it with
-/// `tool/bench/run.sh`. It runs on the normal binding, so frames are only drawn when the app asks for them; the
-/// numbers compare builds on this machine, they are not the TV's frame times.
-// For screenshots the clock is fixed, so the time in the corner is the same in every set. The binding is set up
-// inside it, so the frame callbacks run in its zone too.
-Future<void> main() =>
-    Platform.environment["BENCH_SHOTS"] == null ? _main() : withClock(Clock.fixed(DateTime(2026, 1, 1, 12)), _main);
+/// path in [_walk], an app launch and return, the quick settings panel, and idle. Run it with `tool/bench/run.sh`.
+/// It runs on the normal binding, so frames are only drawn when the app asks for them; the numbers compare builds
+/// on this machine, they are not the TV's frame times.
+// The clock is fixed, so the time in the corner never changes: it would repaint once a minute and make the counted
+// work differ between runs, and the screenshots would differ too. The binding is set up inside it, so the frame
+// callbacks run in its zone too.
+Future<void> main() => withClock(Clock.fixed(DateTime(2026, 1, 1, 12)), _main);
+
+const _phases = ["walk", "launch", "panel", "idle"];
 
 Future<void> _main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final env = Platform.environment;
+  final shots = env["BENCH_SHOTS"];
+  final profilePhase = env["BENCH_PROFILE_PHASE"];
+  if (profilePhase != null && !_phases.contains(profilePhase)) {
+    stderr.writeln("BENCH_PROFILE_PHASE must be one of ${_phases.join(", ")}");
+    exit(2);
+  }
   final data = Directory.systemTemp.createTempSync("tvlauncher-bench");
-  final config = jsonDecode(
-    File(Platform.environment["BENCH_CONFIG"] ?? "tool/bench/band_config.json").readAsStringSync(),
-  ) as Map<String, dynamic>;
+  final config =
+      jsonDecode(File(env["BENCH_CONFIG"] ?? "tool/bench/band_config.json").readAsStringSync()) as Map<String, dynamic>;
   // Screenshots compare settled frames, so the shimmer, which never settles, is off for them.
-  if (Platform.environment["BENCH_SHOTS"] != null) (config["tuning"] as Map<String, dynamic>)["ambientFps"] = 0;
+  if (shots != null) (config["tuning"] as Map<String, dynamic>)["ambientFps"] = 0;
   File("${data.path}/band_config.json").writeAsStringSync(jsonEncode(config));
   final channel = startDesktop(dataDir: data.path);
   final database = LauncherDatabase(connect());
   await seedHero(channel, database);
 
   FakeRemote.exclusive();
-  final shots = Platform.environment["BENCH_SHOTS"];
   if (shots != null) {
     await _shots(channel, LauncherApp(ImagePicker(), channel, database), Directory(shots));
+    data.deleteSync(recursive: true);
     exit(0);
   }
 
@@ -69,11 +77,11 @@ Future<void> _main() async {
   runApp(LauncherApp(ImagePicker(), channel, database));
   await _wait(3000);
 
-  final passes = (int.tryParse(Platform.environment["BENCH_PASSES"] ?? "") ?? 5).clamp(1, 100);
+  final passes = (int.tryParse(env["BENCH_PASSES"] ?? "") ?? 5).clamp(1, 100);
   // BENCH_PROFILE=phases: the framework's own timeline blocks (build, layout, paint, compositing, semantics), summed
   // by self time, cheap enough to keep the frame numbers. BENCH_PROFILE=widgets adds a block for every widget build,
   // layout and paint, which slows the UI thread down several times over, so only its ranking means anything.
-  final profile = Platform.environment["BENCH_PROFILE"];
+  final profile = env["BENCH_PROFILE"];
   if (profile != null) {
     final widgets = profile == "widgets";
     debugProfileBuildsEnabled = widgets;
@@ -87,7 +95,7 @@ Future<void> _main() async {
   Future<void> phase(String name, Future<void> Function() body) async {
     final start = Timeline.now;
     // BENCH_PROFILE_PHASE=<name>: the profile covers only that phase of the first measured pass.
-    final only = profile != null && Platform.environment["BENCH_PROFILE_PHASE"] == name && spans[name]?.length == 1;
+    final only = profile != null && profilePhase == name && spans[name]?.length == 1;
     if (only) FlutterTimeline.debugReset();
     await body();
     if (only) profiled = _selfTimes(FlutterTimeline.debugCollect());
@@ -148,7 +156,7 @@ Future<void> _main() async {
   if (profile != null) report["profile"] = profiled ?? _selfTimes(FlutterTimeline.debugCollect());
   final json = jsonEncode(report);
   stdout.writeln("BENCH $json");
-  final out = Platform.environment["BENCH_OUT"];
+  final out = env["BENCH_OUT"];
   if (out != null) File(out).writeAsStringSync(const JsonEncoder.withIndent("  ").convert(report));
   data.deleteSync(recursive: true);
   exit(0);
@@ -287,13 +295,13 @@ class _Scenes {
   }
 }
 
-/// Frame counts are the median of the passes, times the minimum: whatever else runs on the machine only ever adds
-/// time, so the fastest pass is the closest to the app's own cost.
+/// Timings (`ui_*`, `raster_*`) are the minimum of the passes, counts the median: whatever else runs on the machine
+/// only ever adds time, so the fastest pass is the closest to the app's own cost.
 Map<String, num> _combine(List<Map<String, num>> passes) => {
   for (final key in passes.first.keys)
-    key: !(key.endsWith("_ms") || key.contains("_p90") || key.endsWith("_max"))
-        ? (passes.map((p) => p[key]!.toDouble()).toList()..sort())[passes.length ~/ 2]
-        : passes.map((p) => p[key]!.toDouble()).reduce((a, b) => a < b ? a : b),
+    key: key.startsWith("ui_") || key.startsWith("raster_")
+        ? passes.map((p) => p[key]!.toDouble()).reduce((a, b) => a < b ? a : b)
+        : (passes.map((p) => p[key]!.toDouble()).toList()..sort())[passes.length ~/ 2],
 };
 
 /// Milliseconds spent in each timeline block's own code, without the blocks nested in it, and how many blocks,

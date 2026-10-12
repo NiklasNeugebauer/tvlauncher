@@ -15,7 +15,12 @@ from PIL import Image
 
 a_dir, b_dir = Path(sys.argv[1]), Path(sys.argv[2])
 worst = 0
-for a_path in sorted(a_dir.glob("*.png")):
+names_a = {p.name for p in a_dir.glob("*.png") if not p.name.startswith("diff-")}
+names_b = {p.name for p in b_dir.glob("*.png") if not p.name.startswith("diff-")}
+for name in sorted(names_a ^ names_b):
+    print(f"{name}: only in {a_dir if name in names_a else b_dir}")
+    worst = 255
+for a_path in sorted(a_dir / name for name in names_a & names_b):
     b_path = b_dir / a_path.name
     a = np.asarray(Image.open(a_path).convert("RGB"), dtype=np.int16)
     b = np.asarray(Image.open(b_path).convert("RGB"), dtype=np.int16)

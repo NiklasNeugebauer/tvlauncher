@@ -9,5 +9,6 @@ mise exec -- flutter build linux --profile -t lib/desktop/main_bench.dart >build
   || { tail -30 build/bench/build.log; exit 1; }
 # One instance at a time: a second launcher window would compete for the GPU.
 pkill -x tvlauncher || true
-BENCH_OUT=build/bench/latest.json build/linux/x64/profile/bundle/tvlauncher >build/bench/run.log 2>&1
-grep "^BENCH" build/bench/run.log || [ -n "${BENCH_SHOTS:-}" ]
+BENCH_OUT=build/bench/latest.json build/linux/x64/profile/bundle/tvlauncher >build/bench/run.log 2>&1 \
+  || { tail -30 build/bench/run.log; exit 1; }
+grep "^BENCH" build/bench/run.log || [ -n "${BENCH_SHOTS:-}" ] || { tail -30 build/bench/run.log; exit 1; }

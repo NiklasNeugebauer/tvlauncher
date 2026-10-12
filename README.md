@@ -45,6 +45,18 @@ adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
 # undo: adb shell pm enable <package>
 ```
 
+## Desktop
+
+The launcher runs on Linux with 24 made-up apps, which is enough to try out changes without a TV:
+
+```shell
+mise exec -- flutter run -d linux --profile -t lib/desktop/main_desktop.dart
+```
+
+Arrows and Enter act as the remote, Backspace is Back, H is Home, Q opens the quick settings. Data lives in
+`build/desktop_data`; its `band_config.json` applies within a second while the app runs. `tool/bench/run.sh` measures
+the home screen's frame cost.
+
 ## Notes
 
 - The Assistant button and the volume/mute buttons never reach a launcher on this device; the former belongs to
