@@ -48,16 +48,48 @@ void main() {
     expect(hue, inInclusiveRange(200, 240));
   });
 
+  test("a small logo on a plain ground still gives its colour", () {
+    final onWhite = BannerHue.hueOfPixels(
+      pixels([
+        ...List.filled(19, [255, 255, 255]),
+        [230, 30, 30],
+      ]),
+    );
+    final onBlack = BannerHue.hueOfPixels(
+      pixels([
+        ...List.filled(19, [10, 10, 10]),
+        [230, 30, 30],
+      ]),
+    );
+
+    expect(onWhite, closeTo(0, 1));
+    expect(onBlack, closeTo(0, 1));
+  });
+
   test("a grey banner has no hue", () {
     expect(BannerHue.hueOfPixels(pixels(List.filled(10, [200, 200, 200]))), isNull);
     expect(
       BannerHue.hueOfPixels(
         pixels([
-          ...List.filled(19, [20, 20, 20]),
+          ...List.filled(49, [20, 20, 20]),
           [255, 0, 0],
         ]),
       ),
       isNull,
     );
+    expect(BannerHue.hueOfPixels(pixels(List.filled(10, [140, 120, 120]))), isNull);
+  });
+
+  test("a multicolour logo has no hue", () {
+    final hue = BannerHue.hueOfPixels(
+      pixels([
+        ...List.filled(10, [255, 255, 255]),
+        [230, 30, 30],
+        [30, 230, 30],
+        [30, 30, 230],
+      ]),
+    );
+
+    expect(hue, isNull);
   });
 }
