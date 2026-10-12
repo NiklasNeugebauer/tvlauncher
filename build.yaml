@@ -9,7 +9,7 @@ targets:
         enabled: false
 
   run_built_value:
-    dependencies: [ 'flauncher' ]
+    dependencies: [ 'tvlauncher' ]
     builders:
       drift_dev:
         enabled: false

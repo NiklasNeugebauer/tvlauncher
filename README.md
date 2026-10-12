@@ -33,7 +33,7 @@ Release builds read `android/key.properties` (git-ignored) or the `SIGNING_*` en
 
 ```shell
 adb install -r build/app/outputs/flutter-apk/app-release.apk
-adb shell cmd package set-home-activity --user 0 dev.neugebauer.tvlauncher/me.efesser.flauncher.MainActivity
+adb shell cmd package set-home-activity --user 0 dev.neugebauer.tvlauncher/.MainActivity
 adb shell pm grant dev.neugebauer.tvlauncher android.permission.WRITE_SECURE_SETTINGS   # once; TV settings requires it for the Bluetooth screen
 ```
 

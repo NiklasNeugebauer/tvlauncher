@@ -17,21 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/background/banner_hue.dart';
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/database.dart';
-import 'package:flauncher/home_focus.dart';
-import 'package:flauncher/motion/edge_nudge.dart';
-import 'package:flauncher/motion/spring.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/application_info_panel.dart';
-import 'package:flauncher/widgets/focus_glide.dart';
-import 'package:flauncher/widgets/focus_ring.dart';
-import 'package:flauncher/widgets/focus_keyboard_listener.dart';
-import 'package:flauncher/widgets/right_panel_dialog.dart';
+import 'package:tvlauncher/background/banner_hue.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/home_focus.dart';
+import 'package:tvlauncher/motion/edge_nudge.dart';
+import 'package:tvlauncher/motion/spring.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/application_info_panel.dart';
+import 'package:tvlauncher/widgets/focus_glide.dart';
+import 'package:tvlauncher/widgets/focus_ring.dart';
+import 'package:tvlauncher/widgets/focus_keyboard_listener.dart';
+import 'package:tvlauncher/widgets/right_panel_dialog.dart';
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

@@ -18,9 +18,9 @@
 
 import 'dart:math';
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/flauncher_channel.dart';
-import 'package:flauncher/motion/tuning.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/launcher_channel.dart';
+import 'package:tvlauncher/motion/tuning.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -36,7 +36,7 @@ class UiSounds {
   static const int ticksEvery = 4;
   static const double panelLevel = 0.6;
 
-  final FLauncherChannel _channel;
+  final LauncherChannel _channel;
   final BandController _band;
   final Random _random;
   int _heldMoves = 0;

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/flauncher_channel.dart';
+import 'package:tvlauncher/launcher_channel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,26 +26,26 @@ void main() {
   });
 
   test("getApplications", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "getApplications") {
         return [
-          {'packageName': 'me.efesser.flauncher'},
+          {'packageName': 'dev.neugebauer.tvlauncher'},
         ];
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    final apps = await fLauncherChannel.getApplications();
+    final apps = await launcherChannel.getApplications();
 
     expect(apps, [
-      {'packageName': 'me.efesser.flauncher'},
+      {'packageName': 'dev.neugebauer.tvlauncher'},
     ]);
   });
 
   test("launchApp", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     Object? arguments;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "launchApp") {
@@ -54,24 +54,24 @@ void main() {
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    await fLauncherChannel.launchApp("me.efesser.flauncher");
-    expect(arguments, {"packageName": "me.efesser.flauncher", "transition": "system"});
+    await launcherChannel.launchApp("dev.neugebauer.tvlauncher");
+    expect(arguments, {"packageName": "dev.neugebauer.tvlauncher", "transition": "system"});
 
-    await fLauncherChannel.launchApp(
-      "me.efesser.flauncher",
+    await launcherChannel.launchApp(
+      "dev.neugebauer.tvlauncher",
       LaunchTransition.scaleUp(Rect.fromLTWH(10.4, 20, 300, 169)),
     );
     expect(arguments, {
-      "packageName": "me.efesser.flauncher",
+      "packageName": "dev.neugebauer.tvlauncher",
       "transition": "scaleUp",
       "source": [10, 20, 300, 169],
     });
   });
 
   test("openSystemSettings passes the screen name", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     String? screen;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "openSystemSettings") {
@@ -80,16 +80,16 @@ void main() {
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    final opened = await fLauncherChannel.openSystemSettings("bluetooth");
+    final opened = await launcherChannel.openSystemSettings("bluetooth");
 
     expect(opened, isTrue);
     expect(screen, "bluetooth");
   });
 
   test("openAppInfo", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     String? packageName;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "openAppInfo") {
@@ -98,15 +98,15 @@ void main() {
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    await fLauncherChannel.openAppInfo("me.efesser.flauncher");
+    await launcherChannel.openAppInfo("dev.neugebauer.tvlauncher");
 
-    expect(packageName, "me.efesser.flauncher");
+    expect(packageName, "dev.neugebauer.tvlauncher");
   });
 
   test("uninstallApp", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     String? packageName;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "uninstallApp") {
@@ -115,45 +115,45 @@ void main() {
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    await fLauncherChannel.uninstallApp("me.efesser.flauncher");
+    await launcherChannel.uninstallApp("dev.neugebauer.tvlauncher");
 
-    expect(packageName, "me.efesser.flauncher");
+    expect(packageName, "dev.neugebauer.tvlauncher");
   });
 
   test("isDefaultLauncher", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "isDefaultLauncher") {
         return true;
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    final isDefaultLauncher = await fLauncherChannel.isDefaultLauncher();
+    final isDefaultLauncher = await launcherChannel.isDefaultLauncher();
 
     expect(isDefaultLauncher, isTrue);
   });
 
   test("checkForGetContentAvailability", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "checkForGetContentAvailability") {
         return true;
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    final getContentAvailable = await fLauncherChannel.checkForGetContentAvailability();
+    final getContentAvailable = await launcherChannel.checkForGetContentAvailability();
 
     expect(getContentAvailable, isTrue);
   });
 
   test("startAmbientMode", () async {
-    final channel = MethodChannel('me.efesser.flauncher/method');
+    final channel = MethodChannel('dev.neugebauer.tvlauncher/method');
     bool called = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == "startAmbientMode") {
@@ -162,18 +162,18 @@ void main() {
       }
       fail("Unhandled method name");
     });
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
 
-    await fLauncherChannel.startAmbientMode();
+    await launcherChannel.startAmbientMode();
 
     expect(called, isTrue);
   });
 
   test("setPlatformHandlers routes homePressed and quickSettingsPressed", () async {
-    final fLauncherChannel = FLauncherChannel();
+    final launcherChannel = LauncherChannel();
     var assist = 0;
     final fromApp = <bool>[];
-    fLauncherChannel.setPlatformHandlers(onHomePressed: fromApp.add, onQuickSettingsPressed: () => assist++);
+    launcherChannel.setPlatformHandlers(onHomePressed: fromApp.add, onQuickSettingsPressed: () => assist++);
 
     final codec = StandardMethodCodec();
     for (final (method, arguments) in [
@@ -183,7 +183,7 @@ void main() {
       ("quickSettingsPressed", null),
     ]) {
       await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
-        'me.efesser.flauncher/method',
+        'dev.neugebauer.tvlauncher/method',
         codec.encodeMethodCall(MethodCall(method, arguments)),
         (_) {},
       );

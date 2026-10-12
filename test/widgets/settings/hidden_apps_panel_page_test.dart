@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/widgets/settings/hidden_apps_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';

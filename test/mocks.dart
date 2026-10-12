@@ -19,23 +19,23 @@
 import 'dart:math';
 
 import 'package:drift/drift.dart';
-import 'package:flauncher/database.dart';
-import 'package:flauncher/flauncher_channel.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/launcher_channel.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
 import 'package:mockito/annotations.dart';
 
 @GenerateMocks(
-  [FLauncherChannel, WallpaperService, AppsService],
+  [LauncherChannel, WallpaperService, AppsService],
   customMocks: [
-    MockSpec<FLauncherDatabase>(unsupportedMembers: {#alias}),
+    MockSpec<LauncherDatabase>(unsupportedMembers: {#alias}),
   ],
 )
 void main() {}
 
 App fakeApp({
-  String packageName = "me.efesser.flauncher",
-  String name = "FLauncher",
+  String packageName = "dev.neugebauer.tvlauncher",
+  String name = "Launcher",
   String version = "1.0.0",
   Uint8List? banner,
   Uint8List? icon,

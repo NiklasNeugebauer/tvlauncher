@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
-import 'package:flauncher/home_focus.dart';
-import 'package:flauncher/widgets/app_card.dart';
-import 'package:flauncher/widgets/home_layout.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/home_focus.dart';
+import 'package:tvlauncher/widgets/app_card.dart';
+import 'package:tvlauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
 
 /// Every app that is not in the hero row, alphabetical, in fixed-size rows that scroll with the page.

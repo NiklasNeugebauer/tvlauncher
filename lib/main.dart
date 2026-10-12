@@ -16,18 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
-import 'package:flauncher/flauncher_channel.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/launcher_channel.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'flauncher_app.dart';
+import 'launcher_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final imagePicker = ImagePicker();
-  final fLauncherChannel = FLauncherChannel();
-  final fLauncherDatabase = FLauncherDatabase(connect());
-  runApp(FLauncherApp(imagePicker, fLauncherChannel, fLauncherDatabase));
+  final launcherChannel = LauncherChannel();
+  final launcherDatabase = LauncherDatabase(connect());
+  runApp(LauncherApp(imagePicker, launcherChannel, launcherDatabase));
 }

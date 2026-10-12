@@ -18,7 +18,7 @@
 
 import 'package:drift/drift.dart';
 import 'package:drift_dev/api/migrations_native.dart';
-import 'package:flauncher/database.dart';
+import 'package:tvlauncher/database.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'generated_migrations/schema.dart';
@@ -43,8 +43,8 @@ void main() {
         .into(oldDb.apps)
         .insert(
           v1.AppsCompanion.insert(
-            packageName: "me.efesser.flauncher",
-            name: "FLauncher",
+            packageName: "dev.neugebauer.tvlauncher",
+            name: "Launcher",
             className: ".MainActivity",
             version: "0.0.1",
             icon: Value(Uint8List.fromList([0x01])),
@@ -57,11 +57,11 @@ void main() {
     await oldDb
         .into(oldDb.appsCategories)
         .insert(
-          v1.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
+          v1.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "dev.neugebauer.tvlauncher", order: 0),
         );
     await oldDb.close();
 
-    final db = FLauncherDatabase(schema.newConnection());
+    final db = LauncherDatabase(schema.newConnection());
     await verifier.migrateAndValidate(db, 5);
     await db.close();
 
@@ -69,8 +69,8 @@ void main() {
     final v5.AppsData app = await migratedDb.select(migratedDb.apps).getSingle();
     final v5.CategoriesData category = await migratedDb.select(migratedDb.categories).getSingle();
     final v5.AppsCategoriesData appsCategory = await migratedDb.select(migratedDb.appsCategories).getSingle();
-    expect(app.packageName, "me.efesser.flauncher");
-    expect(app.name, "FLauncher");
+    expect(app.packageName, "dev.neugebauer.tvlauncher");
+    expect(app.name, "Launcher");
     expect(app.version, "0.0.1");
     expect(app.icon, Uint8List.fromList([0x01]));
     expect(app.banner, Uint8List.fromList([0x02]));
@@ -83,7 +83,7 @@ void main() {
     expect(category.type, 1);
     expect(category.columnsCount, 6);
     expect(category.rowHeight, 110);
-    expect(appsCategory.appPackageName, "me.efesser.flauncher");
+    expect(appsCategory.appPackageName, "dev.neugebauer.tvlauncher");
     expect(appsCategory.categoryId, 1);
     expect(appsCategory.order, 0);
     await migratedDb.close();
@@ -97,8 +97,8 @@ void main() {
         .into(oldDb.apps)
         .insert(
           v2.AppsCompanion.insert(
-            packageName: "me.efesser.flauncher",
-            name: "FLauncher",
+            packageName: "dev.neugebauer.tvlauncher",
+            name: "Launcher",
             version: "0.0.1",
             icon: Value(Uint8List.fromList([0x01])),
             banner: Value(Uint8List.fromList([0x02])),
@@ -110,11 +110,11 @@ void main() {
     await oldDb
         .into(oldDb.appsCategories)
         .insert(
-          v2.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
+          v2.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "dev.neugebauer.tvlauncher", order: 0),
         );
     await oldDb.close();
 
-    final db = FLauncherDatabase(schema.newConnection());
+    final db = LauncherDatabase(schema.newConnection());
     await verifier.migrateAndValidate(db, 5);
     await db.close();
 
@@ -122,8 +122,8 @@ void main() {
     final v5.AppsData app = await migratedDb.select(migratedDb.apps).getSingle();
     final v5.CategoriesData category = await migratedDb.select(migratedDb.categories).getSingle();
     final v5.AppsCategoriesData appsCategory = await migratedDb.select(migratedDb.appsCategories).getSingle();
-    expect(app.packageName, "me.efesser.flauncher");
-    expect(app.name, "FLauncher");
+    expect(app.packageName, "dev.neugebauer.tvlauncher");
+    expect(app.name, "Launcher");
     expect(app.version, "0.0.1");
     expect(app.icon, Uint8List.fromList([0x01]));
     expect(app.banner, Uint8List.fromList([0x02]));
@@ -136,7 +136,7 @@ void main() {
     expect(category.type, 1);
     expect(category.columnsCount, 6);
     expect(category.rowHeight, 110);
-    expect(appsCategory.appPackageName, "me.efesser.flauncher");
+    expect(appsCategory.appPackageName, "dev.neugebauer.tvlauncher");
     expect(appsCategory.categoryId, 1);
     expect(appsCategory.order, 0);
     await migratedDb.close();
@@ -150,8 +150,8 @@ void main() {
         .into(oldDb.apps)
         .insert(
           v3.AppsCompanion.insert(
-            packageName: "me.efesser.flauncher",
-            name: "FLauncher",
+            packageName: "dev.neugebauer.tvlauncher",
+            name: "Launcher",
             version: "0.0.1",
             icon: Value(Uint8List.fromList([0x01])),
             banner: Value(Uint8List.fromList([0x02])),
@@ -163,11 +163,11 @@ void main() {
     await oldDb
         .into(oldDb.appsCategories)
         .insert(
-          v3.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
+          v3.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "dev.neugebauer.tvlauncher", order: 0),
         );
     await oldDb.close();
 
-    final db = FLauncherDatabase(schema.newConnection());
+    final db = LauncherDatabase(schema.newConnection());
     await verifier.migrateAndValidate(db, 5);
     await db.close();
 
@@ -175,8 +175,8 @@ void main() {
     final v5.AppsData app = await migratedDb.select(migratedDb.apps).getSingle();
     final v5.CategoriesData category = await migratedDb.select(migratedDb.categories).getSingle();
     final v5.AppsCategoriesData appsCategory = await migratedDb.select(migratedDb.appsCategories).getSingle();
-    expect(app.packageName, "me.efesser.flauncher");
-    expect(app.name, "FLauncher");
+    expect(app.packageName, "dev.neugebauer.tvlauncher");
+    expect(app.name, "Launcher");
     expect(app.version, "0.0.1");
     expect(app.icon, Uint8List.fromList([0x01]));
     expect(app.banner, Uint8List.fromList([0x02]));
@@ -189,7 +189,7 @@ void main() {
     expect(category.type, 1);
     expect(category.columnsCount, 6);
     expect(category.rowHeight, 110);
-    expect(appsCategory.appPackageName, "me.efesser.flauncher");
+    expect(appsCategory.appPackageName, "dev.neugebauer.tvlauncher");
     expect(appsCategory.categoryId, 1);
     expect(appsCategory.order, 0);
     await migratedDb.close();
@@ -203,8 +203,8 @@ void main() {
         .into(oldDb.apps)
         .insert(
           v4.AppsCompanion.insert(
-            packageName: "me.efesser.flauncher",
-            name: "FLauncher",
+            packageName: "dev.neugebauer.tvlauncher",
+            name: "Launcher",
             version: "0.0.1",
             icon: Value(Uint8List.fromList([0x01])),
             banner: Value(Uint8List.fromList([0x02])),
@@ -216,11 +216,11 @@ void main() {
     await oldDb
         .into(oldDb.appsCategories)
         .insert(
-          v4.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "me.efesser.flauncher", order: 0),
+          v4.AppsCategoriesCompanion.insert(categoryId: categoryId, appPackageName: "dev.neugebauer.tvlauncher", order: 0),
         );
     await oldDb.close();
 
-    final db = FLauncherDatabase(schema.newConnection());
+    final db = LauncherDatabase(schema.newConnection());
     await verifier.migrateAndValidate(db, 5);
     await db.close();
 
@@ -228,8 +228,8 @@ void main() {
     final v5.AppsData app = await migratedDb.select(migratedDb.apps).getSingle();
     final v5.CategoriesData category = await migratedDb.select(migratedDb.categories).getSingle();
     final v5.AppsCategoriesData appsCategory = await migratedDb.select(migratedDb.appsCategories).getSingle();
-    expect(app.packageName, "me.efesser.flauncher");
-    expect(app.name, "FLauncher");
+    expect(app.packageName, "dev.neugebauer.tvlauncher");
+    expect(app.name, "Launcher");
     expect(app.version, "0.0.1");
     expect(app.icon, Uint8List.fromList([0x01]));
     expect(app.banner, Uint8List.fromList([0x02]));
@@ -242,7 +242,7 @@ void main() {
     expect(category.type, 1);
     expect(category.columnsCount, 6);
     expect(category.rowHeight, 110);
-    expect(appsCategory.appPackageName, "me.efesser.flauncher");
+    expect(appsCategory.appPackageName, "dev.neugebauer.tvlauncher");
     expect(appsCategory.categoryId, 1);
     expect(appsCategory.order, 0);
     await migratedDb.close();

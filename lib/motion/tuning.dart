@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/motion/spring.dart';
+import 'package:tvlauncher/motion/spring.dart';
 import 'package:flutter/foundation.dart';
 
 /// One number that can be tuned on the wall: from "Band & motion" in steps of [step], or in the config file.

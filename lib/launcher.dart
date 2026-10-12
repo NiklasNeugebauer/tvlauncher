@@ -17,31 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/custom_traversal_policy.dart';
-import 'package:flauncher/home_focus.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/apps_grid.dart';
-import 'package:flauncher/widgets/focus_glide.dart';
-import 'package:flauncher/widgets/focus_ring.dart';
-import 'package:flauncher/widgets/hero_row.dart';
-import 'package:flauncher/widgets/home_layout.dart';
-import 'package:flauncher/widgets/right_panel_dialog.dart';
-import 'package:flauncher/widgets/settings/settings_panel.dart';
-import 'package:flauncher/widgets/time_widget.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/custom_traversal_policy.dart';
+import 'package:tvlauncher/home_focus.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/apps_grid.dart';
+import 'package:tvlauncher/widgets/focus_glide.dart';
+import 'package:tvlauncher/widgets/focus_ring.dart';
+import 'package:tvlauncher/widgets/hero_row.dart';
+import 'package:tvlauncher/widgets/home_layout.dart';
+import 'package:tvlauncher/widgets/right_panel_dialog.dart';
+import 'package:tvlauncher/widgets/settings/settings_panel.dart';
+import 'package:tvlauncher/widgets/time_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-class FLauncher extends StatefulWidget {
+class Launcher extends StatefulWidget {
   @override
-  State<FLauncher> createState() => _FLauncherState();
+  State<Launcher> createState() => _LauncherState();
 }
 
-class _FLauncherState extends State<FLauncher> {
+class _LauncherState extends State<Launcher> {
   @override
   void initState() {
     super.initState();

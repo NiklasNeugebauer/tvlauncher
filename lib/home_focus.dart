@@ -19,10 +19,10 @@
 
 import 'dart:math';
 
-import 'package:flauncher/custom_traversal_policy.dart';
-import 'package:flauncher/database.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/home_layout.dart';
+import 'package:tvlauncher/custom_traversal_policy.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/home_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';

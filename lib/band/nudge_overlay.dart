@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/theme.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/theme.dart';
 import 'package:flutter/material.dart';
 
 /// Drawn over the whole frame while nudging: a 1 px outline of the full frame (so cropping by overscan or keystone

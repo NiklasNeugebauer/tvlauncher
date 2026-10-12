@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/settings/flauncher_about_dialog.dart';
-import 'package:flauncher/widgets/settings/hidden_apps_panel_page.dart';
-import 'package:flauncher/widgets/settings/settings_panel_page.dart';
-import 'package:flauncher/widgets/settings/wallpaper_panel_page.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/widgets/settings/launcher_about_dialog.dart';
+import 'package:tvlauncher/widgets/settings/hidden_apps_panel_page.dart';
+import 'package:tvlauncher/widgets/settings/settings_panel_page.dart';
+import 'package:tvlauncher/widgets/settings/wallpaper_panel_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -66,7 +66,7 @@ void main() {
     await tester.tap(find.text("About"));
     await tester.pumpAndSettle();
 
-    expect(find.byType(FLauncherAboutDialog), findsOneWidget);
+    expect(find.byType(LauncherAboutDialog), findsOneWidget);
   });
 }
 
@@ -91,8 +91,8 @@ Future<void> _pumpWidgetWithProviders(WidgetTester tester) async {
 class _MockPackageInfoPlatform with MockPlatformInterfaceMixin implements PackageInfoPlatform {
   @override
   Future<PackageInfoData> getAll({String? baseUrl}) async => PackageInfoData(
-    appName: "FLauncher",
-    packageName: "me.efesser.flauncher",
+    appName: "Launcher",
+    packageName: "dev.neugebauer.tvlauncher",
     version: "1.0.0",
     buildNumber: "1",
     buildSignature: "",

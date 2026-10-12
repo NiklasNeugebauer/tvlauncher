@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/ensure_visible.dart';
-import 'package:flauncher/widgets/panel_row.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/widgets/ensure_visible.dart';
+import 'package:tvlauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

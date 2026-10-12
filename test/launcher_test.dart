@@ -17,19 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/actions.dart';
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/database.dart';
-import 'package:flauncher/flauncher.dart';
-import 'package:flauncher/home_focus.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
-import 'package:flauncher/widgets/application_info_panel.dart';
-import 'package:flauncher/widgets/focus_glide.dart';
-import 'package:flauncher/widgets/home_layout.dart';
-import 'package:flauncher/widgets/settings/quick_settings_page.dart';
+import 'package:tvlauncher/actions.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/launcher.dart';
+import 'package:tvlauncher/home_focus.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/widgets/application_info_panel.dart';
+import 'package:tvlauncher/widgets/focus_glide.dart';
+import 'package:tvlauncher/widgets/home_layout.dart';
+import 'package:tvlauncher/widgets/settings/quick_settings_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -243,7 +243,7 @@ void main() {
   });
 
   testWidgets("Up from the grid into the hero blips", (tester) async {
-    final channel = MockFLauncherChannel();
+    final channel = MockLauncherChannel();
     when(channel.playSound(any, rate: anyNamed("rate"), volume: anyNamed("volume"))).thenAnswer((_) async {});
     final band = BandController();
     final appsService = _appsService(hero: [_app("hero.1")], grid: [_app("grid.1"), _app("grid.2")]);
@@ -314,8 +314,8 @@ void main() {
 
   testWidgets("A held select moves a hero tile with left/right and saves on select", (tester) async {
     // A real AppsService over mocked channel and database, so the reorder rebuilds the row like on the device.
-    final channel = MockFLauncherChannel();
-    final database = MockFLauncherDatabase();
+    final channel = MockLauncherChannel();
+    final database = MockLauncherDatabase();
     final hero = fakeCategory(name: "Main");
     final first = _app("hero.1");
     final second = _app("hero.2");
@@ -657,8 +657,8 @@ MockAppsService _appsService({required List<App> hero, required List<App> grid})
 
 // A real AppsService over a mocked channel and an in-memory hero, so adding and removing rebuild the home screen.
 Future<AppsService> _realAppsService({required List<String> hero, required List<String> grid}) async {
-  final channel = MockFLauncherChannel();
-  final database = MockFLauncherDatabase();
+  final channel = MockLauncherChannel();
+  final database = MockLauncherDatabase();
   final category = fakeCategory(name: "Main");
   final apps = {
     for (final name in [...hero, ...grid]) name: _app(name),
@@ -717,7 +717,7 @@ Future<HomeFocusController> _pumpHome(
       builder: (context, _) => MaterialApp(
         actions: {...WidgetsApp.defaultActions, DirectionalFocusIntent: SoundFeedbackDirectionalFocusAction(context)},
         builder: (context, child) => band == null ? child! : BandScope(controller: band, child: child!),
-        home: FLauncher(),
+        home: Launcher(),
       ),
     ),
   );

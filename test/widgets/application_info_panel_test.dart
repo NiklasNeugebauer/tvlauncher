@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/database.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/widgets/application_info_panel.dart';
+import 'package:tvlauncher/database.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/widgets/application_info_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -94,8 +94,8 @@ void main() {
 }
 
 App _app({bool hidden = false}) => fakeApp(
-  packageName: "me.efesser.flauncher",
-  name: "FLauncher",
+  packageName: "dev.neugebauer.tvlauncher",
+  name: "Launcher",
   version: "1.0.0",
   banner: kTransparentImage,
   icon: kTransparentImage,

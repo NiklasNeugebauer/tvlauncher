@@ -1,4 +1,4 @@
-// FLauncher: the focus-lit diamond background.
+// Launcher: the focus-lit diamond background.
 //
 // A grid of small squares on a flat ground. Every grid cell has a light value v (diamond_light.frag, from the
 // spotlight above the focused tile and the ambient shimmer); the cell's square grows and turns toward a diamond

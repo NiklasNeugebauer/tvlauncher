@@ -18,9 +18,9 @@
 
 import 'dart:math';
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -28,12 +28,12 @@ import 'package:mockito/mockito.dart';
 import '../mocks.mocks.dart';
 
 void main() {
-  late MockFLauncherChannel channel;
+  late MockLauncherChannel channel;
   late BandController band;
   late UiSounds sounds;
 
   setUp(() {
-    channel = MockFLauncherChannel();
+    channel = MockLauncherChannel();
     when(channel.playSound(any, rate: anyNamed("rate"), volume: anyNamed("volume"))).thenAnswer((_) async {});
     band = BandController();
     sounds = UiSounds(channel, band, random: Random(1));

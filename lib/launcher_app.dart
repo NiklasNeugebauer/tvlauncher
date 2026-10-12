@@ -16,42 +16,42 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/actions.dart';
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/band/band_frame.dart';
-import 'package:flauncher/providers/apps_service.dart';
-import 'package:flauncher/home_focus.dart';
-import 'package:flauncher/providers/wallpaper_service.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/actions.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/band/band_frame.dart';
+import 'package:tvlauncher/providers/apps_service.dart';
+import 'package:tvlauncher/home_focus.dart';
+import 'package:tvlauncher/providers/wallpaper_service.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
 import 'package:flutter/material.dart';
-import 'package:flauncher/theme.dart';
+import 'package:tvlauncher/theme.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'database.dart';
-import 'flauncher.dart';
-import 'flauncher_channel.dart';
+import 'launcher.dart';
+import 'launcher_channel.dart';
 
-class FLauncherApp extends StatelessWidget {
+class LauncherApp extends StatelessWidget {
   final ImagePicker _imagePicker;
-  final FLauncherChannel _fLauncherChannel;
-  final FLauncherDatabase _fLauncherDatabase;
+  final LauncherChannel _launcherChannel;
+  final LauncherDatabase _launcherDatabase;
 
-  FLauncherApp(this._imagePicker, this._fLauncherChannel, this._fLauncherDatabase);
+  LauncherApp(this._imagePicker, this._launcherChannel, this._launcherDatabase);
 
   @override
   Widget build(BuildContext context) => MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => AppsService(_fLauncherChannel, _fLauncherDatabase)),
-      ChangeNotifierProvider(create: (_) => WallpaperService(_imagePicker, _fLauncherChannel)),
+      ChangeNotifierProvider(create: (_) => AppsService(_launcherChannel, _launcherDatabase)),
+      ChangeNotifierProvider(create: (_) => WallpaperService(_imagePicker, _launcherChannel)),
       Provider<HomeFocusController>(
         create: (_) => HomeFocusController(),
         dispose: (_, controller) => controller.dispose(),
       ),
       // Not lazy: created before the navigator, so Back reaches it first (see BandController.didPopRoute).
       ChangeNotifierProvider(create: (_) => BandController(configFile: BandController.defaultConfigFile), lazy: false),
-      Provider<UiSounds>(create: (context) => UiSounds(_fLauncherChannel, context.read<BandController>())),
+      Provider<UiSounds>(create: (context) => UiSounds(_launcherChannel, context.read<BandController>())),
     ],
     // A builder, so the actions below get a context that sees the providers.
     builder: (context, _) => MaterialApp(
@@ -89,7 +89,7 @@ class FLauncherApp extends StatelessWidget {
               context.read<AppsService>().startAmbientMode();
             }
           },
-          child: Actions(actions: {BackIntent: BackAction(context, systemNavigator: true)}, child: FLauncher()),
+          child: Actions(actions: {BackIntent: BackAction(context, systemNavigator: true)}, child: Launcher()),
         ),
       ),
     ),

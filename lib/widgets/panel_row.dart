@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/motion/spring.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/focus_glide.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/motion/spring.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/focus_glide.dart';
 import 'package:flutter/material.dart';
 
 /// Hands the rows and headers that mount together (a panel or page opening) their order, so they rise in one after

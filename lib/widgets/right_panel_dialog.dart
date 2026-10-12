@@ -20,13 +20,13 @@
 import 'dart:math';
 import 'dart:ui';
 
-import 'package:flauncher/actions.dart';
-import 'package:flauncher/band/band_controller.dart';
-import 'package:flauncher/motion/tuning.dart';
-import 'package:flauncher/sound/ui_sounds.dart';
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/focus_glide.dart';
-import 'package:flauncher/widgets/panel_row.dart';
+import 'package:tvlauncher/actions.dart';
+import 'package:tvlauncher/band/band_controller.dart';
+import 'package:tvlauncher/motion/tuning.dart';
+import 'package:tvlauncher/sound/ui_sounds.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/focus_glide.dart';
+import 'package:tvlauncher/widgets/panel_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

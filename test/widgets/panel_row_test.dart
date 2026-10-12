@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'package:flauncher/theme.dart';
-import 'package:flauncher/widgets/panel_row.dart';
+import 'package:tvlauncher/theme.dart';
+import 'package:tvlauncher/widgets/panel_row.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

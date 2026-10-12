@@ -37,7 +37,7 @@ fun signingSecret(property: String, envVar: String): String? =
 
 android {
     // The Kotlin package and manifest namespace keep the upstream name; only applicationId is ours.
-    namespace = "me.efesser.flauncher"
+    namespace = "dev.neugebauer.tvlauncher"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

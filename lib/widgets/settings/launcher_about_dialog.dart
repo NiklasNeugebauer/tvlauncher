@@ -19,10 +19,10 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-class FLauncherAboutDialog extends StatelessWidget {
+class LauncherAboutDialog extends StatelessWidget {
   final PackageInfo packageInfo;
 
-  FLauncherAboutDialog({super.key, required this.packageInfo});
+  LauncherAboutDialog({super.key, required this.packageInfo});
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +41,10 @@ class FLauncherAboutDialog extends StatelessWidget {
             children: [
               TextSpan(
                 text:
-                    "FLauncher is an open-source alternative launcher for Android TV.\n"
-                    "Source code available at ",
+                    "An open-source home launcher for Android TV, based on FLauncher by Étienne Fesser "
+                    "(GPL-3.0). Original source code: ",
               ),
-              TextSpan(text: "https://gitlab.com/etiennf01/flauncher", style: underlined),
+              TextSpan(text: "https://gitlab.com/flauncher/flauncher", style: underlined),
               TextSpan(text: "."),
             ],
           ),
