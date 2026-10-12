@@ -304,7 +304,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
               ),
               child: tile,
             ),
-            child: _tile(context, band, tuning, focused, towards(focused)),
+            // Its own layer: the springs above only move it, and one tile's light or sheen repaints no other tile.
+            child: RepaintBoundary(child: _tile(context, band, tuning, focused, towards(focused))),
           ),
         ),
       );
