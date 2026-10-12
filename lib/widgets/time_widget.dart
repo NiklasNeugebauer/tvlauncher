@@ -60,9 +60,11 @@ class _TimeWidgetState extends State<TimeWidget> {
         ),
   );
 
+  // Checked every second, rebuilt only when the minute shown changes: each rebuild costs a frame.
   void _refreshTime() {
-    setState(() {
-      _now = clock.now();
-    });
+    final now = clock.now();
+    if (now.minute != _now.minute || now.hour != _now.hour) {
+      setState(() => _now = now);
+    }
   }
 }
