@@ -7,3 +7,4 @@ analyzer:
     - test/generated_migrations
     - build/**
     - android/**
+    - linux/**

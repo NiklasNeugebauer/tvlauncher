@@ -81,3 +81,23 @@ adb push band_config.json /sdcard/Android/data/dev.neugebauer.tvlauncher/files/b
 adb logcat -s flutter | grep "band config"     # loads and saves
 adb logcat -s flutter | grep "frame times"     # with frameTimes on: fps, build/raster ms, missed vsyncs per batch
 ```
+
+## Desktop build and bench
+
+The launcher also runs as a Linux desktop app (`linux/`, cmake and ninja pinned in `mise.toml`), with
+`lib/desktop/`: a fake `LauncherChannel` (24 made-up apps with generated banners and icons, a hero of five, launches
+that hide the launcher and come back), file paths under one directory, and a lifecycle that stays resumed. Nothing in
+`lib/main.dart` imports it, so the APK is unchanged.
+
+```
+mise exec -- flutter run -d linux --profile -t lib/desktop/main_desktop.dart   # arrows/Enter, Backspace = Back, H = Home, Q = quick settings
+tool/bench/run.sh                                                              # BENCH {json}, report in build/bench/latest.json
+```
+
+Files (database, `band_config.json`) go to `build/desktop_data`. The bench plays a D-pad walk, a launch and return,
+the quick settings panel and idle with the TV's band config (`tool/bench/band_config.json`), injecting remote keys
+in-process and ignoring the real keyboard, and reports frames plus UI/raster time per phase (median of 3 passes after
+a warmup). Run to run, totals vary by about 2%. It runs on the normal binding: integration_test's live bindings
+schedule a frame after every frame, so they count 60 fps where the app would idle. The desktop numbers rank changes;
+frame times on the TV still come from the `frameTimes` readout. A Hyprland rule in `~/.config/hypr/hyprland.lua`
+opens the window on workspace 9 without focus.
