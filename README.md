@@ -20,7 +20,7 @@ grid of everything else, and quick settings for the things you touch from the co
 
 ## Build
 
-Toolchain is pinned in `mise.toml` (Flutter 3.7.5, JDK 11, Android SDK 33).
+Flutter and the JDK are pinned in `mise.toml`; the Android SDK needs platform 36 and build-tools 36.0.0.
 
 ```shell
 flutter pub get
