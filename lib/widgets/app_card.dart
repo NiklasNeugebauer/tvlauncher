@@ -22,6 +22,7 @@ import 'package:tvlauncher/band/band_controller.dart';
 import 'package:tvlauncher/database.dart';
 import 'package:tvlauncher/home_focus.dart';
 import 'package:tvlauncher/motion/edge_nudge.dart';
+import 'package:tvlauncher/motion/layer_transform.dart';
 import 'package:tvlauncher/motion/spring.dart';
 import 'package:tvlauncher/motion/tuning.dart';
 import 'package:tvlauncher/providers/apps_service.dart';
@@ -291,8 +292,7 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
               value: _pressed ? tuning[Tune.pressScale] : 1,
               spec: _pressed ? tuning.pressDownSpring : tuning.pressUpSpring,
               onTick: _followTile,
-              builder: (context, press, tile) => Transform(
-                alignment: Alignment.center,
+              builder: (context, press, tile) => LayerTransform(
                 transform: Matrix4.translationValues(0, -tuning[Tune.lift] * raise, 0)
                   ..scaleByDouble(
                     (1 + (tuning[Tune.focusScale] - 1) * raise) * press,
@@ -304,6 +304,8 @@ class _AppCardState extends State<AppCard> with SingleTickerProviderStateMixin {
               ),
               child: tile,
             ),
+            // The tile has its own layer, which the springs above only move: neither they nor the tile's light
+            // or sheen repaint any other tile.
             child: _tile(context, band, tuning, focused, towards(focused)),
           ),
         ),
