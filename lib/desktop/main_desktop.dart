@@ -27,7 +27,6 @@ import 'package:tvlauncher/database.dart';
 import 'package:tvlauncher/desktop/desktop_paths.dart';
 import 'package:tvlauncher/desktop/fake_launcher_channel.dart';
 import 'package:tvlauncher/desktop/fake_remote.dart';
-
 import 'package:tvlauncher/launcher_app.dart';
 
 /// Runs the launcher on a desktop with made-up apps: `flutter run -d linux -t lib/desktop/main_desktop.dart`.
@@ -64,8 +63,8 @@ FakeLauncherChannel startDesktop({String? dataDir}) {
   return channel;
 }
 
-/// A fresh database gets the fake apps and a hero of the first [count], like a TV that has been set up.
-Future<void> seedHero(FakeLauncherChannel channel, LauncherDatabase database, {int count = 5}) async {
+/// A fresh database gets the fake apps and a hero of the first five, like a TV that has been set up.
+Future<void> seedHero(FakeLauncherChannel channel, LauncherDatabase database) async {
   if ((await database.listCategoriesWithVisibleApps()).isNotEmpty) return;
   final apps = await channel.getApplications();
   await database.persistApps([
@@ -82,7 +81,7 @@ Future<void> seedHero(FakeLauncherChannel channel, LauncherDatabase database, {i
   await database.insertCategory(CategoriesCompanion.insert(name: "Main", order: 0));
   final hero = (await database.listCategoriesWithVisibleApps()).first.category;
   await database.insertAppsCategories([
-    for (var i = 0; i < count; i++)
+    for (var i = 0; i < 5; i++)
       AppsCategoriesCompanion.insert(categoryId: hero.id, appPackageName: apps[i]["packageName"], order: i),
   ]);
 }

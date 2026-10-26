@@ -20,7 +20,7 @@ grid of everything else, and quick settings for the things you touch from the co
 
 ## Build
 
-Toolchain is pinned in `mise.toml` (Flutter 3.7.5, JDK 11, Android SDK 33).
+Flutter and the JDK are pinned in `mise.toml`; the Android SDK needs platform 36 and build-tools 36.0.0.
 
 ```shell
 flutter pub get
@@ -44,6 +44,18 @@ adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
 adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
 # undo: adb shell pm enable <package>
 ```
+
+## Desktop
+
+The launcher runs on Linux with 24 made-up apps, which is enough to try out changes without a TV:
+
+```shell
+mise exec -- flutter run -d linux --profile -t lib/desktop/main_desktop.dart
+```
+
+Arrows and Enter act as the remote, Backspace is Back, H is Home, Q opens the quick settings. Data lives in
+`build/desktop_data`; its `band_config.json` applies within a second while the app runs. `tool/bench/run.sh` measures
+the home screen's frame cost.
 
 ## Notes
 

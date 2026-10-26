@@ -33,6 +33,7 @@ import 'package:tvlauncher/launcher_channel.dart';
 class FakeLauncherChannel extends LauncherChannel {
   final Duration returnAfter;
   Future<List<Map<String, Object?>>>? _apps;
+  bool _launched = false;
   void Function(bool fromApp)? _onHomePressed;
   void Function()? _onQuickSettingsPressed;
 
@@ -55,6 +56,9 @@ class FakeLauncherChannel extends LauncherChannel {
   @override
   Future<void> launchApp(String packageName, [LaunchTransition transition = LaunchTransition.system]) async {
     debugPrint("fake channel: launch $packageName with $transition");
+    // One fake app at a time; a second launch before the return would stack another Home press and lifecycle.
+    if (_launched) return;
+    _launched = true;
     // The app's first frame covers the launcher about 350 ms after the start (measured on the device).
     Timer(
       const Duration(milliseconds: 350),
@@ -62,6 +66,7 @@ class FakeLauncherChannel extends LauncherChannel {
     );
     // As on Android: the Home press reaches the launcher (onNewIntent) before it resumes.
     Timer(returnAfter, () {
+      _launched = false;
       _onHomePressed?.call(true);
       _lifecycle(const [AppLifecycleState.hidden, AppLifecycleState.inactive, AppLifecycleState.resumed]);
     });
