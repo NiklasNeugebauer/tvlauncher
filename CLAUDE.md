@@ -3,7 +3,7 @@
 Personal fork of FLauncher, an Android TV home launcher written in Flutter. History: upstream
 [flauncher/flauncher](https://gitlab.com/flauncher/flauncher) 0.18.0 (last release 2023-03, unmaintained),
 then the [zompinc/flauncher](https://github.com/zompinc/flauncher) fork (Firebase removed, pointer support),
-which this repo is cloned from. Remotes: `upstream` (GitLab), `zomp` (GitHub). Own remote: `origin` (private GitHub repo `tvlauncher`).
+which this repo is cloned from. Remotes: `upstream` (GitLab), `zomp` (GitHub). Own remote: `origin` (public GitHub repo `NiklasNeugebauer/tvlauncher`).
 
 `SETUP.local.md` (git-ignored) describes the target device and home network. Read it before deploying.
 
